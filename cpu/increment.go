@@ -1,4 +1,4 @@
-package proc
+package cpu
 
 func (p *Processor) inx() {
 	p.regX = wrappingAddOne(p.regX)

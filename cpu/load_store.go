@@ -1,4 +1,4 @@
-package proc
+package cpu
 
 func lda(p *Processor, op Instruction) {
 	addr := p.getMemoryAddress(op.addrMode)

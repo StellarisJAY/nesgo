@@ -1,4 +1,4 @@
-package proc
+package cpu
 
 const (
 	NOP byte = 0xEA

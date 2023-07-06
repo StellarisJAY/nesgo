@@ -1,4 +1,4 @@
-package proc
+package cpu
 
 func jmp(p *Processor, op Instruction) {
 	addr := p.getMemoryAddress(op.addrMode)
