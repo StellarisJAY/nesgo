@@ -2,7 +2,10 @@ module github.com/stellarisJAY/nesgo
 
 go 1.19
 
-require github.com/stretchr/testify v1.8.4
+require (
+	github.com/stretchr/testify v1.8.4
+	github.com/veandco/go-sdl2 v0.4.35
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
