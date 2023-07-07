@@ -11,10 +11,8 @@ func TestJMP(t *testing.T) {
 		program []byte
 		pc      uint16
 		x       byte
-		y       byte
 	}{
-		{"jmp1", []byte{INX, JMP_A, 0x05, 0x80, BRK, INX}, 0x8007, 2, 0},
-		{"jmp2", []byte{INY, JMP_A, 0x05, 0x80, BRK, INY}, 0x8007, 0, 2},
+		{"jmp1", []byte{INX, JMP_A, 0x05, 0x06, BRK, INX}, 0x0607, 2},
 	}
 
 	for _, c := range cases {
@@ -23,6 +21,7 @@ func TestJMP(t *testing.T) {
 			p := NewProcessor()
 			p.LoadAndRun(tc.program)
 			assert.Equal(t, tc.pc, p.pc)
+			assert.Equal(t, tc.x, p.regX)
 		})
 	}
 }

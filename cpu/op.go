@@ -183,8 +183,8 @@ var (
 		LDY_ABS: {LDY_ABS, "LDY", 3, 4, Absolute, ldy},
 		LDY_ABX: {LDY_ABX, "LDY", 3, 4, AbsoluteX, ldy},
 		// JMP
-		JMP_A: {JMP_A, "JMP", 2, 2, NoneAddressing, jmp},
-		JMP_I: {JMP_I, "JMP", 2, 2, NoneAddressing, jmp},
+		JMP_A: {JMP_A, "JMP", 3, 2, Absolute, jmp},
+		JMP_I: {JMP_I, "JMP", 3, 2, Absolute, jmpIndirect},
 		// Stack
 		TSX: {TSX, "TSX", 1, 2, NoneAddressing, tsx},
 		TXS: {TXS, "TXS", 1, 2, NoneAddressing, txs},
