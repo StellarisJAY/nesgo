@@ -31,3 +31,57 @@ func rts(p *Processor, _ Instruction) {
 	ra := uint16(high)<<8 | uint16(low)
 	p.pc = ra
 }
+
+func jmpOffset(p *Processor) {
+	addr := p.getMemoryAddress(Immediate)
+	offset := p.readMemUint8(addr)
+	p.pc = p.pc + uint16(offset)
+}
+
+func bcc(p *Processor, _ Instruction) {
+	if p.regStatus&CarryStatus == 0 {
+		jmpOffset(p)
+	}
+}
+
+func bcs(p *Processor, _ Instruction) {
+	if p.regStatus&CarryStatus != 0 {
+		jmpOffset(p)
+	}
+}
+
+func beq(p *Processor, _ Instruction) {
+	if p.regStatus&ZeroStatus != 0 {
+		jmpOffset(p)
+	}
+}
+
+func bne(p *Processor, _ Instruction) {
+	if p.regStatus&ZeroStatus == 0 {
+		jmpOffset(p)
+	}
+}
+
+func bmi(p *Processor, _ Instruction) {
+	if p.regStatus&NegativeStatus != 0 {
+		jmpOffset(p)
+	}
+}
+
+func bpl(p *Processor, _ Instruction) {
+	if p.regStatus&NegativeStatus == 0 {
+		jmpOffset(p)
+	}
+}
+
+func bvc(p *Processor, _ Instruction) {
+	if p.regStatus&OverflowStatus == 0 {
+		jmpOffset(p)
+	}
+}
+
+func bvs(p *Processor, _ Instruction) {
+	if p.regStatus&OverflowStatus != 0 {
+		jmpOffset(p)
+	}
+}

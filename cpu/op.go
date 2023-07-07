@@ -101,6 +101,15 @@ const (
 	SEC byte = 0x38
 	SED byte = 0xF8
 	SEI byte = 0x78
+
+	BCC byte = 0x90
+	BCS byte = 0xB0
+	BVC byte = 0x50
+	BVS byte = 0x70
+	BEQ byte = 0xF0
+	BNE byte = 0xD0
+	BMI byte = 0x30
+	BPL byte = 0x10
 )
 
 // AddressMode 寻址模式
@@ -235,6 +244,15 @@ var (
 		SEC: {SEC, "SEC", 1, 2, NoneAddressing, sec},
 		SED: {SED, "SED", 1, 2, NoneAddressing, sed},
 		SEI: {SEI, "SEI", 1, 2, NoneAddressing, sei},
+		// Branch
+		BCC: {BCC, "BCC", 2, 2, NoneAddressing, bcc},
+		BCS: {BCS, "BCS", 2, 2, NoneAddressing, bcs},
+		BVC: {BVC, "BVC", 2, 2, NoneAddressing, bvc},
+		BVS: {BVS, "BVS", 2, 2, NoneAddressing, bvs},
+		BEQ: {BEQ, "BEQ", 2, 2, NoneAddressing, beq},
+		BNE: {BNE, "BNE", 2, 2, NoneAddressing, bne},
+		BMI: {BMI, "BMI", 2, 2, NoneAddressing, bmi},
+		BPL: {BPL, "BPL", 2, 2, NoneAddressing, bpl},
 	}
 )
 

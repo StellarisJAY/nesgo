@@ -49,3 +49,29 @@ func TestSubroutine(t *testing.T) {
 		})
 	}
 }
+
+func TestBranch(t *testing.T) {
+	cases := []struct {
+		name    string
+		program []byte
+		pc      uint16
+		x       byte
+	}{
+		{"bcc", []byte{INX, BCC, 0x2, BRK, INX}, 0x0606, 2},
+		{"bcs", []byte{SEC, BCS, 0x2, BRK, INX}, 0x0606, 1},
+		{"beq", []byte{LDA_IM, 0, BEQ, 0x2, BRK, INX}, 0x0607, 1},
+		{"bne", []byte{BNE, 0x2, BRK, INX}, 0x0605, 1},
+		{"bmi", []byte{LDA_IM, 0xff, BMI, 0x2, BRK, INX}, 0x0607, 1},
+		{"bpl", []byte{BPL, 0x2, BRK, INX}, 0x0605, 1},
+	}
+
+	for _, c := range cases {
+		tc := c
+		t.Run(tc.name, func(t *testing.T) {
+			p := NewProcessor()
+			p.LoadAndRun(tc.program)
+			assert.Equal(t, tc.pc, p.pc)
+			assert.Equal(t, tc.x, p.regX)
+		})
+	}
+}
