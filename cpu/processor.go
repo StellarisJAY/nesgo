@@ -6,8 +6,13 @@ import (
 
 const (
 	MemorySize      int = 1 << 16 // 内存大小，64KiB
-	ProgramBaseAddr     = 0x8000  // 程序代码加载到0x8000地址
+	ProgramBaseAddr     = 0x0600  // 程序代码加载到0x8000地址
+	OutputBaseAddr      = 0x0200
+	OutputEndAddr       = 0x0600
 )
+
+// CallbackFunc 每条指令执行前的callback，返回false将结束处理器循环
+type CallbackFunc func(*Processor) bool
 
 type Processor struct {
 	regA      byte
@@ -26,6 +31,12 @@ func (p *Processor) LoadAndRun(program []byte) {
 	p.loadProgram(program)
 	p.reset()
 	p.run()
+}
+
+func (p *Processor) LoadAndRunWithCallback(program []byte, callback CallbackFunc) {
+	p.loadProgram(program)
+	p.reset()
+	p.runWithCallback(callback)
 }
 
 func (p *Processor) loadProgram(program []byte) {
@@ -51,6 +62,36 @@ func (p *Processor) run() {
 			panic(fmt.Errorf("unknown instruction: 0x%x", opCode))
 		}
 
+		switch opCode {
+		case BRK:
+			return
+		case NOP:
+			continue
+		case INX:
+			p.inx()
+		case INY:
+			p.iny()
+		default:
+			instruction.handler(p, instruction)
+		}
+		if p.pc == originalPc {
+			p.pc += uint16(instruction.length - 1)
+		}
+	}
+}
+
+func (p *Processor) runWithCallback(callback CallbackFunc) {
+	for {
+		if !callback(p) {
+			break
+		}
+		opCode := p.readMemUint8(p.pc)
+		p.pc++
+		originalPc := p.pc
+		instruction, ok := Instructions[opCode]
+		if !ok {
+			panic(fmt.Errorf("unknown instruction: 0x%x", opCode))
+		}
 		switch opCode {
 		case BRK:
 			return
@@ -123,4 +164,9 @@ func (p *Processor) getMemoryAddress(mode AddressMode) uint16 {
 		addr = p.pc
 	}
 	return addr
+}
+
+// GetMemoryRange 获取start到end范围内的内存切片
+func (p *Processor) GetMemoryRange(start, end uint16) []byte {
+	return p.memory[start:end]
 }
