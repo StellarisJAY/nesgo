@@ -110,6 +110,23 @@ const (
 	BNE byte = 0xD0
 	BMI byte = 0x30
 	BPL byte = 0x10
+
+	CMP_IM  byte = 0xC9
+	CMP_ZP  byte = 0xC5
+	CMP_ZPX byte = 0xD5
+	CMP_ABS byte = 0xCD
+	CMP_ABX byte = 0xDD
+	CMP_ABY byte = 0xD9
+	CMP_INX byte = 0xC1
+	CMP_INY byte = 0xD1
+
+	CPX_IM  byte = 0xE0
+	CPX_ZP  byte = 0xE4
+	CPX_ABS byte = 0xEC
+
+	CPY_IM  byte = 0xC0
+	CPY_ZP  byte = 0xC4
+	CPY_ABS byte = 0xCC
 )
 
 // AddressMode 寻址模式
@@ -253,6 +270,22 @@ var (
 		BNE: {BNE, "BNE", 2, 2, NoneAddressing, bne},
 		BMI: {BMI, "BMI", 2, 2, NoneAddressing, bmi},
 		BPL: {BPL, "BPL", 2, 2, NoneAddressing, bpl},
+		// CMP
+		CMP_IM:  {CMP_IM, "CMP", 2, 2, Immediate, cmp},
+		CMP_ZP:  {CMP_ZP, "CMP", 2, 3, ZeroPage, cmp},
+		CMP_ZPX: {CMP_ZPX, "CMP", 2, 4, ZeroPageX, cmp},
+		CMP_ABS: {CMP_ABS, "CMP", 3, 4, Absolute, cmp},
+		CMP_ABX: {CMP_ABX, "CMP", 3, 4, AbsoluteX, cmp},
+		CMP_ABY: {CMP_ABY, "CMP", 3, 4, AbsoluteY, cmp},
+		CMP_INX: {CMP_INX, "CMP", 2, 6, IndirectX, cmp},
+		CMP_INY: {CMP_INY, "CMP", 2, 5, IndirectY, cmp},
+		// CPX CPY
+		CPX_IM:  {CPX_IM, "CPX", 2, 2, Immediate, cpx},
+		CPX_ZP:  {CPX_ZP, "CPX", 2, 3, ZeroPage, cpx},
+		CPX_ABS: {CPX_ABS, "CPX", 3, 4, Absolute, cpx},
+		CPY_IM:  {CPY_IM, "CPY", 2, 2, Immediate, cpy},
+		CPY_ZP:  {CPY_ZP, "CPY", 2, 3, ZeroPage, cpy},
+		CPY_ABS: {CPY_ABS, "CPY", 3, 4, Absolute, cpy},
 	}
 )
 
