@@ -4,11 +4,19 @@ import (
 	"fmt"
 )
 
+// 内存布局
+// 屏幕像素点：[0x0200, 0x0600)，共32x32个像素点，一行32个像素
+// 程序代码：[0x0600, ...)
+// 栈：[0x0100, 0x01FF)，共256字节
+// 上一个Input：0xFF
 const (
 	MemorySize      int = 1 << 16 // 内存大小，64KiB
 	ProgramBaseAddr     = 0x0600  // 程序代码加载到0x8000地址
 	OutputBaseAddr      = 0x0200
 	OutputEndAddr       = 0x0600
+	StackBase           = 0x0100
+	StackReset          = 0xFF
+	StackSize           = 256
 )
 
 // CallbackFunc 每条指令执行前的callback，返回false将结束处理器循环
@@ -18,9 +26,10 @@ type Processor struct {
 	regA      byte
 	regX      byte
 	regY      byte
-	regStatus byte
-	pc        uint16
-	memory    [MemorySize]byte
+	regStatus byte             // resStatus 状态寄存器，记录上一条指令的状态
+	pc        uint16           // pc 程序计数器
+	sp        byte             // sp 栈指针，记录栈地址的低8位，高位固定为0x0100
+	memory    [MemorySize]byte // memory 内存区域，大小64KiB
 }
 
 func NewProcessor() Processor {
@@ -49,6 +58,7 @@ func (p *Processor) reset() {
 	p.regA = 0
 	p.regY = 0
 	p.regStatus = 0
+	p.sp = StackReset
 	p.pc = p.readMemUint16(0xFFFC)
 }
 

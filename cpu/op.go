@@ -55,6 +55,13 @@ const (
 	JMP_A byte = 0x4C
 	JMP_I byte = 0x6C
 
+	TSX byte = 0xBA
+	TXS byte = 0x9A
+	PHA byte = 0x48
+	PHP byte = 0x08
+	PLA byte = 0x68
+	PLP byte = 0x28
+
 	ZeroStatus     byte = 1 << 1
 	NegativeStatus byte = 1 << 7
 )
@@ -143,6 +150,13 @@ var (
 		// JMP
 		JMP_A: {JMP_A, "JMP", 2, 2, NoneAddressing, jmp},
 		JMP_I: {JMP_I, "JMP", 2, 2, NoneAddressing, jmp},
+		// Stack
+		TSX: {TSX, "TSX", 1, 2, NoneAddressing, tsx},
+		TXS: {TXS, "TXS", 1, 2, NoneAddressing, txs},
+		PHA: {PHA, "PHA", 1, 2, NoneAddressing, pha},
+		PHP: {PHP, "PHP", 1, 2, NoneAddressing, php},
+		PLA: {PLA, "PLA", 1, 2, NoneAddressing, pla},
+		PLP: {PLP, "PLP", 1, 2, NoneAddressing, plp},
 	}
 )
 
