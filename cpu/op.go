@@ -54,6 +54,8 @@ const (
 
 	JMP_A byte = 0x4C
 	JMP_I byte = 0x6C
+	JSR   byte = 0x20
+	RTS   byte = 0x60
 
 	TSX byte = 0xBA
 	TXS byte = 0x9A
@@ -185,6 +187,8 @@ var (
 		// JMP
 		JMP_A: {JMP_A, "JMP", 3, 2, Absolute, jmp},
 		JMP_I: {JMP_I, "JMP", 3, 2, Absolute, jmpIndirect},
+		JSR:   {JSR, "JSR", 3, 6, Absolute, jsr},
+		RTS:   {RTS, "RTS", 1, 6, NoneAddressing, rts},
 		// Stack
 		TSX: {TSX, "TSX", 1, 2, NoneAddressing, tsx},
 		TXS: {TXS, "TXS", 1, 2, NoneAddressing, txs},
