@@ -62,6 +62,36 @@ const (
 	PLA byte = 0x68
 	PLP byte = 0x28
 
+	AND_IM  byte = 0x29
+	AND_ZP  byte = 0x25
+	AND_ZPX byte = 0x35
+	AND_ABS byte = 0x2D
+	AND_ABX byte = 0x3D
+	AND_ABY byte = 0x39
+	AND_INX byte = 0x21
+	AND_INY byte = 0x31
+
+	EOR_IM  byte = 0x49
+	EOR_ZP  byte = 0x45
+	EOR_ZPX byte = 0x55
+	EOR_ABS byte = 0x4D
+	EOR_ABX byte = 0x5D
+	EOR_ABY byte = 0x59
+	EOR_INX byte = 0x41
+	EOR_INY byte = 0x51
+
+	ORA_IM  byte = 0x09
+	ORA_ZP  byte = 0x05
+	ORA_ZPX byte = 0x15
+	ORA_ABS byte = 0x0D
+	ORA_ABX byte = 0x1D
+	ORA_ABY byte = 0x19
+	ORA_INX byte = 0x01
+	ORA_INY byte = 0x11
+
+	BIT_ZP  byte = 0x24
+	BIT_ABS byte = 0x2C
+
 	ZeroStatus     byte = 1 << 1
 	NegativeStatus byte = 1 << 7
 )
@@ -157,6 +187,37 @@ var (
 		PHP: {PHP, "PHP", 1, 2, NoneAddressing, php},
 		PLA: {PLA, "PLA", 1, 2, NoneAddressing, pla},
 		PLP: {PLP, "PLP", 1, 2, NoneAddressing, plp},
+
+		// Logical AND A
+		AND_IM:  {AND_IM, "AND", 2, 2, Immediate, and},
+		AND_ZP:  {AND_ZP, "AND", 2, 3, ZeroPage, and},
+		AND_ZPX: {AND_ZPX, "AND", 2, 4, ZeroPageX, and},
+		AND_ABS: {AND_ABS, "AND", 3, 4, Absolute, and},
+		AND_ABX: {AND_ABX, "AND", 3, 4, AbsoluteX, and},
+		AND_ABY: {AND_ABY, "AND", 3, 4, AbsoluteY, and},
+		AND_INX: {AND_INX, "AND", 2, 6, IndirectX, and},
+		AND_INY: {AND_INY, "AND", 2, 5, IndirectY, and},
+		// Logical EOR A
+		EOR_IM:  {EOR_IM, "EOR", 2, 2, Immediate, eor},
+		EOR_ZP:  {EOR_ZP, "EOR", 2, 3, ZeroPage, eor},
+		EOR_ZPX: {EOR_ZPX, "EOR", 2, 4, ZeroPageX, eor},
+		EOR_ABS: {EOR_ABS, "EOR", 3, 4, Absolute, eor},
+		EOR_ABX: {EOR_ABX, "EOR", 3, 4, AbsoluteX, eor},
+		EOR_ABY: {EOR_ABY, "EOR", 3, 4, AbsoluteY, eor},
+		EOR_INX: {EOR_INX, "EOR", 2, 6, IndirectX, eor},
+		EOR_INY: {EOR_INY, "EOR", 2, 5, IndirectY, eor},
+		// Logical OR A
+		ORA_IM:  {ORA_IM, "ORA", 2, 2, Immediate, ora},
+		ORA_ZP:  {ORA_ZP, "ORA", 2, 3, ZeroPage, ora},
+		ORA_ZPX: {ORA_ZPX, "ORA", 2, 4, ZeroPageX, ora},
+		ORA_ABS: {ORA_ABS, "ORA", 3, 4, Absolute, ora},
+		ORA_ABX: {ORA_ABX, "ORA", 3, 4, AbsoluteX, ora},
+		ORA_ABY: {ORA_ABY, "ORA", 3, 4, AbsoluteY, ora},
+		ORA_INX: {ORA_INX, "ORA", 2, 6, IndirectX, ora},
+		ORA_INY: {ORA_INY, "ORA", 2, 5, IndirectY, ora},
+		// Logical Bit Test A
+		BIT_ZP:  {BIT_ZP, "BIT", 2, 3, ZeroPage, bit},
+		BIT_ABS: {BIT_ABS, "BIT", 3, 4, Absolute, bit},
 	}
 )
 
