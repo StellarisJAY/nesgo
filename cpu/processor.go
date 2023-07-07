@@ -19,6 +19,16 @@ const (
 	StackSize           = 256
 )
 
+const (
+	CarryStatus            byte = 1 << 1
+	ZeroStatus             byte = 1 << 2
+	OverflowStatus         byte = 1 << 3
+	BreakStatus            byte = 1 << 4
+	DecimalModeStatus      byte = 1 << 5
+	InterruptDisableStatus byte = 1 << 6
+	NegativeStatus         byte = 1 << 7
+)
+
 // CallbackFunc 每条指令执行前的callback，返回false将结束处理器循环
 type CallbackFunc func(*Processor) bool
 
@@ -104,6 +114,7 @@ func (p *Processor) runWithCallback(callback CallbackFunc) {
 		}
 		switch opCode {
 		case BRK:
+			p.regStatus |= BreakStatus
 			return
 		case NOP:
 			continue
@@ -179,4 +190,31 @@ func (p *Processor) getMemoryAddress(mode AddressMode) uint16 {
 // GetMemoryRange 获取start到end范围内的内存切片
 func (p *Processor) GetMemoryRange(start, end uint16) []byte {
 	return p.memory[start:end]
+}
+
+func clc(p *Processor, _ Instruction) {
+	p.regStatus &= ^CarryStatus
+}
+
+func cld(p *Processor, _ Instruction) {
+	p.regStatus &= ^DecimalModeStatus
+}
+
+func cli(p *Processor, _ Instruction) {
+	p.regStatus &= ^InterruptDisableStatus
+}
+
+func clv(p *Processor, _ Instruction) {
+	p.regStatus &= ^OverflowStatus
+}
+
+func sec(p *Processor, _ Instruction) {
+	p.regStatus |= CarryStatus
+}
+
+func sed(p *Processor, _ Instruction) {
+	p.regStatus |= DecimalModeStatus
+}
+func sei(p *Processor, _ Instruction) {
+	p.regStatus |= InterruptDisableStatus
 }

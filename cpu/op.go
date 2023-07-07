@@ -92,8 +92,13 @@ const (
 	BIT_ZP  byte = 0x24
 	BIT_ABS byte = 0x2C
 
-	ZeroStatus     byte = 1 << 1
-	NegativeStatus byte = 1 << 7
+	CLC byte = 0x18
+	CLD byte = 0xD8
+	CLI byte = 0x58
+	CLV byte = 0xB8
+	SEC byte = 0x38
+	SED byte = 0xF8
+	SEI byte = 0x78
 )
 
 // AddressMode 寻址模式
@@ -218,6 +223,14 @@ var (
 		// Logical Bit Test A
 		BIT_ZP:  {BIT_ZP, "BIT", 2, 3, ZeroPage, bit},
 		BIT_ABS: {BIT_ABS, "BIT", 3, 4, Absolute, bit},
+		// Set and clear Status Register
+		CLC: {CLC, "CLC", 1, 2, NoneAddressing, clc},
+		CLD: {CLD, "CLD", 1, 2, NoneAddressing, cld},
+		CLI: {CLI, "CLI", 1, 2, NoneAddressing, cli},
+		CLV: {CLV, "CLV", 1, 2, NoneAddressing, clv},
+		SEC: {SEC, "SEC", 1, 2, NoneAddressing, sec},
+		SED: {SED, "SED", 1, 2, NoneAddressing, sed},
+		SEI: {SEI, "SEI", 1, 2, NoneAddressing, sei},
 	}
 )
 
