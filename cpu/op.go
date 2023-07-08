@@ -127,6 +127,30 @@ const (
 	CPY_IM  byte = 0xC0
 	CPY_ZP  byte = 0xC4
 	CPY_ABS byte = 0xCC
+
+	ADC_IM  byte = 0x69
+	ADC_ZP  byte = 0x65
+	ADC_ZPX byte = 0x75
+	ADC_ABS byte = 0x6D
+	ADC_ABX byte = 0x7D
+	ADC_ABY byte = 0x79
+	ADC_INX byte = 0x61
+	ADC_INY byte = 0x71
+
+	ASL     byte = 0x0A
+	ASL_ZP  byte = 0x06
+	ASL_ZPX byte = 0x1A
+	ASL_ABS byte = 0x0E
+	ASL_ABX byte = 0x1E
+
+	LSR     byte = 0x4A
+	LSR_ZP  byte = 0x04
+	LSR_ZPX byte = 0x5A
+	LSR_ABS byte = 0x4E
+	LSR_ABX byte = 0x5E
+
+	DEX byte = 0xCA
+	DEY byte = 0x88
 )
 
 // AddressMode 寻址模式
@@ -160,14 +184,17 @@ type Instruction struct {
 
 var (
 	Instructions = map[byte]Instruction{
-		NOP:     {NOP, "NOP", 1, 2, NoneAddressing, nil},
-		BRK:     {BRK, "BRK", 1, 1, NoneAddressing, nil},
-		TAX:     {TAX, "TAX", 1, 1, NoneAddressing, tax},
-		TAY:     {TAY, "TAY", 1, 2, NoneAddressing, tay},
-		TXA:     {TXA, "TXA", 1, 2, NoneAddressing, txa},
-		TYA:     {TYA, "TYA", 1, 2, NoneAddressing, tya},
-		INX:     {INX, "INX", 1, 1, NoneAddressing, nil},
-		INY:     {INY, "INY", 1, 2, NoneAddressing, nil},
+		NOP: {NOP, "NOP", 1, 2, NoneAddressing, nil},
+		BRK: {BRK, "BRK", 1, 1, NoneAddressing, nil},
+		TAX: {TAX, "TAX", 1, 1, NoneAddressing, tax},
+		TAY: {TAY, "TAY", 1, 2, NoneAddressing, tay},
+		TXA: {TXA, "TXA", 1, 2, NoneAddressing, txa},
+		TYA: {TYA, "TYA", 1, 2, NoneAddressing, tya},
+		INX: {INX, "INX", 1, 1, NoneAddressing, nil},
+		INY: {INY, "INY", 1, 2, NoneAddressing, nil},
+		DEX: {DEX, "DEX", 1, 1, NoneAddressing, dex},
+		DEY: {DEY, "DEY", 1, 1, NoneAddressing, dey},
+
 		INC_ZP:  {INC_ZP, "INC", 2, 5, ZeroPage, inc},
 		INC_ZPX: {INC_ZPX, "INC", 2, 6, ZeroPageX, inc},
 		INC_ABS: {INC_ABS, "INC", 3, 6, Absolute, inc},
@@ -286,6 +313,27 @@ var (
 		CPY_IM:  {CPY_IM, "CPY", 2, 2, Immediate, cpy},
 		CPY_ZP:  {CPY_ZP, "CPY", 2, 3, ZeroPage, cpy},
 		CPY_ABS: {CPY_ABS, "CPY", 3, 4, Absolute, cpy},
+		// ADC
+		ADC_IM:  {ADC_IM, "ADC", 2, 2, Immediate, adc},
+		ADC_ZP:  {ADC_ZP, "ADC", 2, 3, ZeroPage, adc},
+		ADC_ZPX: {ADC_ZPX, "ADC", 2, 4, ZeroPageX, adc},
+		ADC_ABS: {ADC_ABS, "ADC", 3, 4, Absolute, adc},
+		ADC_ABX: {ADC_ABX, "ADC", 3, 4, AbsoluteX, adc},
+		ADC_ABY: {ADC_ABY, "ADC", 3, 4, AbsoluteY, adc},
+		ADC_INX: {ADC_INX, "ADC", 2, 6, IndirectX, adc},
+		ADC_INY: {ADC_INY, "ADC", 2, 5, IndirectY, adc},
+
+		ASL:     {ASL, "ASL", 2, 2, Immediate, asl},
+		ASL_ZP:  {ASL_ZP, "ASL", 2, 5, ZeroPage, asl},
+		ASL_ZPX: {ASL_ZPX, "ASL", 2, 6, ZeroPageX, asl},
+		ASL_ABS: {ASL_ABS, "ASL", 3, 6, Absolute, asl},
+		ASL_ABX: {ASL_ABX, "ASL", 3, 7, AbsoluteX, asl},
+
+		LSR:     {LSR, "LSR", 1, 2, Immediate, lsr},
+		LSR_ZP:  {LSR_ZP, "LSR", 2, 5, ZeroPage, lsr},
+		LSR_ZPX: {LSR_ZPX, "LSR", 2, 6, ZeroPageX, lsr},
+		LSR_ABS: {LSR_ABS, "LSR", 3, 6, Absolute, lsr},
+		LSR_ABX: {LSR_ABX, "LSR", 3, 7, AbsoluteX, lsr},
 	}
 )
 
