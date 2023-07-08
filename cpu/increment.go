@@ -23,3 +23,13 @@ func wrappingAddOne(val byte) byte {
 		return val + 1
 	}
 }
+
+func dex(p *Processor, _ Instruction) {
+	p.regX = p.regX - 1
+	p.zeroOrNegativeStatus(p.regX)
+}
+
+func dey(p *Processor, _ Instruction) {
+	p.regY = p.regY - 1
+	p.zeroOrNegativeStatus(p.regY)
+}
