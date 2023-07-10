@@ -35,7 +35,13 @@ func rts(p *Processor, _ Instruction) {
 func jmpOffset(p *Processor) {
 	addr := p.getMemoryAddress(Immediate)
 	offset := p.readMemUint8(addr)
-	p.pc = p.pc + uint16(offset)
+	// offset为负，pc减小
+	if offset&(1<<7) != 0 {
+		rev := int8(offset)
+		p.pc = p.pc + 1 - uint16(-int16(rev))
+	} else {
+		p.pc = p.pc + 1 + uint16(offset)
+	}
 }
 
 func bcc(p *Processor, _ Instruction) {
