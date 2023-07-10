@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"fmt"
+	"github.com/veandco/go-sdl2/sdl"
 )
 
 // 内存布局
@@ -10,13 +11,14 @@ import (
 // 栈：[0x0100, 0x01FF)，共256字节
 // 上一个Input：0xFF
 const (
-	MemorySize      int = 1 << 16 // 内存大小，64KiB
-	ProgramBaseAddr     = 0x0600  // 程序代码加载到0x8000地址
-	OutputBaseAddr      = 0x0200
-	OutputEndAddr       = 0x0600
-	StackBase           = 0x0100
-	StackReset          = 0xFF
-	StackSize           = 256
+	MemorySize      int    = 1 << 16 // 内存大小，64KiB
+	ProgramBaseAddr        = 0x0600  // 程序代码加载到0x8000地址
+	OutputBaseAddr         = 0x0200
+	OutputEndAddr          = 0x0600
+	StackBase              = 0x0100
+	StackReset             = 0xFF
+	StackSize              = 256
+	Input           uint16 = 0xFF
 )
 
 const (
@@ -27,6 +29,13 @@ const (
 	DecimalModeStatus      byte = 1 << 5
 	InterruptDisableStatus byte = 1 << 6
 	NegativeStatus         byte = 1 << 7
+)
+
+const (
+	ActionUp    byte = 0x77
+	ActionDown  byte = 0x73
+	ActionLeft  byte = 0x61
+	ActionRight byte = 0x64
 )
 
 // CallbackFunc 每条指令执行前的callback，返回false将结束处理器循环
@@ -52,10 +61,10 @@ func (p *Processor) LoadAndRun(program []byte) {
 	p.run()
 }
 
-func (p *Processor) LoadAndRunWithCallback(program []byte, callback CallbackFunc) {
+func (p *Processor) LoadAndRunWithCallback(program []byte, prevExec, afterExec CallbackFunc) {
 	p.loadProgram(program)
 	p.reset()
-	p.runWithCallback(callback)
+	p.runWithCallback(prevExec, afterExec)
 }
 
 func (p *Processor) loadProgram(program []byte) {
@@ -81,37 +90,6 @@ func (p *Processor) run() {
 		if !ok {
 			panic(fmt.Errorf("unknown instruction: 0x%x", opCode))
 		}
-
-		switch opCode {
-		case BRK:
-			return
-		case NOP:
-			continue
-		case INX:
-			p.inx()
-		case INY:
-			p.iny()
-		default:
-			instruction.handler(p, instruction)
-		}
-		if p.pc == originalPc {
-			p.pc += uint16(instruction.length - 1)
-		}
-	}
-}
-
-func (p *Processor) runWithCallback(callback CallbackFunc) {
-	for {
-		if !callback(p) {
-			break
-		}
-		opCode := p.readMemUint8(p.pc)
-		p.pc++
-		originalPc := p.pc
-		instruction, ok := Instructions[opCode]
-		if !ok {
-			panic(fmt.Errorf("unknown instruction: 0x%x", opCode))
-		}
 		switch opCode {
 		case BRK:
 			p.regStatus |= BreakStatus
@@ -129,6 +107,55 @@ func (p *Processor) runWithCallback(callback CallbackFunc) {
 			p.pc += uint16(instruction.length - 1)
 		}
 	}
+}
+
+func (p *Processor) runWithCallback(prevExec, afterExec CallbackFunc) {
+	for {
+		if !prevExec(p) {
+			break
+		}
+		opCode := p.readMemUint8(p.pc)
+		p.pc++
+		originalPc := p.pc
+		instruction, ok := Instructions[opCode]
+		if !ok {
+			panic(fmt.Errorf("unknown instruction at %d: 0x%x", originalPc-1-ProgramBaseAddr, opCode))
+		}
+		switch opCode {
+		case BRK:
+			p.regStatus |= BreakStatus
+			return
+		case NOP:
+			continue
+		case INX:
+			p.inx()
+		case INY:
+			p.iny()
+		default:
+			instruction.handler(p, instruction)
+		}
+		if p.pc == originalPc {
+			p.pc += uint16(instruction.length - 1)
+		}
+		afterExec(p)
+	}
+}
+
+func (p *Processor) HandleKeyboardEvent(event *sdl.KeyboardEvent) {
+	var action byte
+	switch event.Keysym.Scancode {
+	case sdl.SCANCODE_W:
+		action = ActionUp
+	case sdl.SCANCODE_S:
+		action = ActionDown
+	case sdl.SCANCODE_A:
+		action = ActionLeft
+	case sdl.SCANCODE_D:
+		action = ActionRight
+	default:
+		return
+	}
+	p.writeMemUint8(Input, action)
 }
 
 func (p *Processor) readMemUint8(addr uint16) byte {

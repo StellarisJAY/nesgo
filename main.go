@@ -6,6 +6,7 @@ import (
 	"github.com/stellarisJAY/nesgo/ppu"
 	"github.com/veandco/go-sdl2/sdl"
 	"io"
+	"log"
 	"os"
 	"time"
 	"unsafe"
@@ -67,7 +68,7 @@ var frame = make([]byte, 32*32*3) // 记录屏幕32x32个像素的RGBA颜色
 var window *sdl.Window
 var renderer *sdl.Renderer
 
-const RenderInterval time.Duration = 100
+const RenderInterval = 70000 * time.Nanosecond
 
 // initSDL 初始化window和renderer
 func initSDL() error {
@@ -100,6 +101,7 @@ func parseArgsAndReadProgramFile(args []string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read game file error %w", err)
 	}
+	log.Printf("loaded program: %s, size: %d", args[1], len(program))
 	return program, nil
 }
 
@@ -121,30 +123,28 @@ func main() {
 	defer window.Destroy()
 
 	// 运行program，callback进行屏幕渲染
-	processor.LoadAndRunWithCallback(program, func(p *cpu.Processor) bool {
-		if handleEvents() {
-			return false
-		}
+	processor.LoadAndRunWithCallback(program, handleEvents, func(p *cpu.Processor) bool {
 		// 从内存读取屏幕数据，如果发生更新就刷新屏幕像素
 		updated := ppu.ReadAndUpdateScreen(p.GetMemoryRange(cpu.OutputBaseAddr, cpu.OutputEndAddr), frame)
 		if updated {
 			_ = texture.Update(nil, unsafe.Pointer(&frame[0]), 32*3)
 			_ = renderer.Copy(texture, nil, nil)
 			renderer.Present()
-			time.Sleep(RenderInterval * time.Millisecond)
 		}
+		time.Sleep(RenderInterval)
 		return true
 	})
 }
 
-func handleEvents() (shutdown bool) {
+func handleEvents(p *cpu.Processor) bool {
 	for e := sdl.PollEvent(); e != nil; e = sdl.PollEvent() {
 		switch e.(type) {
 		case *sdl.QuitEvent:
-			shutdown = true
+			return false
+		case *sdl.KeyboardEvent:
+			p.HandleKeyboardEvent(e.(*sdl.KeyboardEvent))
 		default:
-
 		}
 	}
-	return
+	return true
 }
