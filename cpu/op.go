@@ -52,6 +52,11 @@ const (
 	INC_ABS byte = 0xEE
 	INC_ABX byte = 0xFE
 
+	DEC_ZP  byte = 0xC6
+	DEC_ZPX byte = 0xD6
+	DEC_ABS byte = 0xCE
+	DEC_ABX byte = 0xDE
+
 	JMP_A byte = 0x4C
 	JMP_I byte = 0x6C
 	JSR   byte = 0x20
@@ -151,6 +156,15 @@ const (
 
 	DEX byte = 0xCA
 	DEY byte = 0x88
+
+	SBC_IM  byte = 0xE9
+	SBC_ZP  byte = 0xE5
+	SBC_ZPX byte = 0xF5
+	SBC_ABS byte = 0xED
+	SBC_ABX byte = 0xFD
+	SBC_ABY byte = 0xF9
+	SBC_INX byte = 0xE1
+	SBC_INY byte = 0xF1
 )
 
 // AddressMode 寻址模式
@@ -199,6 +213,11 @@ var (
 		INC_ZPX: {INC_ZPX, "INC", 2, 6, ZeroPageX, inc},
 		INC_ABS: {INC_ABS, "INC", 3, 6, Absolute, inc},
 		INC_ABX: {INC_ABX, "INC", 3, 7, AbsoluteX, inc},
+
+		DEC_ZP:  {DEC_ZP, "DEC", 2, 5, ZeroPage, dec},
+		DEC_ZPX: {DEC_ZPX, "DEC", 2, 6, ZeroPageX, dec},
+		DEC_ABS: {DEC_ABS, "DEC", 3, 6, Absolute, dec},
+		DEC_ABX: {DEC_ABX, "DEC", 3, 7, AbsoluteX, dec},
 		// LDA with different addressing modes
 		LDA_IM:  {LDA_IM, "LDA", 2, 2, Immediate, lda},
 		LDA_ZP:  {LDA_ZP, "LDA", 2, 3, ZeroPage, lda},
@@ -334,6 +353,15 @@ var (
 		LSR_ZPX: {LSR_ZPX, "LSR", 2, 6, ZeroPageX, lsr},
 		LSR_ABS: {LSR_ABS, "LSR", 3, 6, Absolute, lsr},
 		LSR_ABX: {LSR_ABX, "LSR", 3, 7, AbsoluteX, lsr},
+
+		SBC_IM:  {SBC_IM, "SBC", 2, 2, Immediate, sbc},
+		SBC_ZP:  {SBC_ZP, "SBC", 2, 3, ZeroPage, sbc},
+		SBC_ZPX: {SBC_ZPX, "SBC", 2, 4, ZeroPageX, sbc},
+		SBC_ABS: {SBC_ABS, "SBC", 3, 4, Absolute, sbc},
+		SBC_ABX: {SBC_ABX, "SBC", 3, 4, AbsoluteX, sbc},
+		SBC_ABY: {SBC_ABY, "SBC", 3, 4, AbsoluteY, sbc},
+		SBC_INX: {SBC_INX, "SBC", 2, 6, IndirectX, sbc},
+		SBC_INY: {SBC_INY, "SBC", 2, 5, IndirectY, sbc},
 	}
 )
 
