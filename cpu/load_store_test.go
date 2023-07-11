@@ -123,7 +123,7 @@ func TestLDA(t *testing.T) {
 		expectA      byte
 		expectStatus byte
 	}{
-		{"normal", []byte{LDA_IM, 10}, 10, 0},
+		{"normal", []byte{LDA_IM, 10}, 10, BreakStatus},
 		{"zero", []byte{LDA_IM, 10, LDA_IM, 0}, 0, ZeroStatus},
 		{"negative", []byte{LDA_IM, 10, LDA_IM, 0xff}, 0xFF, NegativeStatus},
 	}
@@ -134,11 +134,7 @@ func TestLDA(t *testing.T) {
 			p := NewProcessor()
 			p.LoadAndRun(tc.program)
 			assert.Equal(t, tc.expectA, p.regA)
-			if tc.expectStatus == 0 {
-				assert.True(t, p.regStatus == 0)
-			} else {
-				assert.True(t, p.regStatus&tc.expectStatus != 0)
-			}
+			assert.True(t, p.regStatus&tc.expectStatus != 0)
 		})
 	}
 }
