@@ -3,6 +3,8 @@ package cpu
 import (
 	"fmt"
 	"github.com/veandco/go-sdl2/sdl"
+	"math/rand"
+	"time"
 )
 
 // 内存布局
@@ -10,6 +12,7 @@ import (
 // 程序代码：[0x0600, ...)
 // 栈：[0x0100, 0x01FF)，共256字节
 // 上一个Input：0xFF
+// 随机数：0xFE
 const (
 	MemorySize      int    = 1 << 16 // 内存大小，64KiB
 	ProgramBaseAddr        = 0x0600  // 程序代码加载到0x8000地址
@@ -19,6 +22,7 @@ const (
 	StackReset             = 0xFF
 	StackSize              = 256
 	Input           uint16 = 0xFF
+	RandomNumber    uint16 = 0xFE
 )
 
 const (
@@ -49,10 +53,12 @@ type Processor struct {
 	pc        uint16           // pc 程序计数器
 	sp        byte             // sp 栈指针，记录栈地址的低8位，高位固定为0x0100
 	memory    [MemorySize]byte // memory 内存区域，大小64KiB
+	randNum   *rand.Rand
 }
 
 func NewProcessor() Processor {
-	return Processor{}
+	source := rand.NewSource(time.Now().UnixMilli())
+	return Processor{randNum: rand.New(source)}
 }
 
 func (p *Processor) LoadAndRun(program []byte) {
@@ -114,6 +120,7 @@ func (p *Processor) runWithCallback(prevExec, afterExec CallbackFunc) {
 		if !prevExec(p) {
 			break
 		}
+		p.writeMemUint8(RandomNumber, byte(2+p.randNum.Intn(13)))
 		opCode := p.readMemUint8(p.pc)
 		p.pc++
 		originalPc := p.pc
