@@ -68,7 +68,7 @@ var frame = make([]byte, 32*32*3) // 记录屏幕32x32个像素的RGBA颜色
 var window *sdl.Window
 var renderer *sdl.Renderer
 
-const RenderInterval = 70000 * time.Nanosecond
+const RenderInterval = 20000 * time.Nanosecond
 
 // initSDL 初始化window和renderer
 func initSDL() error {
