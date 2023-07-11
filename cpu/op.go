@@ -342,13 +342,13 @@ var (
 		ADC_INX: {ADC_INX, "ADC", 2, 6, IndirectX, adc},
 		ADC_INY: {ADC_INY, "ADC", 2, 5, IndirectY, adc},
 
-		ASL:     {ASL, "ASL", 2, 2, Immediate, asl},
+		ASL:     {ASL, "ASL", 2, 2, NoneAddressing, asl},
 		ASL_ZP:  {ASL_ZP, "ASL", 2, 5, ZeroPage, asl},
 		ASL_ZPX: {ASL_ZPX, "ASL", 2, 6, ZeroPageX, asl},
 		ASL_ABS: {ASL_ABS, "ASL", 3, 6, Absolute, asl},
 		ASL_ABX: {ASL_ABX, "ASL", 3, 7, AbsoluteX, asl},
 
-		LSR:     {LSR, "LSR", 1, 2, Immediate, lsr},
+		LSR:     {LSR, "LSR", 1, 2, NoneAddressing, lsr},
 		LSR_ZP:  {LSR_ZP, "LSR", 2, 5, ZeroPage, lsr},
 		LSR_ZPX: {LSR_ZPX, "LSR", 2, 6, ZeroPageX, lsr},
 		LSR_ABS: {LSR_ABS, "LSR", 3, 6, Absolute, lsr},
