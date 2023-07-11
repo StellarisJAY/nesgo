@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"fmt"
+	"github.com/stellarisJAY/nesgo/mem"
 	"github.com/veandco/go-sdl2/sdl"
 	"math/rand"
 	"time"
@@ -14,13 +15,11 @@ import (
 // 上一个Input：0xFF
 // 随机数：0xFE
 const (
-	MemorySize      int    = 1 << 16 // 内存大小，64KiB
-	ProgramBaseAddr        = 0x0600  // 程序代码加载到0x8000地址
+	ProgramBaseAddr        = 0x0600 // 程序代码加载到0x8000地址
 	OutputBaseAddr         = 0x0200
 	OutputEndAddr          = 0x0600
 	StackBase              = 0x0100
 	StackReset             = 0xFF
-	StackSize              = 256
 	Input           uint16 = 0xFF
 	RandomNumber    uint16 = 0xFE
 )
@@ -49,16 +48,16 @@ type Processor struct {
 	regA      byte
 	regX      byte
 	regY      byte
-	regStatus byte             // resStatus 状态寄存器，记录上一条指令的状态
-	pc        uint16           // pc 程序计数器
-	sp        byte             // sp 栈指针，记录栈地址的低8位，高位固定为0x0100
-	memory    [MemorySize]byte // memory 内存区域，大小64KiB
+	regStatus byte     // resStatus 状态寄存器，记录上一条指令的状态
+	pc        uint16   // pc 程序计数器
+	sp        byte     // sp 栈指针，记录栈地址的低8位，高位固定为0x0100
+	bus       *mem.Bus // bus 总线，通过总线访问内存或mmio寄存器
 	randNum   *rand.Rand
 }
 
 func NewProcessor() Processor {
 	source := rand.NewSource(time.Now().UnixMilli())
-	return Processor{randNum: rand.New(source)}
+	return Processor{randNum: rand.New(source), bus: mem.NewBusWithNoROM()}
 }
 
 func (p *Processor) LoadAndRun(program []byte) {
@@ -74,7 +73,7 @@ func (p *Processor) LoadAndRunWithCallback(program []byte, prevExec, afterExec C
 }
 
 func (p *Processor) loadProgram(program []byte) {
-	copy(p.memory[ProgramBaseAddr:], program)
+	p.bus.WriteRAM(ProgramBaseAddr, program)
 	p.writeMemUint16(0xFFFC, ProgramBaseAddr)
 }
 
@@ -166,26 +165,21 @@ func (p *Processor) HandleKeyboardEvent(event *sdl.KeyboardEvent) {
 }
 
 func (p *Processor) readMemUint8(addr uint16) byte {
-	return p.memory[addr]
+	return p.bus.ReadMemUint8(addr)
 }
 
 func (p *Processor) writeMemUint8(addr uint16, val byte) {
-	p.memory[addr] = val
+	p.bus.WriteMemUint8(addr, val)
 }
 
 // 小端序读取16bits内存
 func (p *Processor) readMemUint16(addr uint16) uint16 {
-	low := uint16(p.readMemUint8(addr))
-	high := uint16(p.readMemUint8(addr + 1))
-	return (high << 8) | low
+	return p.bus.ReadMemUint16(addr)
 }
 
 // 小端序写入16bits内存
 func (p *Processor) writeMemUint16(addr uint16, val uint16) {
-	low := byte(val & 0xff)
-	high := byte(val >> 8)
-	p.writeMemUint8(addr, low)
-	p.writeMemUint8(addr+1, high)
+	p.bus.WriteMemUint16(addr, val)
 }
 
 func (p *Processor) getMemoryAddress(mode AddressMode) uint16 {
@@ -223,7 +217,7 @@ func (p *Processor) getMemoryAddress(mode AddressMode) uint16 {
 
 // GetMemoryRange 获取start到end范围内的内存切片
 func (p *Processor) GetMemoryRange(start, end uint16) []byte {
-	return p.memory[start:end]
+	return p.bus.GetRAMRange(start, end)
 }
 
 func clc(p *Processor, _ Instruction) {
