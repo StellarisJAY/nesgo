@@ -55,7 +55,7 @@ func TestLogicalOR(t *testing.T) {
 	}{
 		{"im", []byte{LDA_IM, 0b11011, ORA_IM, 0b00100}, 0b11111},
 		{"zp", []byte{LDA_IM, 0b11011, LDX_IM, 0b00100, STX_ZP, 0x2, EOR_ZP, 0x2}, 0b11111},
-		{"abs", []byte{LDA_IM, 0b11011, LDX_IM, 0b00100, STX_ABS, 0x2, 0x30, EOR_ZP, 0x2, 0x30}, 0b11111},
+		{"abs", []byte{LDA_IM, 0b11011, LDX_IM, 0b00100, STX_ABS, 0x2, 0x30, EOR_ABS, 0x2, 0x30}, 0b11111},
 	}
 
 	for _, c := range testCases {

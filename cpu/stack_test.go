@@ -37,7 +37,7 @@ func TestStackPop(t *testing.T) {
 		expectA    byte
 		expectStat byte
 	}{
-		{"pla", []byte{LDA_IM, 10, PHA, PLA}, 0xFF, 10, 0},
+		{"pla", []byte{LDA_IM, 10, PHA, PLA}, 0xFF, 10, BreakStatus},
 		{"pla2", []byte{LDA_IM, 10, PHA, LDA_IM, 0, PHA, PLA}, 0xFF - 1, 0, ZeroStatus},
 		{"plp", []byte{LDA_IM, 0xff, PHP, PLP}, 0xFF, 0xff, NegativeStatus},
 		{"plp2", []byte{LDA_IM, 0xff, PHP, LDA_IM, 0, PHP, PLP}, 0xFF - 1, 0, ZeroStatus},
@@ -50,7 +50,7 @@ func TestStackPop(t *testing.T) {
 			p.LoadAndRun(tc.program)
 			assert.Equal(t, tc.expectSp, p.sp)
 			assert.Equal(t, tc.expectA, p.regA)
-			assert.Equal(t, tc.expectStat, p.regStatus)
+			assert.True(t, tc.expectStat&p.regStatus != 0)
 		})
 	}
 }

@@ -12,10 +12,10 @@ func TestCMP(t *testing.T) {
 		pc      uint16
 		x       byte
 	}{
-		{"im_eq", []byte{LDA_IM, 20, CMP_IM, 20, BEQ, 0x2, BRK, INX, INX}, 0x060a, 2},
-		{"im_gt", []byte{LDA_IM, 20, CMP_IM, 10, BEQ, 0x30, BCS, 0x2, BRK, INX, INX}, 0x060c, 2},
-		{"abs_eq", []byte{LDA_IM, 20, LDY_IM, 20, STY_ABS, 0x0, 0x1, CMP_ABS, 0x0, 0x1, BEQ, 0x2, BRK, INX, INX}, 0x0610, 2},
-		{"abs_gt", []byte{LDA_IM, 20, LDY_IM, 10, STY_ABS, 0x0, 0x1, CMP_ABS, 0x0, 0x1, BEQ, 0x30, BCS, 0x2, BRK, INX, INX}, 0x0612, 2},
+		{"im_eq", []byte{LDA_IM, 20, CMP_IM, 20, BEQ, 0x1, BRK, INX, INX}, 0x060a, 2},
+		{"im_gt", []byte{LDA_IM, 20, CMP_IM, 10, BEQ, 0x3, BCS, 0x1, BRK, INX, INX}, 0x060c, 2},
+		{"abs_eq", []byte{LDA_IM, 20, LDY_IM, 20, STY_ABS, 0x0, 0x1, CMP_ABS, 0x0, 0x1, BEQ, 0x1, BRK, INX, INX}, 0x0610, 2},
+		{"abs_gt", []byte{LDA_IM, 20, LDY_IM, 10, STY_ABS, 0x0, 0x1, CMP_ABS, 0x0, 0x1, BEQ, 0x3, BCS, 0x1, BRK, INX, INX}, 0x0612, 2},
 	}
 
 	for _, c := range cases {

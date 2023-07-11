@@ -57,12 +57,12 @@ func TestBranch(t *testing.T) {
 		pc      uint16
 		x       byte
 	}{
-		{"bcc", []byte{INX, BCC, 0x2, BRK, INX}, 0x0606, 2},
-		{"bcs", []byte{SEC, BCS, 0x2, BRK, INX}, 0x0606, 1},
-		{"beq", []byte{LDA_IM, 0, BEQ, 0x2, BRK, INX}, 0x0607, 1},
-		{"bne", []byte{BNE, 0x2, BRK, INX}, 0x0605, 1},
-		{"bmi", []byte{LDA_IM, 0xff, BMI, 0x2, BRK, INX}, 0x0607, 1},
-		{"bpl", []byte{BPL, 0x2, BRK, INX}, 0x0605, 1},
+		{"bcc", []byte{INX, BCC, 0x1, BRK, INX}, 0x0606, 2},
+		{"bcs", []byte{SEC, BCS, 0x1, BRK, INX}, 0x0606, 1},
+		{"beq", []byte{LDA_IM, 0, BEQ, 0x1, BRK, INX}, 0x0607, 1},
+		{"bne", []byte{BNE, 0x1, BRK, INX}, 0x0605, 1},
+		{"bmi", []byte{LDA_IM, 0xff, BMI, 0x1, BRK, INX}, 0x0607, 1},
+		{"bpl", []byte{BPL, 0x1, BRK, INX}, 0x0605, 1},
 	}
 
 	for _, c := range cases {
