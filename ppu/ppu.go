@@ -19,6 +19,12 @@ type PPU struct {
 	addrReg        AddrRegister    // addrReg 地址寄存器，因为ppu读取是异步的，需要寄存器记录读请求的地址
 	ctrlReg        ControlRegister // ctrlReg ppu 控制寄存器
 	internalBuffer byte            // internalBuffer 异步读取缓冲区
+	statReg        StatusRegister  // statReg 状态寄存器
+
+	cycles    uint64 // cycles ppu 经过的时钟周期
+	scanLines uint16 // scanLines
+
+	nmiInterrupt bool
 }
 
 func NewPPU(chrROM []byte, mirroring byte) *PPU {
@@ -30,6 +36,7 @@ func NewPPU(chrROM []byte, mirroring byte) *PPU {
 		mirroring:    mirroring,
 		addrReg:      NewAddrRegister(),
 		ctrlReg:      NewControlRegister(),
+		statReg:      NewStatusRegister(),
 	}
 }
 
@@ -119,12 +126,47 @@ func (p *PPU) mirrorVRAMAddr(addr uint16) uint16 {
 	return vramAddr
 }
 
+func (p *PPU) Tick(cycles uint64) bool {
+	p.cycles += cycles
+	if p.cycles >= 341 {
+		p.cycles -= 341
+		p.scanLines += 1
+		if p.scanLines == 241 {
+			p.statReg.setVBlankStarted()
+			p.statReg.resetSprite0Hit()
+			if p.ctrlReg.get(GenerateNMI) {
+				p.nmiInterrupt = true
+			}
+		}
+		if p.scanLines >= 262 {
+			p.scanLines = 0
+			p.nmiInterrupt = false
+			p.statReg.resetVBlankStarted()
+			p.statReg.resetSprite0Hit()
+			return true
+		}
+	}
+	return false
+}
+
 func (p *PPU) WriteControl(val byte) {
 	p.ctrlReg.Set(val)
 }
 
 func (p *PPU) WriteAddrReg(val byte) {
 	p.addrReg.update(val)
+}
+
+func (p *PPU) ReadStatus() byte {
+	status := p.statReg.val
+	// 读取状态会导致reset vblan、addr
+	p.statReg.resetVBlankStarted()
+	p.addrReg.resetLatch()
+	return status
+}
+
+func (p *PPU) IsInterrupt() bool {
+	return p.nmiInterrupt
 }
 
 // ReadAndUpdateScreen 从内存读取每个cell，并在frame中修改cell的值，如果有更新则通知给渲染器
