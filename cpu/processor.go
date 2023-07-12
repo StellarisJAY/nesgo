@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/stellarisJAY/nesgo/mem"
 	"github.com/veandco/go-sdl2/sdl"
+	"log"
 	"math/rand"
 	"time"
 )
@@ -23,15 +24,18 @@ const (
 	StackReset               = 0xFF
 	Input             uint16 = 0xFF
 	RandomNumber      uint16 = 0xFE
+
+	PrgROMEntryPointAddr   uint16 = 0xFFFC // 程序entry point在ROM的地址
+	PrgROMInterruptHandler uint16 = 0xFFFA // 程序中断处理函数地址
 )
 
 const (
 	CarryStatus            byte = 1 << 1
 	ZeroStatus             byte = 1 << 2
-	OverflowStatus         byte = 1 << 3
-	BreakStatus            byte = 1 << 4
-	DecimalModeStatus      byte = 1 << 5
-	InterruptDisableStatus byte = 1 << 6
+	InterruptDisableStatus byte = 1 << 3
+	DecimalModeStatus      byte = 1 << 4
+	BreakStatus            byte = 1 << 5
+	OverflowStatus         byte = 1 << 6
 	NegativeStatus         byte = 1 << 7
 )
 
@@ -73,7 +77,6 @@ func (p *Processor) LoadAndRun(program []byte) {
 }
 
 func (p *Processor) LoadAndRunWithCallback(prevExec, afterExec CallbackFunc) {
-	p.writeMemUint16(0xFFFC, PrgROMAddr+ProgramEntryPoint)
 	p.reset()
 	p.runWithCallback(prevExec, afterExec)
 }
@@ -89,7 +92,8 @@ func (p *Processor) reset() {
 	p.regY = 0
 	p.regStatus = 0
 	p.sp = StackReset
-	p.pc = p.readMemUint16(0xFFFC)
+	// 从ROM读取程序的entry point
+	p.pc = p.readMemUint16(PrgROMEntryPointAddr)
 }
 
 func (p *Processor) run() {
@@ -122,6 +126,9 @@ func (p *Processor) run() {
 
 func (p *Processor) runWithCallback(prevExec, afterExec CallbackFunc) {
 	for {
+		if p.bus.PollNMIInterrupt() {
+			p.HandleInterrupt()
+		}
 		if !prevExec(p) {
 			break
 		}
@@ -150,6 +157,7 @@ func (p *Processor) runWithCallback(prevExec, afterExec CallbackFunc) {
 			p.pc += uint16(instruction.length - 1)
 		}
 		afterExec(p)
+		p.bus.Tick(uint64(instruction.cycle))
 	}
 }
 
@@ -170,6 +178,23 @@ func (p *Processor) HandleKeyboardEvent(event *sdl.KeyboardEvent) {
 	p.writeMemUint8(Input, action)
 }
 
+func (p *Processor) HandleInterrupt() {
+	// 保存PC
+	p.stackPush(byte(p.pc & 0xff))
+	p.stackPush(byte(p.pc >> 8))
+	status := p.regStatus
+	status &= (^BreakStatus)
+	//status |= Break2Status
+	// 保存状态，中断关闭
+	p.stackPush(status)
+	p.regStatus |= InterruptDisableStatus
+
+	p.bus.Tick(2)
+	// 跳转到中断处理
+	p.pc = p.readMemUint16(PrgROMInterruptHandler)
+	log.Printf("interrupt handle: 0x%x\n", p.pc-PrgROMAddr)
+}
+
 func (p *Processor) readMemUint8(addr uint16) byte {
 	return p.bus.ReadMemUint8(addr)
 }
@@ -180,12 +205,17 @@ func (p *Processor) writeMemUint8(addr uint16, val byte) {
 
 // 小端序读取16bits内存
 func (p *Processor) readMemUint16(addr uint16) uint16 {
-	return p.bus.ReadMemUint16(addr)
+	low := p.readMemUint8(addr)
+	high := p.readMemUint8(addr + 1)
+	return uint16(high)<<8 + uint16(low)
 }
 
 // 小端序写入16bits内存
 func (p *Processor) writeMemUint16(addr uint16, val uint16) {
-	p.bus.WriteMemUint16(addr, val)
+	low := byte(val & 0xff)
+	high := byte(val >> 8)
+	p.writeMemUint8(addr, low)
+	p.writeMemUint8(addr+1, high)
 }
 
 func (p *Processor) getMemoryAddress(mode AddressMode) uint16 {
