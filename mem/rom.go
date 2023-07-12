@@ -1,5 +1,7 @@
 package mem
 
+import "log"
+
 type Mirroring byte
 
 const (
@@ -50,19 +52,21 @@ func NewROM(raw []byte) *ROM {
 	}
 
 	// program and chr offsets
-	skipTrainer := raw[6]&0b10 == 0
+	hasTrainer := raw[6]&0b10 != 0
 	programSize := uint16(raw[4]) * ProgramPageSize
 	chrSize := uint16(raw[5]) * CHRPageSize
 	var programStart uint16 = HeaderSize
-	if !skipTrainer {
+	if hasTrainer {
 		programStart += 512
 	}
 	chrStart := programStart + programSize
 	program := make([]byte, programSize)
 	chr := make([]byte, chrSize)
-	copy(program, raw[programSize:programStart+programSize])
+	copy(program, raw[programStart:programStart+programSize])
 	copy(chr, raw[chrStart:chrStart+chrSize])
 
+	log.Printf("prg size: %d\n", programSize)
+	log.Printf("chr size: %d\n", chrSize)
 	return &ROM{
 		program:   program,
 		chr:       chr,

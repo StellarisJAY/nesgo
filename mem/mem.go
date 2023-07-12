@@ -1,6 +1,8 @@
 package mem
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Memory interface {
 	ReadMemUint8(addr uint16) byte
@@ -11,21 +13,19 @@ type Memory interface {
 }
 
 const (
-	RAMSize         = 2048
-	RAMStart        = 0x0
-	RAMEnd          = 0x1FFF
-	RAMMask  uint16 = 0x7FF
+	RAMSize           = 2048
+	CpuRAMEnd         = 0x1FFF
+	CpuRAMMask uint16 = 0x7FF
 
-	PPURegisterStart = 0x2000
-	PPURegisterEnd   = 0x3FFF
-	PPURegisterMask  = 0x2007
+	PPURegisterEnd  = 0x3FFF
+	PPURegisterMask = 0x2007
 
 	ROMStart = 0x8000
 )
 
 // Bus 虚拟总线，CPU通过总线地址访问RAM, PPU, Registers
 type Bus struct {
-	ram     [RAMSize]byte // ram RAM内存区域
+	cpuRAM  [RAMSize]byte // cpuRAM cpu RAM内存区域
 	resetPC uint16        // resetPC 重启pc
 	rom     *ROM
 }
@@ -40,8 +40,8 @@ func NewBusWithNoROM() *Bus {
 
 func (b *Bus) ReadMemUint8(addr uint16) byte {
 	switch {
-	case addr <= RAMEnd:
-		addr = addr & RAMMask
+	case addr <= CpuRAMEnd:
+		addr = addr & CpuRAMMask
 		return b.readRAM8(addr)
 	case addr <= PPURegisterEnd:
 		addr = addr & PPURegisterMask
@@ -55,8 +55,8 @@ func (b *Bus) ReadMemUint8(addr uint16) byte {
 }
 func (b *Bus) ReadMemUint16(addr uint16) uint16 {
 	switch {
-	case addr <= RAMEnd:
-		addr = addr & RAMMask
+	case addr <= CpuRAMEnd:
+		addr = addr & CpuRAMMask
 		return b.readRAM16(addr)
 	case addr <= PPURegisterEnd:
 		addr = addr & PPURegisterMask
@@ -73,8 +73,8 @@ func (b *Bus) ReadMemUint16(addr uint16) uint16 {
 
 func (b *Bus) WriteMemUint8(addr uint16, val byte) {
 	switch {
-	case addr <= RAMEnd:
-		addr = addr & RAMMask
+	case addr <= CpuRAMEnd:
+		addr = addr & CpuRAMMask
 		b.writeRAM8(addr, val)
 	case addr <= PPURegisterEnd:
 		addr = addr & PPURegisterMask
@@ -87,8 +87,8 @@ func (b *Bus) WriteMemUint8(addr uint16, val byte) {
 }
 func (b *Bus) WriteMemUint16(addr uint16, val uint16) {
 	switch {
-	case addr <= RAMEnd:
-		addr = addr & RAMMask
+	case addr <= CpuRAMEnd:
+		addr = addr & CpuRAMMask
 		b.writeRAM16(addr, val)
 	case addr <= PPURegisterEnd:
 		addr = addr & PPURegisterMask
@@ -103,30 +103,30 @@ func (b *Bus) WriteMemUint16(addr uint16, val uint16) {
 }
 
 func (b *Bus) GetRAMRange(start, end uint16) []byte {
-	startAddr, endAddr := start&RAMMask, end&RAMMask
-	return b.ram[startAddr:endAddr]
+	startAddr, endAddr := start&CpuRAMMask, end&CpuRAMMask
+	return b.cpuRAM[startAddr:endAddr]
 }
 
 func (b *Bus) WriteRAM(addr uint16, data []byte) {
-	copy(b.ram[addr&RAMMask:], data)
+	copy(b.cpuRAM[addr&CpuRAMMask:], data)
 }
 
 func (b *Bus) readRAM8(addr uint16) byte {
-	return b.ram[addr]
+	return b.cpuRAM[addr]
 }
 func (b *Bus) readRAM16(addr uint16) uint16 {
-	low := b.ram[addr]
-	high := b.ram[addr+1]
+	low := b.cpuRAM[addr]
+	high := b.cpuRAM[addr+1]
 	return uint16(high)<<8 + uint16(low)
 }
 
 func (b *Bus) writeRAM8(addr uint16, val byte) {
-	b.ram[addr] = val
+	b.cpuRAM[addr] = val
 }
 
 func (b *Bus) writeRAM16(addr uint16, val uint16) {
 	low := byte(val & 0xFF)
 	high := byte(val >> 8)
-	b.ram[addr] = low
-	b.ram[addr+1] = high
+	b.cpuRAM[addr] = low
+	b.cpuRAM[addr+1] = high
 }

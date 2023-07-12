@@ -10,18 +10,19 @@ import (
 
 // 内存布局
 // 屏幕像素点：[0x0200, 0x0600)，共32x32个像素点，一行32个像素
-// 程序代码：[0x0600, ...)
+// 程序代码：[0x8000, ...)
 // 栈：[0x0100, 0x01FF)，共256字节
 // 上一个Input：0xFF
 // 随机数：0xFE
 const (
-	ProgramBaseAddr        = 0x0600 // 程序代码加载到0x8000地址
-	OutputBaseAddr         = 0x0200
-	OutputEndAddr          = 0x0600
-	StackBase              = 0x0100
-	StackReset             = 0xFF
-	Input           uint16 = 0xFF
-	RandomNumber    uint16 = 0xFE
+	ProgramEntryPoint        = 0x0600
+	PrgROMAddr               = 0x8000 // 程序代码加载到0x8000地址的PrgROM
+	OutputBaseAddr           = 0x0200
+	OutputEndAddr            = 0x0600
+	StackBase                = 0x0100
+	StackReset               = 0xFF
+	Input             uint16 = 0xFF
+	RandomNumber      uint16 = 0xFE
 )
 
 const (
@@ -60,21 +61,26 @@ func NewProcessor() Processor {
 	return Processor{randNum: rand.New(source), bus: mem.NewBusWithNoROM()}
 }
 
+func NewProcessorWithROM(rom *mem.ROM) Processor {
+	source := rand.NewSource(time.Now().UnixMilli())
+	return Processor{randNum: rand.New(source), bus: mem.NewBus(rom)}
+}
+
 func (p *Processor) LoadAndRun(program []byte) {
 	p.loadProgram(program)
 	p.reset()
 	p.run()
 }
 
-func (p *Processor) LoadAndRunWithCallback(program []byte, prevExec, afterExec CallbackFunc) {
-	p.loadProgram(program)
+func (p *Processor) LoadAndRunWithCallback(prevExec, afterExec CallbackFunc) {
+	p.writeMemUint16(0xFFFC, PrgROMAddr+ProgramEntryPoint)
 	p.reset()
 	p.runWithCallback(prevExec, afterExec)
 }
 
 func (p *Processor) loadProgram(program []byte) {
-	p.bus.WriteRAM(ProgramBaseAddr, program)
-	p.writeMemUint16(0xFFFC, ProgramBaseAddr)
+	p.bus.WriteRAM(ProgramEntryPoint, program)
+	p.writeMemUint16(0xFFFC, ProgramEntryPoint)
 }
 
 func (p *Processor) reset() {
@@ -125,7 +131,7 @@ func (p *Processor) runWithCallback(prevExec, afterExec CallbackFunc) {
 		originalPc := p.pc
 		instruction, ok := Instructions[opCode]
 		if !ok {
-			panic(fmt.Errorf("unknown instruction at %d: 0x%x", originalPc-1-ProgramBaseAddr, opCode))
+			panic(fmt.Errorf("unknown instruction at %d: 0x%x", originalPc-1-PrgROMAddr, opCode))
 		}
 		switch opCode {
 		case BRK:
