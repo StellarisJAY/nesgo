@@ -2,6 +2,7 @@ package mem
 
 import (
 	"fmt"
+	"github.com/stellarisJAY/nesgo/ppu"
 )
 
 type Memory interface {
@@ -28,10 +29,11 @@ type Bus struct {
 	cpuRAM  [RAMSize]byte // cpuRAM cpu RAM内存区域
 	resetPC uint16        // resetPC 重启pc
 	rom     *ROM
+	ppu     *ppu.PPU
 }
 
 func NewBus(rom *ROM) *Bus {
-	return &Bus{[2048]byte{}, 0, rom}
+	return &Bus{[2048]byte{}, 0, rom, ppu.NewPPU(rom.chr, byte(rom.mirroring))}
 }
 
 func NewBusWithNoROM() *Bus {
@@ -40,13 +42,17 @@ func NewBusWithNoROM() *Bus {
 
 func (b *Bus) ReadMemUint8(addr uint16) byte {
 	switch {
-	case addr <= CpuRAMEnd:
+	case addr <= CpuRAMEnd: // cpu内存
 		addr = addr & CpuRAMMask
 		return b.readRAM8(addr)
-	case addr <= PPURegisterEnd:
+	case addr == 0x2000 || addr == 0x2001 || addr == 0x2003 || addr == 0x2005 || addr == 0x2006: // 禁止读取ppu寄存器
+		panic("can't read write-only registers")
+	case addr == 0x2007: // ppu读请求
+		return b.ppu.ReadData()
+	case addr <= PPURegisterEnd: // ppu寄存器mirroring
 		addr = addr & PPURegisterMask
-		panic("ppu not available")
-	case addr >= ROMStart:
+		return b.ReadMemUint8(addr)
+	case addr >= ROMStart: // ROM
 		return b.rom.readProgramROM8(addr)
 	default:
 		panic(fmt.Errorf("invalid memory addr: 0x%x", addr))
@@ -55,12 +61,16 @@ func (b *Bus) ReadMemUint8(addr uint16) byte {
 }
 func (b *Bus) ReadMemUint16(addr uint16) uint16 {
 	switch {
-	case addr <= CpuRAMEnd:
+	case addr <= CpuRAMEnd: // CPU RAM
 		addr = addr & CpuRAMMask
 		return b.readRAM16(addr)
-	case addr <= PPURegisterEnd:
+	case addr == 0x2000 || addr == 0x2001 || addr == 0x2003 || addr == 0x2005 || addr == 0x2006: // 禁止读取ppu寄存器
+		panic("can't read write-only registers")
+	case addr == 0x2007: // ppu读请求
+		return uint16(b.ppu.ReadData())
+	case addr <= PPURegisterEnd: // ppu寄存器mirroring
 		addr = addr & PPURegisterMask
-		panic("ppu not available")
+		return b.ReadMemUint16(addr)
 	case addr == 0xFFFC:
 		return b.resetPC
 	case addr >= ROMStart:
@@ -73,12 +83,18 @@ func (b *Bus) ReadMemUint16(addr uint16) uint16 {
 
 func (b *Bus) WriteMemUint8(addr uint16, val byte) {
 	switch {
-	case addr <= CpuRAMEnd:
+	case addr <= CpuRAMEnd: // CPU RAM
 		addr = addr & CpuRAMMask
 		b.writeRAM8(addr, val)
+	case addr == 0x2000: // PPU 状态寄存器
+		b.ppu.WriteControl(val)
+	case addr == 0x2006: // PPU请求地址
+		b.ppu.WriteAddrReg(val)
+	case addr == 0x2007: // 发起写请求
+		b.ppu.WriteData(val)
 	case addr <= PPURegisterEnd:
 		addr = addr & PPURegisterMask
-		panic("ppu not available")
+		b.WriteMemUint8(addr, val)
 	case addr >= ROMStart:
 		panic(fmt.Errorf("can't write ROM addr: 0x%x", addr))
 	default:
@@ -90,9 +106,15 @@ func (b *Bus) WriteMemUint16(addr uint16, val uint16) {
 	case addr <= CpuRAMEnd:
 		addr = addr & CpuRAMMask
 		b.writeRAM16(addr, val)
+	case addr == 0x2000: // PPU 状态寄存器
+		b.ppu.WriteControl(byte(val))
+	case addr == 0x2006: // PPU请求地址
+		b.ppu.WriteAddrReg(byte(val))
+	case addr == 0x2007: // 发起写请求
+		b.ppu.WriteData(byte(val))
 	case addr <= PPURegisterEnd:
 		addr = addr & PPURegisterMask
-		panic("ppu not available")
+		b.WriteMemUint8(addr, byte(val))
 	case addr == 0xFFFC:
 		b.resetPC = val
 	case addr >= ROMStart:
