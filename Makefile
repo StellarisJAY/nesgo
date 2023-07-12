@@ -1,4 +1,4 @@
-export GAME = snake
+export GAME = snake.nes
 build:
 	@go build
 run:build
