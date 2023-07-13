@@ -1,38 +1,38 @@
 package cpu
 
 func lda(p *Processor, op Instruction) {
-	addr := p.getMemoryAddress(op.addrMode)
+	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	p.regA = val
 	p.zeroOrNegativeStatus(p.regA)
 }
 
 func ldx(p *Processor, op Instruction) {
-	addr := p.getMemoryAddress(op.addrMode)
+	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	p.regX = val
 	p.zeroOrNegativeStatus(p.regX)
 }
 
 func ldy(p *Processor, op Instruction) {
-	addr := p.getMemoryAddress(op.addrMode)
+	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	p.regY = val
 	p.zeroOrNegativeStatus(p.regY)
 }
 
 func sta(p *Processor, op Instruction) {
-	addr := p.getMemoryAddress(op.addrMode)
+	addr := p.getMemoryAddress(op.AddrMode)
 	p.writeMemUint8(addr, p.regA)
 }
 
 func stx(p *Processor, op Instruction) {
-	addr := p.getMemoryAddress(op.addrMode)
+	addr := p.getMemoryAddress(op.AddrMode)
 	p.writeMemUint8(addr, p.regX)
 }
 
 func sty(p *Processor, op Instruction) {
-	addr := p.getMemoryAddress(op.addrMode)
+	addr := p.getMemoryAddress(op.AddrMode)
 	p.writeMemUint8(addr, p.regY)
 }
 

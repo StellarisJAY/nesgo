@@ -1,7 +1,7 @@
 package cpu
 
 func jmp(p *Processor, op Instruction) {
-	addr := p.getMemoryAddress(op.addrMode)
+	addr := p.getMemoryAddress(op.AddrMode)
 	p.pc = addr
 }
 
@@ -9,8 +9,8 @@ func jmpIndirect(p *Processor, _ Instruction) {
 	// 先从参数取到地址
 	addr := p.getMemoryAddress(Absolute)
 	// 在地址取到跳转目标
-	target := p.readMemUint8(addr)
-	p.pc = uint16(target)
+	target := p.readMemUint16(addr)
+	p.pc = target
 }
 
 // jsr 返回地址入栈，跳转到目标地址
@@ -32,16 +32,22 @@ func rts(p *Processor, _ Instruction) {
 	p.pc = ra
 }
 
+func rti(p *Processor, _ Instruction) {
+	status := p.stackPop()
+	p.regStatus = status
+	p.regStatus &= ^BreakStatus
+	p.regStatus |= Break2Status
+	high := p.stackPop()
+	low := p.stackPop()
+	ra := uint16(high)<<8 | uint16(low)
+	p.pc = ra
+}
+
 func jmpOffset(p *Processor) {
 	addr := p.getMemoryAddress(Immediate)
-	offset := p.readMemUint8(addr)
-	// offset为负，pc减小
-	if offset&(1<<7) != 0 {
-		rev := int8(offset)
-		p.pc = p.pc + 1 - uint16(-int16(rev))
-	} else {
-		p.pc = p.pc + 1 + uint16(offset)
-	}
+	offset := int8(p.readMemUint8(addr))
+	target := p.pc + 1 + uint16(offset)
+	p.pc = target
 }
 
 func bcc(p *Processor, _ Instruction) {

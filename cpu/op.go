@@ -165,6 +165,20 @@ const (
 	SBC_ABY byte = 0xF9
 	SBC_INX byte = 0xE1
 	SBC_INY byte = 0xF1
+
+	ROR     byte = 0x6A
+	ROR_ZP  byte = 0x66
+	ROR_ZPX byte = 0x76
+	ROR_ABS byte = 0x6E
+	ROR_ABX byte = 0x7E
+
+	ROL     byte = 0x2A
+	ROL_ZP  byte = 0x26
+	ROL_ZPX byte = 0x36
+	ROL_ABS byte = 0x2E
+	ROL_ABX byte = 0x3E
+
+	RTI byte = 0x40
 )
 
 // AddressMode 寻址模式
@@ -188,11 +202,11 @@ type InstructionHandler func(p *Processor, op Instruction)
 
 // Instruction CPU指令
 type Instruction struct {
-	code     byte               // code 指令编码
-	name     string             // name 指令名称
-	length   byte               // length 完整指令的字节数，包括参数
-	cycle    byte               // cycle  执行指令所需CPU周期
-	addrMode AddressMode        // addrMode 寻址模式
+	Code     byte               // Code 指令编码
+	Name     string             // Name 指令名称
+	Length   byte               // Length 完整指令的字节数，包括参数
+	Cycle    byte               // Cycle  执行指令所需CPU周期
+	AddrMode AddressMode        // AddrMode 寻址模式
 	handler  InstructionHandler // handler 指令处理器（可选）
 }
 
@@ -342,7 +356,7 @@ var (
 		ADC_INX: {ADC_INX, "ADC", 2, 6, IndirectX, adc},
 		ADC_INY: {ADC_INY, "ADC", 2, 5, IndirectY, adc},
 
-		ASL:     {ASL, "ASL", 2, 2, NoneAddressing, asl},
+		ASL:     {ASL, "ASL", 1, 2, NoneAddressing, asl},
 		ASL_ZP:  {ASL_ZP, "ASL", 2, 5, ZeroPage, asl},
 		ASL_ZPX: {ASL_ZPX, "ASL", 2, 6, ZeroPageX, asl},
 		ASL_ABS: {ASL_ABS, "ASL", 3, 6, Absolute, asl},
@@ -362,6 +376,20 @@ var (
 		SBC_ABY: {SBC_ABY, "SBC", 3, 4, AbsoluteY, sbc},
 		SBC_INX: {SBC_INX, "SBC", 2, 6, IndirectX, sbc},
 		SBC_INY: {SBC_INY, "SBC", 2, 5, IndirectY, sbc},
+
+		ROR:     {ROR, "ROR", 1, 2, NoneAddressing, ror},
+		ROR_ZP:  {ROR_ZP, "ROR", 2, 5, ZeroPage, ror},
+		ROR_ZPX: {ROR_ZPX, "ROR", 2, 6, ZeroPageX, ror},
+		ROR_ABS: {ROR_ABS, "ROR", 3, 6, Absolute, ror},
+		ROR_ABX: {ROR_ABX, "ROR", 3, 7, AbsoluteX, ror},
+
+		ROL:     {ROL, "ROL", 1, 2, NoneAddressing, rol},
+		ROL_ZP:  {ROL_ZP, "ROL", 2, 5, ZeroPage, rol},
+		ROL_ZPX: {ROL_ZPX, "ROL", 2, 6, ZeroPageX, rol},
+		ROL_ABS: {ROL_ABS, "ROL", 3, 6, Absolute, rol},
+		ROL_ABX: {ROL_ABX, "ROL", 3, 7, AbsoluteX, rol},
+
+		RTI: {RTI, "RTI", 2, 6, NoneAddressing, rti},
 	}
 )
 

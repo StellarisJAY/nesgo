@@ -3,8 +3,6 @@ package cpu
 import (
 	"fmt"
 	"github.com/stellarisJAY/nesgo/bus"
-	"github.com/veandco/go-sdl2/sdl"
-	"log"
 	"math/rand"
 	"time"
 )
@@ -30,11 +28,12 @@ const (
 )
 
 const (
-	CarryStatus            byte = 1 << 1
-	ZeroStatus             byte = 1 << 2
-	InterruptDisableStatus byte = 1 << 3
-	DecimalModeStatus      byte = 1 << 4
-	BreakStatus            byte = 1 << 5
+	CarryStatus            byte = 1 << 0
+	ZeroStatus             byte = 1 << 1
+	InterruptDisableStatus byte = 1 << 2
+	DecimalModeStatus      byte = 1 << 3
+	BreakStatus            byte = 1 << 4
+	Break2Status           byte = 1 << 5
 	OverflowStatus         byte = 1 << 6
 	NegativeStatus         byte = 1 << 7
 )
@@ -48,6 +47,7 @@ const (
 
 // CallbackFunc 每条指令执行前的callback，返回false将结束处理器循环
 type CallbackFunc func(*Processor) bool
+type InstructionCallback func(Instruction, uint16, []byte)
 
 type Processor struct {
 	regA      byte
@@ -65,9 +65,9 @@ func NewProcessor() Processor {
 	return Processor{randNum: rand.New(source), bus: bus.NewBusWithNoROM()}
 }
 
-func NewProcessorWithROM(bus *bus.Bus) Processor {
+func NewProcessorWithROM(bus *bus.Bus) *Processor {
 	source := rand.NewSource(time.Now().UnixMilli())
-	return Processor{randNum: rand.New(source), bus: bus}
+	return &Processor{randNum: rand.New(source), bus: bus}
 }
 
 func (p *Processor) LoadAndRun(program []byte) {
@@ -76,9 +76,9 @@ func (p *Processor) LoadAndRun(program []byte) {
 	p.run()
 }
 
-func (p *Processor) LoadAndRunWithCallback(prevExec, afterExec CallbackFunc) {
+func (p *Processor) LoadAndRunWithCallback(eventsHandler CallbackFunc, callback InstructionCallback) {
 	p.reset()
-	p.runWithCallback(prevExec, afterExec)
+	p.runWithCallback(eventsHandler, callback)
 }
 
 func (p *Processor) loadProgram(program []byte) {
@@ -90,7 +90,7 @@ func (p *Processor) reset() {
 	p.regX = 0
 	p.regA = 0
 	p.regY = 0
-	p.regStatus = 0
+	p.regStatus = 0b100100
 	p.sp = StackReset
 	// 从ROM读取程序的entry point
 	p.pc = p.readMemUint16(PrgROMEntryPointAddr)
@@ -119,17 +119,17 @@ func (p *Processor) run() {
 			instruction.handler(p, instruction)
 		}
 		if p.pc == originalPc {
-			p.pc += uint16(instruction.length - 1)
+			p.pc += uint16(instruction.Length - 1)
 		}
 	}
 }
 
-func (p *Processor) runWithCallback(prevExec, afterExec CallbackFunc) {
+func (p *Processor) runWithCallback(eventsHandler CallbackFunc, callback InstructionCallback) {
 	for {
 		if p.bus.PollNMIInterrupt() {
 			p.HandleInterrupt()
 		}
-		if !prevExec(p) {
+		if !eventsHandler(p) {
 			break
 		}
 		p.writeMemUint8(RandomNumber, byte(2+p.randNum.Intn(13)))
@@ -140,6 +140,7 @@ func (p *Processor) runWithCallback(prevExec, afterExec CallbackFunc) {
 		if !ok {
 			panic(fmt.Errorf("unknown instruction at %d: 0x%x", originalPc-1-PrgROMAddr, opCode))
 		}
+		callback(instruction, originalPc-1, []byte{p.readMemUint8(p.pc), p.readMemUint8(p.pc + 1)})
 		switch opCode {
 		case BRK:
 			p.regStatus |= BreakStatus
@@ -154,28 +155,10 @@ func (p *Processor) runWithCallback(prevExec, afterExec CallbackFunc) {
 			instruction.handler(p, instruction)
 		}
 		if p.pc == originalPc {
-			p.pc += uint16(instruction.length - 1)
+			p.pc += uint16(instruction.Length - 1)
 		}
-		afterExec(p)
-		p.bus.Tick(uint64(instruction.cycle))
+		p.bus.Tick(uint64(instruction.Cycle))
 	}
-}
-
-func (p *Processor) HandleKeyboardEvent(event *sdl.KeyboardEvent) {
-	var action byte
-	switch event.Keysym.Scancode {
-	case sdl.SCANCODE_W:
-		action = ActionUp
-	case sdl.SCANCODE_S:
-		action = ActionDown
-	case sdl.SCANCODE_A:
-		action = ActionLeft
-	case sdl.SCANCODE_D:
-		action = ActionRight
-	default:
-		return
-	}
-	p.writeMemUint8(Input, action)
 }
 
 func (p *Processor) HandleInterrupt() {
@@ -184,15 +167,13 @@ func (p *Processor) HandleInterrupt() {
 	p.stackPush(byte(p.pc >> 8))
 	status := p.regStatus
 	status &= (^BreakStatus)
-	//status |= Break2Status
+	status |= Break2Status
 	// 保存状态，中断关闭
 	p.stackPush(status)
 	p.regStatus |= InterruptDisableStatus
-
 	p.bus.Tick(2)
 	// 跳转到中断处理
 	p.pc = p.readMemUint16(PrgROMInterruptHandler)
-	log.Printf("interrupt handle: 0x%x\n", p.pc-PrgROMAddr)
 }
 
 func (p *Processor) readMemUint8(addr uint16) byte {
@@ -240,11 +221,14 @@ func (p *Processor) getMemoryAddress(mode AddressMode) uint16 {
 		addr = p.readMemUint16(p.pc)
 		addr += uint16(p.regY)
 	case IndirectX:
-		ptr := uint16(p.readMemUint8(p.pc))
-		addr = p.readMemUint16(ptr + uint16(p.regX))
+		base := p.readMemUint8(p.pc)
+		ptr := base + p.regX
+		addr = p.readMemUint16(uint16(ptr))
 	case IndirectY:
-		ptr := uint16(p.readMemUint8(p.pc))
-		addr = p.readMemUint16(ptr + uint16(p.regY))
+		base := p.readMemUint8(p.pc)
+		low := p.readMemUint8(uint16(base))
+		high := p.readMemUint8(uint16(base + 1))
+		addr = uint16(high)<<8 + uint16(low) + uint16(p.regY)
 	case NoneAddressing:
 		addr = p.pc
 	}

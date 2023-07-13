@@ -1,7 +1,7 @@
 package cpu
 
 func cmp(p *Processor, op Instruction) {
-	addr := p.getMemoryAddress(op.addrMode)
+	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	if p.regA >= val {
 		p.regStatus |= CarryStatus
@@ -12,7 +12,7 @@ func cmp(p *Processor, op Instruction) {
 }
 
 func cpx(p *Processor, op Instruction) {
-	addr := p.getMemoryAddress(op.addrMode)
+	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	if val <= p.regX {
 		p.regStatus |= CarryStatus
@@ -23,7 +23,7 @@ func cpx(p *Processor, op Instruction) {
 }
 
 func cpy(p *Processor, op Instruction) {
-	addr := p.getMemoryAddress(op.addrMode)
+	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	if val <= p.regY {
 		p.regStatus |= CarryStatus
@@ -34,7 +34,7 @@ func cpy(p *Processor, op Instruction) {
 }
 
 func adc(p *Processor, op Instruction) {
-	addr := p.getMemoryAddress(op.addrMode)
+	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	addRegA(p, val)
 }
@@ -58,7 +58,7 @@ func addRegA(p *Processor, val byte) {
 }
 
 func sbc(p *Processor, op Instruction) {
-	addr := p.getMemoryAddress(op.addrMode)
+	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	val = byte(int8(-val) - 1)
 	addRegA(p, val)
