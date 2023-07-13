@@ -21,10 +21,10 @@ type PPU struct {
 	internalBuffer byte            // internalBuffer 异步读取缓冲区
 	statReg        StatusRegister  // statReg 状态寄存器
 
-	cycles    uint64 // cycles ppu 经过的时钟周期
-	scanLines uint16 // scanLines
-
+	cycles       uint64 // cycles ppu 经过的时钟周期
+	scanLines    uint16 // scanLines
 	nmiInterrupt bool
+	frame        *Frame
 }
 
 func NewPPU(chrROM []byte, mirroring byte) *PPU {
@@ -37,11 +37,60 @@ func NewPPU(chrROM []byte, mirroring byte) *PPU {
 		addrReg:      NewAddrRegister(),
 		ctrlReg:      NewControlRegister(),
 		statReg:      NewStatusRegister(),
+		frame:        NewFrame(),
 	}
 }
 
 func (p *PPU) incrementAddr() {
 	p.addrReg.inc(p.ctrlReg.VRAMIncrement())
+}
+
+// Render 渲染当前的NameTable
+func (p *PPU) Render() {
+
+}
+
+// DisplayAllTiles 测试方法，在frame中渲染bank中的所有tiles
+func (p *PPU) DisplayAllTiles(bank uint16) {
+	var i uint16 = 0
+	for ; i < 8; i++ {
+		var j uint16 = 0
+		for ; j < 32; j++ {
+			p.renderTile(j*8, i*8, bank, byte(i*8+j))
+		}
+	}
+}
+
+// renderTile 在Frame的x，y位置渲染一个tile
+func (p *PPU) renderTile(x, y uint16, bank uint16, tileIndex byte) {
+	idx := uint16(tileIndex)
+	bankBase := bank * 0x1000
+	tile := p.chrROM[bankBase+idx*16 : bankBase+idx*16+16]
+	var row uint16 = 0
+	// 每个tile有8x8个像素
+	for ; row < 8; row++ {
+		// 一个像素是2bits，高位与低位分别在相距8字节的两个字节里面
+		low := tile[row]
+		high := tile[row+8]
+		var col uint16 = 0
+		for ; col < 8; col++ {
+			colorId := (((high >> (8 - col)) & 1) << 1) | ((low >> (8 - col)) & 1)
+			var color Color
+			switch colorId {
+			case 0:
+				color = SystemPalette[13]
+			case 1:
+				color = SystemPalette[0x23]
+			case 2:
+				color = SystemPalette[0x27]
+			case 3:
+				color = SystemPalette[0x30]
+			default:
+				panic(fmt.Errorf("invalid color id: %d", colorId))
+			}
+			p.frame.setPixel(x+col, y+row, color)
+		}
+	}
 }
 
 // ReadData 返回上一个读取请求的结果，并将本次读取请求的结果放入buffer
@@ -167,6 +216,10 @@ func (p *PPU) ReadStatus() byte {
 
 func (p *PPU) IsInterrupt() bool {
 	return p.nmiInterrupt
+}
+
+func (p *PPU) FrameData() []byte {
+	return p.frame.data
 }
 
 // ReadAndUpdateScreen 从内存读取每个cell，并在frame中修改cell的值，如果有更新则通知给渲染器
