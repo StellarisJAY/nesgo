@@ -1,4 +1,4 @@
-package mem
+package bus
 
 import "log"
 
@@ -91,4 +91,12 @@ func (r *ROM) readProgramROM16(addr uint16) uint16 {
 	low := r.program[addr]
 	high := r.program[addr+1]
 	return uint16(high)<<8 + uint16(low)
+}
+
+func (r *ROM) GetMirroring() Mirroring {
+	return r.mirroring
+}
+
+func (r *ROM) GetChrROM() []byte {
+	return r.chr
 }

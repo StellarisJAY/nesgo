@@ -2,7 +2,7 @@ package cpu
 
 import (
 	"fmt"
-	"github.com/stellarisJAY/nesgo/mem"
+	"github.com/stellarisJAY/nesgo/bus"
 	"github.com/veandco/go-sdl2/sdl"
 	"log"
 	"math/rand"
@@ -56,18 +56,18 @@ type Processor struct {
 	regStatus byte     // resStatus 状态寄存器，记录上一条指令的状态
 	pc        uint16   // pc 程序计数器
 	sp        byte     // sp 栈指针，记录栈地址的低8位，高位固定为0x0100
-	bus       *mem.Bus // bus 总线，通过总线访问内存或mmio寄存器
+	bus       *bus.Bus // bus 总线，通过总线访问内存或mmio寄存器
 	randNum   *rand.Rand
 }
 
 func NewProcessor() Processor {
 	source := rand.NewSource(time.Now().UnixMilli())
-	return Processor{randNum: rand.New(source), bus: mem.NewBusWithNoROM()}
+	return Processor{randNum: rand.New(source), bus: bus.NewBusWithNoROM()}
 }
 
-func NewProcessorWithROM(rom *mem.ROM) Processor {
+func NewProcessorWithROM(bus *bus.Bus) Processor {
 	source := rand.NewSource(time.Now().UnixMilli())
-	return Processor{randNum: rand.New(source), bus: mem.NewBus(rom)}
+	return Processor{randNum: rand.New(source), bus: bus}
 }
 
 func (p *Processor) LoadAndRun(program []byte) {

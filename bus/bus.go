@@ -1,4 +1,4 @@
-package mem
+package bus
 
 import (
 	"fmt"
@@ -20,17 +20,18 @@ const (
 type Bus struct {
 	cpuRAM  [RAMSize]byte // cpuRAM cpu RAM内存区域
 	resetPC uint16        // resetPC 重启pc
-	rom     *ROM
-	ppu     *ppu.PPU
-	cycles  uint64
+	rom     *ROM          // rom PrgROM和ChrROM
+	ppu     *ppu.PPU      // ppu 图形处理器
+	cycles  uint64        // cycles 总线时钟周期数，用来同步CPU和PPU的周期
 }
 
-func NewBus(rom *ROM) *Bus {
-	return &Bus{[2048]byte{}, 0, rom, ppu.NewPPU(rom.chr, byte(rom.mirroring)), 0}
+// NewBus 创建总线，并将PPU和ROM接入总线
+func NewBus(rom *ROM, ppu *ppu.PPU) *Bus {
+	return &Bus{[2048]byte{}, 0, rom, ppu, 0}
 }
 
 func NewBusWithNoROM() *Bus {
-	return NewBus(EmptyROM())
+	return NewBus(EmptyROM(), nil)
 }
 
 func (b *Bus) Tick(cycles uint64) {
