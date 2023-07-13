@@ -5,6 +5,7 @@ import (
 	"github.com/stellarisJAY/nesgo/bus"
 	"github.com/stellarisJAY/nesgo/cpu"
 	"github.com/stellarisJAY/nesgo/ppu"
+	"github.com/stellarisJAY/nesgo/trace"
 	"github.com/veandco/go-sdl2/sdl"
 	"log"
 	"time"
@@ -112,29 +113,6 @@ func (e *Emulator) handleEvents(p *cpu.Processor) bool {
 	return true
 }
 
-func logInstruction(instruction cpu.Instruction, pc uint16, args []byte) {
-	var addrMode string
-	switch instruction.AddrMode {
-	case cpu.NoneAddressing:
-		addrMode = "none"
-	case cpu.Immediate:
-		addrMode = "im"
-	case cpu.ZeroPage:
-		addrMode = "zp"
-	case cpu.ZeroPageX:
-		addrMode = "zpx"
-	case cpu.ZeroPageY:
-		addrMode = "zpy"
-	case cpu.Absolute:
-		addrMode = "abs"
-	case cpu.AbsoluteX:
-		addrMode = "abx"
-	case cpu.AbsoluteY:
-		addrMode = "aby"
-	case cpu.IndirectX:
-		addrMode = "inx"
-	case cpu.IndirectY:
-		addrMode = "iny"
-	}
-	log.Printf("0x%x : %s-%s : [%d, %d], [%d, %d]\n", pc, instruction.Name, addrMode, args[0], args[1], int8(args[0]), int8(args[1]))
+func logInstruction(p *cpu.Processor, instruction cpu.Instruction) {
+	trace.Trace(p, instruction)
 }
