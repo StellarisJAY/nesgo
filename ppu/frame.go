@@ -15,12 +15,14 @@ func NewFrame() *Frame {
 	}
 }
 
-func (f *Frame) setPixel(x, y uint16, color Color) {
+func (f *Frame) setPixel(x, y uint32, color Color) {
 	first := y*3*WIDTH + x*3
-	if first+2 < uint16(len(f.data)) {
+	if first+2 < uint32(len(f.data)) {
 		f.data[first] = color.R
 		f.data[first+1] = color.G
 		f.data[first+2] = color.B
+	} else {
+		panic("invalid pixel position")
 	}
 }
 

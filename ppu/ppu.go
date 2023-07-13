@@ -1,6 +1,8 @@
 package ppu
 
-import "fmt"
+import (
+	"fmt"
+)
 
 const (
 	Vertical byte = iota
@@ -14,12 +16,15 @@ type PPU struct {
 	chrROM         []byte          // chrROM characterROM 保存Sprite静态数据
 	paletteTable   []byte          // paletteTable 保存编号对应的颜色
 	ram            []byte          // ram ppu RAM
+	oamAddr        byte            // oamAddr
 	oamData        []byte          // oamData
 	mirroring      byte            // mirroring
 	addrReg        AddrRegister    // addrReg 地址寄存器，因为ppu读取是异步的，需要寄存器记录读请求的地址
 	ctrlReg        ControlRegister // ctrlReg ppu 控制寄存器
-	internalBuffer byte            // internalBuffer 异步读取缓冲区
-	statReg        StatusRegister  // statReg 状态寄存器
+	maskReg        MaskRegister
+	scrollReg      ScrollRegister
+	internalBuffer byte           // internalBuffer 异步读取缓冲区
+	statReg        StatusRegister // statReg 状态寄存器
 
 	cycles       uint64 // cycles ppu 经过的时钟周期
 	scanLines    uint16 // scanLines
@@ -32,12 +37,15 @@ func NewPPU(chrROM []byte, mirroring byte) *PPU {
 		chrROM:       chrROM,
 		paletteTable: make([]byte, 32),
 		ram:          make([]byte, 2048),
+		oamAddr:      0,
 		oamData:      make([]byte, 256),
 		mirroring:    mirroring,
 		addrReg:      NewAddrRegister(),
 		ctrlReg:      NewControlRegister(),
 		statReg:      NewStatusRegister(),
 		frame:        NewFrame(),
+		maskReg:      NewMaskRegister(),
+		scrollReg:    NewScrollRegister(),
 	}
 }
 
@@ -47,18 +55,40 @@ func (p *PPU) incrementAddr() {
 
 // Render 渲染当前的NameTable
 func (p *PPU) Render() {
-
+	var bank uint16
+	if p.ctrlReg.get(BackgroundPattern) {
+		bank = 1
+	} else {
+		bank = 0
+	}
+	var i uint16
+	for i = 0; i < 960; i++ {
+		x, y := i%32*8, i/32*8
+		tileIndex := p.ram[i]
+		p.renderTile(x, y, bank, tileIndex)
+	}
 }
 
 // DisplayAllTiles 测试方法，在frame中渲染bank中的所有tiles
-func (p *PPU) DisplayAllTiles(bank uint16) {
-	var i uint16 = 0
-	for ; i < 8; i++ {
-		var j uint16 = 0
-		for ; j < 32; j++ {
-			p.renderTile(j*8, i*8, bank, byte(i*8+j))
+func (p *PPU) DisplayAllTiles() {
+	var bank uint16 = 0
+	var x, y uint16 = 0, 0
+	var i byte = 0
+	for bank <= 1 {
+		if x >= 256 || x+8 >= 256 {
+			x = 0
+			y += 10
+		}
+		p.renderTile(x, y, bank, byte(i))
+		x += 10
+		if i == 255 {
+			i = 0
+			bank += 1
+		} else {
+			i++
 		}
 	}
+
 }
 
 // renderTile 在Frame的x，y位置渲染一个tile
@@ -78,7 +108,7 @@ func (p *PPU) renderTile(x, y uint16, bank uint16, tileIndex byte) {
 			var color Color
 			switch colorId {
 			case 0:
-				color = SystemPalette[13]
+				color = SystemPalette[0x01]
 			case 1:
 				color = SystemPalette[0x23]
 			case 2:
@@ -88,7 +118,7 @@ func (p *PPU) renderTile(x, y uint16, bank uint16, tileIndex byte) {
 			default:
 				panic(fmt.Errorf("invalid color id: %d", colorId))
 			}
-			p.frame.setPixel(x+col, y+row, color)
+			p.frame.setPixel(uint32(x+col), uint32(y+row), color)
 		}
 	}
 }
@@ -157,22 +187,22 @@ func (p *PPU) mirrorVRAMAddr(addr uint16) uint16 {
 	idx := vramAddr - 0x2000
 	nameTable := idx / 0x0400
 	if nameTable == 0 {
-		return vramAddr
+		return idx
 	}
 	switch p.mirroring {
 	case Vertical:
 		if nameTable == 2 || nameTable == 3 {
-			return vramAddr - 0x800
+			return idx - 0x800
 		}
 	case Horizontal:
 		if nameTable == 1 || nameTable == 2 {
-			return vramAddr - 0x400
+			return idx - 0x400
 		} else {
-			return vramAddr - 0x800
+			return idx - 0x800
 		}
 	default:
 	}
-	return vramAddr
+	return idx
 }
 
 func (p *PPU) Tick(cycles uint64) bool {
@@ -211,15 +241,48 @@ func (p *PPU) ReadStatus() byte {
 	// 读取状态会导致reset vblan、addr
 	p.statReg.resetVBlankStarted()
 	p.addrReg.resetLatch()
+	p.scrollReg.resetLatch()
 	return status
 }
 
-func (p *PPU) IsInterrupt() bool {
-	return p.nmiInterrupt
+func (p *PPU) PollInterrupt() bool {
+	if interrupt := p.nmiInterrupt; interrupt {
+		p.nmiInterrupt = false
+		return interrupt
+	}
+	return false
 }
 
 func (p *PPU) FrameData() []byte {
 	return p.frame.data
+}
+
+func (p *PPU) WriteMask(val byte) {
+	p.maskReg.set(val)
+}
+
+func (p *PPU) WriteScroll(val byte) {
+	p.scrollReg.write(val)
+}
+
+func (p *PPU) WriteOamAddr(val byte) {
+	p.oamAddr = val
+}
+
+func (p *PPU) WriteOam(data byte) {
+	p.oamData[p.oamAddr] = data
+	p.oamAddr += 1
+}
+
+func (p *PPU) WriteOamDMA(data []byte) {
+	for i := 0; i < 256; i++ {
+		p.oamData[p.oamAddr] = data[i]
+		p.oamAddr += 1
+	}
+}
+
+func (p *PPU) ReadOam() byte {
+	return p.oamData[p.oamAddr]
 }
 
 // ReadAndUpdateScreen 从内存读取每个cell，并在frame中修改cell的值，如果有更新则通知给渲染器
