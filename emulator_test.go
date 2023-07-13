@@ -11,6 +11,8 @@ import (
 	"unsafe"
 )
 
+var game = "games/nestest.nes"
+
 func loadNES(filename string) ([]byte, error) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -24,7 +26,7 @@ func loadNES(filename string) ([]byte, error) {
 }
 
 func TestPPU_RenderTile(t *testing.T) {
-	program, err := loadNES("games/PacMan.nes")
+	program, err := loadNES(game)
 	if err != nil {
 		t.Error(err)
 		t.Fail()
@@ -32,7 +34,33 @@ func TestPPU_RenderTile(t *testing.T) {
 
 	rom := bus.NewROM(program)
 	p := ppu.NewPPU(rom.GetChrROM(), byte(rom.GetMirroring()))
-	p.DisplayAllTiles(1)
+	p.DisplayAllTiles()
+	window, renderer, err := initSDL()
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+	texture, _ := renderer.CreateTexture(sdl.PIXELFORMAT_RGB24, sdl.TEXTUREACCESS_STREAMING, ppu.WIDTH, ppu.HEIGHT)
+	defer texture.Destroy()
+	defer window.Destroy()
+	frame := p.FrameData()
+	_ = texture.Update(nil, unsafe.Pointer(&frame[0]), ppu.WIDTH*3)
+	_ = renderer.Copy(texture, nil, nil)
+	renderer.Present()
+
+	select {}
+}
+
+func TestPPU_RenderBackground(t *testing.T) {
+	program, err := loadNES(game)
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+
+	rom := bus.NewROM(program)
+	p := ppu.NewPPU(rom.GetChrROM(), byte(rom.GetMirroring()))
+	p.Render()
 	window, renderer, err := initSDL()
 	if err != nil {
 		t.Error(err)
