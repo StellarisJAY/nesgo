@@ -8,17 +8,24 @@ func jmp(p *Processor, op Instruction) {
 func jmpIndirect(p *Processor, _ Instruction) {
 	// 先从参数取到地址
 	addr := p.getMemoryAddress(Absolute)
+	var target uint16
+	if addr&0xFF == 0xFF {
+		low := p.readMemUint8(addr)
+		high := p.readMemUint8(addr & 0xFF00)
+		target = uint16(high)<<8 + uint16(low)
+	} else {
+		target = p.readMemUint16(addr)
+	}
 	// 在地址取到跳转目标
-	target := p.readMemUint16(addr)
 	p.pc = target
 }
 
 // jsr 返回地址入栈，跳转到目标地址
 func jsr(p *Processor, _ Instruction) {
-	// 将返回地址：pc+2 （跳过16位立即数）入栈
-	ra := p.pc + 2
-	p.stackPush(byte(ra & 0xFF))
+	// 将返回地址：pc+2-1 （跳过16位立即数）入栈
+	ra := p.pc + 2 - 1
 	p.stackPush(byte(ra >> 8))
+	p.stackPush(byte(ra & 0xFF))
 	// 跳转到目标地址
 	target := p.getMemoryAddress(Absolute)
 	p.pc = target
@@ -26,10 +33,10 @@ func jsr(p *Processor, _ Instruction) {
 
 // rts，返回地址出栈，跳转到返回地址
 func rts(p *Processor, _ Instruction) {
-	high := p.stackPop()
 	low := p.stackPop()
+	high := p.stackPop()
 	ra := uint16(high)<<8 | uint16(low)
-	p.pc = ra
+	p.pc = ra + 1
 }
 
 func rti(p *Processor, _ Instruction) {
@@ -37,8 +44,8 @@ func rti(p *Processor, _ Instruction) {
 	p.regStatus = status
 	p.regStatus &= ^BreakStatus
 	p.regStatus |= Break2Status
-	high := p.stackPop()
 	low := p.stackPop()
+	high := p.stackPop()
 	ra := uint16(high)<<8 | uint16(low)
 	p.pc = ra
 }
