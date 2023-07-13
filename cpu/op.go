@@ -144,13 +144,13 @@ const (
 
 	ASL     byte = 0x0A
 	ASL_ZP  byte = 0x06
-	ASL_ZPX byte = 0x1A
+	ASL_ZPX byte = 0x16
 	ASL_ABS byte = 0x0E
 	ASL_ABX byte = 0x1E
 
 	LSR     byte = 0x4A
-	LSR_ZP  byte = 0x04
-	LSR_ZPX byte = 0x5A
+	LSR_ZP  byte = 0x46
+	LSR_ZPX byte = 0x56
 	LSR_ABS byte = 0x4E
 	LSR_ABX byte = 0x5E
 
@@ -262,8 +262,8 @@ var (
 		LDX_IM:  {LDX_IM, "LDX", 2, 2, Immediate, ldx},
 		LDX_ZP:  {LDX_ZP, "LDX", 2, 2, ZeroPage, ldx},
 		LDX_ZPY: {LDX_ZPY, "LDX", 2, 2, ZeroPageY, ldx},
-		LDX_ABS: {LDX_ABS, "LDX", 2, 2, Absolute, ldx},
-		LDX_ABY: {LDX_ABY, "LDX", 2, 2, AbsoluteY, ldx},
+		LDX_ABS: {LDX_ABS, "LDX", 3, 2, Absolute, ldx},
+		LDX_ABY: {LDX_ABY, "LDX", 3, 2, AbsoluteY, ldx},
 		// LDY
 		LDY_IM:  {LDY_IM, "LDY", 2, 2, Immediate, ldy},
 		LDY_ZP:  {LDY_ZP, "LDY", 2, 3, ZeroPage, ldy},
@@ -272,7 +272,7 @@ var (
 		LDY_ABX: {LDY_ABX, "LDY", 3, 4, AbsoluteX, ldy},
 		// JMP
 		JMP_A: {JMP_A, "JMP", 3, 2, Absolute, jmp},
-		JMP_I: {JMP_I, "JMP", 3, 2, Absolute, jmpIndirect},
+		JMP_I: {JMP_I, "JMP", 3, 2, IndirectY, jmpIndirect},
 		JSR:   {JSR, "JSR", 3, 6, Absolute, jsr},
 		RTS:   {RTS, "RTS", 1, 6, NoneAddressing, rts},
 		// Stack
@@ -389,7 +389,7 @@ var (
 		ROL_ABS: {ROL_ABS, "ROL", 3, 6, Absolute, rol},
 		ROL_ABX: {ROL_ABX, "ROL", 3, 7, AbsoluteX, rol},
 
-		RTI: {RTI, "RTI", 2, 6, NoneAddressing, rti},
+		RTI: {RTI, "RTI", 1, 6, NoneAddressing, rti},
 	}
 )
 

@@ -47,7 +47,7 @@ const (
 
 // CallbackFunc 每条指令执行前的callback，返回false将结束处理器循环
 type CallbackFunc func(*Processor) bool
-type InstructionCallback func(Instruction, uint16, []byte)
+type InstructionCallback func(*Processor, Instruction)
 
 type Processor struct {
 	regA      byte
@@ -94,6 +94,7 @@ func (p *Processor) reset() {
 	p.sp = StackReset
 	// 从ROM读取程序的entry point
 	p.pc = p.readMemUint16(PrgROMEntryPointAddr)
+	p.pc = 0xC000
 }
 
 func (p *Processor) run() {
@@ -138,9 +139,9 @@ func (p *Processor) runWithCallback(eventsHandler CallbackFunc, callback Instruc
 		originalPc := p.pc
 		instruction, ok := Instructions[opCode]
 		if !ok {
-			panic(fmt.Errorf("unknown instruction at %d: 0x%x", originalPc-1-PrgROMAddr, opCode))
+			panic(fmt.Errorf("unknown instruction at %04x: 0x%x", originalPc-1, opCode))
 		}
-		callback(instruction, originalPc-1, []byte{p.readMemUint8(p.pc), p.readMemUint8(p.pc + 1)})
+		callback(p, instruction)
 		switch opCode {
 		case BRK:
 			p.regStatus |= BreakStatus
@@ -162,9 +163,10 @@ func (p *Processor) runWithCallback(eventsHandler CallbackFunc, callback Instruc
 }
 
 func (p *Processor) HandleInterrupt() {
+	ra := p.pc - 1
 	// 保存PC
-	p.stackPush(byte(p.pc & 0xff))
-	p.stackPush(byte(p.pc >> 8))
+	p.stackPush(byte(ra & 0xff))
+	p.stackPush(byte(ra >> 8))
 	status := p.regStatus
 	status &= (^BreakStatus)
 	status |= Break2Status
@@ -174,6 +176,22 @@ func (p *Processor) HandleInterrupt() {
 	p.bus.Tick(2)
 	// 跳转到中断处理
 	p.pc = p.readMemUint16(PrgROMInterruptHandler)
+}
+
+func (p *Processor) GetArgAddress(pc uint16, mode AddressMode) uint16 {
+	return p.getAddress(pc, mode)
+}
+
+func (p *Processor) ReadMem8(addr uint16) byte {
+	return p.readMemUint8(addr)
+}
+
+func (p *Processor) ReadMem16(addr uint16) uint16 {
+	return p.readMemUint16(addr)
+}
+
+func (p *Processor) ProgramCounter() uint16 {
+	return p.pc
 }
 
 func (p *Processor) readMemUint8(addr uint16) byte {
@@ -199,40 +217,48 @@ func (p *Processor) writeMemUint16(addr uint16, val uint16) {
 	p.writeMemUint8(addr+1, high)
 }
 
-func (p *Processor) getMemoryAddress(mode AddressMode) uint16 {
+func (p *Processor) getAddress(pc uint16, mode AddressMode) uint16 {
 	var addr uint16
 	switch mode {
 	case Immediate:
 		addr = p.pc
 	case ZeroPage:
-		addr = uint16(p.readMemUint8(p.pc))
+		addr = uint16(p.readMemUint8(pc))
 	case Absolute:
 		addr = p.readMemUint16(p.pc)
 	case ZeroPageX:
-		addr = uint16(p.readMemUint8(p.pc))
+		addr = uint16(p.readMemUint8(pc))
 		addr += uint16(p.regX)
 	case ZeroPageY:
-		addr = uint16(p.readMemUint8(p.pc))
+		addr = uint16(p.readMemUint8(pc))
 		addr += uint16(p.regY)
 	case AbsoluteX:
-		addr = p.readMemUint16(p.pc)
+		addr = p.readMemUint16(pc)
 		addr += uint16(p.regX)
 	case AbsoluteY:
-		addr = p.readMemUint16(p.pc)
+		addr = p.readMemUint16(pc)
 		addr += uint16(p.regY)
 	case IndirectX:
-		base := p.readMemUint8(p.pc)
+		base := p.readMemUint8(pc)
 		ptr := base + p.regX
 		addr = p.readMemUint16(uint16(ptr))
 	case IndirectY:
-		base := p.readMemUint8(p.pc)
+		base := p.readMemUint8(pc)
 		low := p.readMemUint8(uint16(base))
 		high := p.readMemUint8(uint16(base + 1))
 		addr = uint16(high)<<8 + uint16(low) + uint16(p.regY)
 	case NoneAddressing:
-		addr = p.pc
+		addr = pc
 	}
 	return addr
+}
+
+func (p *Processor) DumpRegisters() string {
+	return fmt.Sprintf("A:%2X X:%2x Y:%2x P:%2x SP:%2x", p.regA, p.regX, p.regY, p.regStatus, p.sp)
+}
+
+func (p *Processor) getMemoryAddress(mode AddressMode) uint16 {
+	return p.getAddress(p.pc, mode)
 }
 
 // GetMemoryRange 获取start到end范围内的内存切片
