@@ -8,8 +8,7 @@ func and(p *Processor, op Instruction) {
 
 func eor(p *Processor, op Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
-	p.regA = p.regA ^ p.readMemUint8(addr)
-	p.zeroOrNegativeStatus(p.regA)
+	eorWithA(p, p.readMemUint8(addr))
 }
 
 func ora(p *Processor, op Instruction) {
@@ -37,4 +36,21 @@ func bit(p *Processor, op Instruction) {
 	} else {
 		p.regStatus &= ^NegativeStatus
 	}
+}
+
+func eorWithA(p *Processor, val byte) {
+	p.regA = p.regA ^ val
+	p.zeroOrNegativeStatus(p.regA)
+}
+
+func sre(p *Processor, op Instruction) {
+	var val byte
+	if op.AddrMode == NoneAddressing {
+		val = p.regA
+	} else {
+		addr := p.getMemoryAddress(op.AddrMode)
+		val = p.readMemUint8(addr)
+	}
+	val = lsrVal(p, val)
+	eorWithA(p, val)
 }

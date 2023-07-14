@@ -179,6 +179,14 @@ const (
 	ROL_ABX byte = 0x3E
 
 	RTI byte = 0x40
+
+	SRE_ZP  byte = 0x47
+	SRE_ZPX byte = 0x57
+	SRE_ABS byte = 0x4F
+	SRE_ABX byte = 0x5F
+	SRE_ABY byte = 0x5B
+	SRE_INX byte = 0x43
+	SRE_INY byte = 0x53
 )
 
 // AddressMode 寻址模式
@@ -390,6 +398,42 @@ var (
 		ROL_ABX: {ROL_ABX, "ROL", 3, 7, AbsoluteX, rol},
 
 		RTI: {RTI, "RTI", 1, 6, NoneAddressing, rti},
+
+		SRE_ZP:  {SRE_ZP, "SRE", 2, 5, ZeroPage, sre},
+		SRE_ZPX: {SRE_ZPX, "SRE", 2, 6, ZeroPageX, sre},
+		SRE_ABS: {SRE_ABS, "SRE", 3, 6, Absolute, sre},
+		SRE_ABX: {SRE_ABX, "SRE", 3, 7, AbsoluteX, sre},
+		SRE_ABY: {SRE_ABY, "SRE", 3, 7, AbsoluteY, sre},
+		SRE_INX: {SRE_INX, "SRE", 2, 8, IndirectX, sre},
+		SRE_INY: {SRE_INY, "SRE", 2, 8, IndirectY, sre},
+		// Unofficial NOPs
+		0x04: {0x04, "NOP", 2, 3, ZeroPage, nopRead},
+		0x44: {0x44, "NOP", 2, 3, ZeroPage, nopRead},
+		0x64: {0x64, "NOP", 2, 3, ZeroPage, nopRead},
+		0x14: {0x14, "NOP", 2, 4, ZeroPageX, nopRead},
+		0x34: {0x34, "NOP", 2, 4, ZeroPageX, nopRead},
+		0x54: {0x54, "NOP", 2, 4, ZeroPageX, nopRead},
+		0x74: {0x74, "NOP", 2, 4, ZeroPageX, nopRead},
+		0xd4: {0xd4, "NOP", 2, 4, ZeroPageX, nopRead},
+		0xf4: {0xf4, "NOP", 2, 4, ZeroPageX, nopRead},
+		0x0c: {0x0c, "NOP", 3, 4, Absolute, nopRead},
+		0x1c: {0x1c, "NOP", 3, 4, AbsoluteX, nopRead},
+		0x3c: {0x3c, "NOP", 3, 4, AbsoluteX, nopRead},
+		0x5c: {0x5c, "NOP", 3, 4, AbsoluteX, nopRead},
+		0x7c: {0x7c, "NOP", 3, 4, AbsoluteX, nopRead},
+		0xdc: {0xdc, "NOP", 3, 4, AbsoluteX, nopRead},
+		0xfc: {0xfc, "NOP", 3, 4, AbsoluteX, nopRead},
+		0x1a: {0x1a, "NOP", 1, 2, NoneAddressing, nop},
+		0x3a: {0x3a, "NOP", 1, 2, NoneAddressing, nop},
+		0x5a: {0x5a, "NOP", 1, 2, NoneAddressing, nop},
+		0x7a: {0x7a, "NOP", 1, 2, NoneAddressing, nop},
+		0xda: {0xda, "NOP", 1, 2, NoneAddressing, nop},
+		0xfa: {0xfa, "NOP", 1, 2, NoneAddressing, nop},
+		0x80: {0x80, "NOP", 2, 2, Immediate, nopRead},
+		0x82: {0x82, "NOP", 2, 2, Immediate, nopRead},
+		0x89: {0x89, "NOP", 2, 2, Immediate, nopRead},
+		0xc2: {0xc2, "NOP", 2, 2, Immediate, nopRead},
+		0xe2: {0xe2, "NOP", 2, 2, Immediate, nopRead},
 	}
 )
 
@@ -405,3 +449,10 @@ func (p *Processor) zeroOrNegativeStatus(value byte) {
 		p.regStatus &= ^NegativeStatus
 	}
 }
+
+func nopRead(p *Processor, op Instruction) {
+	addr := p.getMemoryAddress(op.AddrMode)
+	_ = p.readMemUint8(addr)
+}
+
+func nop(_ *Processor, _ Instruction) {}

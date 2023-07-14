@@ -33,6 +33,16 @@ func lsr(p *Processor, op Instruction) {
 		addr := p.getMemoryAddress(op.AddrMode)
 		val = p.readMemUint8(addr)
 	}
+	val = lsrVal(p, val)
+
+	if op.AddrMode == NoneAddressing {
+		p.regA = val
+	} else {
+		p.writeMemUint8(addr, val)
+	}
+}
+
+func lsrVal(p *Processor, val byte) byte {
 	if val&1 != 0 {
 		p.regStatus |= CarryStatus
 	} else {
@@ -40,12 +50,7 @@ func lsr(p *Processor, op Instruction) {
 	}
 	val = val >> 1
 	p.zeroOrNegativeStatus(val)
-
-	if op.AddrMode == NoneAddressing {
-		p.regA = val
-	} else {
-		p.writeMemUint8(addr, val)
-	}
+	return val
 }
 
 func ror(p *Processor, op Instruction) {
