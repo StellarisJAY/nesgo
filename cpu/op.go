@@ -399,6 +399,7 @@ var (
 
 		RTI: {RTI, "RTI", 1, 6, NoneAddressing, rti},
 
+		// Unofficial ops
 		SRE_ZP:  {SRE_ZP, "SRE", 2, 5, ZeroPage, sre},
 		SRE_ZPX: {SRE_ZPX, "SRE", 2, 6, ZeroPageX, sre},
 		SRE_ABS: {SRE_ABS, "SRE", 3, 6, Absolute, sre},
@@ -434,6 +435,20 @@ var (
 		0x89: {0x89, "NOP", 2, 2, Immediate, nopRead},
 		0xc2: {0xc2, "NOP", 2, 2, Immediate, nopRead},
 		0xe2: {0xe2, "NOP", 2, 2, Immediate, nopRead},
+
+		0xa7: {0xa7, "LAX", 2, 3, ZeroPage, lax},
+		0xb7: {0xb7, "LAX", 2, 4, ZeroPageY, lax},
+		0xaf: {0xaf, "LAX", 3, 4, Absolute, lax},
+		0xbf: {0xbf, "LAX", 3, 4, AbsoluteY, lax},
+		0xa3: {0xa3, "LAX", 2, 6, IndirectX, lax},
+		0xb3: {0xb3, "LAX", 2, 5, IndirectY, lax},
+
+		0x87: {0x87, "SAX", 2, 3, ZeroPage, sax},
+		0x97: {0x97, "SAX", 2, 4, ZeroPageY, sax},
+		0x8f: {0x8f, "SAX", 3, 4, Absolute, sax},
+		0x83: {0x83, "SAX", 2, 5, IndirectX, sax},
+		
+		0xeb: {0xeb, "SBC", 2, 2, Immediate, sbc},
 	}
 )
 
