@@ -3,6 +3,7 @@ package trace
 import (
 	"fmt"
 	"github.com/stellarisJAY/nesgo/cpu"
+	"strings"
 )
 
 func Trace(p *cpu.Processor, instruction cpu.Instruction) {
@@ -31,5 +32,12 @@ func Trace(p *cpu.Processor, instruction cpu.Instruction) {
 	case cpu.IndirectY:
 		addrMode = "iny"
 	}
-	fmt.Printf("%4x\t%5s_%4s\t%s\n", pc-1, instruction.Name, addrMode, registers)
+
+	argc := uint16(instruction.Length - 1)
+	args := strings.Builder{}
+	var i uint16
+	for i = 0; i < argc; i++ {
+		args.WriteString(fmt.Sprintf("%2x ", p.ReadMem8(pc+i)))
+	}
+	fmt.Printf("%4x\t%5s_%4s\t%8s\t%s\n", pc-1, instruction.Name, addrMode, args.String(), registers)
 }
