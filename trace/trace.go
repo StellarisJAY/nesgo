@@ -37,7 +37,7 @@ func Trace(p *cpu.Processor, instruction cpu.Instruction) {
 	args := strings.Builder{}
 	var i uint16
 	for i = 0; i < argc; i++ {
-		args.WriteString(fmt.Sprintf("%2x ", p.ReadMem8(pc+i)))
+		args.WriteString(fmt.Sprintf("%02X ", p.ReadMem8(pc+i)))
 	}
-	fmt.Printf("%4x\t%5s_%4s\t%8s\t%s\n", pc-1, instruction.Name, addrMode, args.String(), registers)
+	fmt.Printf("%04X\t%5s_%4s\t%8s\t%s\n", pc-1, instruction.Name, addrMode, args.String(), registers)
 }

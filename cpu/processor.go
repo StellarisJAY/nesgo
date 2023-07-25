@@ -244,7 +244,7 @@ func (p *Processor) getAddress(pc uint16, mode AddressMode) uint16 {
 }
 
 func (p *Processor) DumpRegisters() string {
-	return fmt.Sprintf("A:%2X X:%2x Y:%2x P:%2x SP:%2x", p.regA, p.regX, p.regY, p.regStatus, p.sp)
+	return fmt.Sprintf("A:%02X X:%02X Y:%02X P:%02X SP:%02X", p.regA, p.regX, p.regY, p.regStatus, p.sp)
 }
 
 func (p *Processor) getMemoryAddress(mode AddressMode) uint16 {
