@@ -151,12 +151,11 @@ func (p *Processor) runWithCallback(eventsHandler CallbackFunc, callback Instruc
 }
 
 func (p *Processor) HandleInterrupt() {
-	ra := p.pc - 1
+	ra := p.pc
 	// 保存PC
-	p.stackPush(byte(ra & 0xff))
 	p.stackPush(byte(ra >> 8))
+	p.stackPush(byte(ra & 0xff))
 	status := p.regStatus
-	status &= (^BreakStatus)
 	status |= Break2Status
 	// 保存状态，中断关闭
 	p.stackPush(status)
@@ -188,6 +187,10 @@ func (p *Processor) readMemUint8(addr uint16) byte {
 
 func (p *Processor) writeMemUint8(addr uint16, val byte) {
 	p.bus.WriteMemUint8(addr, val)
+}
+
+func (p *Processor) Cycles() uint64 {
+	return p.bus.Cycles()
 }
 
 // 小端序读取16bits内存
