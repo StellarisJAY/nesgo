@@ -15,12 +15,8 @@ import (
 // 随机数：0xFE
 const (
 	ProgramEntryPoint        = 0x0600
-	PrgROMAddr               = 0x8000 // 程序代码加载到0x8000地址的PrgROM
-	OutputBaseAddr           = 0x0200
-	OutputEndAddr            = 0x0600
 	StackBase                = 0x0100
-	StackReset               = 0xFF
-	Input             uint16 = 0xFF
+	StackReset               = 0xFD
 	RandomNumber      uint16 = 0xFE
 
 	PrgROMEntryPointAddr   uint16 = 0xFFFC // 程序entry point在ROM的地址
@@ -36,13 +32,6 @@ const (
 	Break2Status           byte = 1 << 5
 	OverflowStatus         byte = 1 << 6
 	NegativeStatus         byte = 1 << 7
-)
-
-const (
-	ActionUp    byte = 0x77
-	ActionDown  byte = 0x73
-	ActionLeft  byte = 0x61
-	ActionRight byte = 0x64
 )
 
 // CallbackFunc 每条指令执行前的callback，返回false将结束处理器循环
@@ -227,11 +216,9 @@ func (p *Processor) getAddress(pc uint16, mode AddressMode) uint16 {
 	case Absolute:
 		addr = p.readMemUint16(p.pc)
 	case ZeroPageX:
-		addr = uint16(p.readMemUint8(pc))
-		addr += uint16(p.regX)
+		addr = uint16(p.readMemUint8(pc) + p.regX)
 	case ZeroPageY:
-		addr = uint16(p.readMemUint8(pc))
-		addr += uint16(p.regY)
+		addr = uint16(p.readMemUint8(pc) + p.regY)
 	case AbsoluteX:
 		addr = p.readMemUint16(pc)
 		addr += uint16(p.regX)
@@ -241,7 +228,10 @@ func (p *Processor) getAddress(pc uint16, mode AddressMode) uint16 {
 	case IndirectX:
 		base := p.readMemUint8(pc)
 		ptr := base + p.regX
-		addr = p.readMemUint16(uint16(ptr))
+		// ptr必须是8位地址
+		low := p.readMemUint8(uint16(ptr))
+		high := p.readMemUint8(uint16(ptr + 1))
+		addr = uint16(high)<<8 + uint16(low)
 	case IndirectY:
 		base := p.readMemUint8(pc)
 		low := p.readMemUint8(uint16(base))
