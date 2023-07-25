@@ -10,7 +10,7 @@ func (p *Processor) iny() {
 	p.zeroOrNegativeStatus(p.regY)
 }
 
-func inc(p *Processor, op Instruction) {
+func inc(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	value := wrappingAddOne(val)
@@ -35,17 +35,17 @@ func wrappingMinusOne(val byte) byte {
 	return val
 }
 
-func dex(p *Processor, _ Instruction) {
+func dex(p *Processor, _ *Instruction) {
 	p.regX = wrappingMinusOne(p.regX)
 	p.zeroOrNegativeStatus(p.regX)
 }
 
-func dey(p *Processor, _ Instruction) {
+func dey(p *Processor, _ *Instruction) {
 	p.regY = wrappingMinusOne(p.regY)
 	p.zeroOrNegativeStatus(p.regY)
 }
 
-func dec(p *Processor, op Instruction) {
+func dec(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	val = wrappingMinusOne(val)

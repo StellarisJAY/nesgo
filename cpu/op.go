@@ -206,7 +206,7 @@ const (
 )
 
 // InstructionHandler 命令处理器
-type InstructionHandler func(p *Processor, op Instruction)
+type InstructionHandler func(p *Processor, op *Instruction)
 
 // Instruction CPU指令
 type Instruction struct {
@@ -219,7 +219,7 @@ type Instruction struct {
 }
 
 var (
-	Instructions = map[byte]Instruction{
+	Instructions = map[byte]*Instruction{
 		NOP: {NOP, "NOP", 1, 2, NoneAddressing, nil},
 		BRK: {BRK, "BRK", 1, 1, NoneAddressing, nil},
 		TAX: {TAX, "TAX", 1, 1, NoneAddressing, tax},
@@ -505,9 +505,9 @@ func (p *Processor) zeroOrNegativeStatus(value byte) {
 	}
 }
 
-func nopRead(p *Processor, op Instruction) {
+func nopRead(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	_ = p.readMemUint8(addr)
 }
 
-func nop(_ *Processor, _ Instruction) {}
+func nop(_ *Processor, _ *Instruction) {}

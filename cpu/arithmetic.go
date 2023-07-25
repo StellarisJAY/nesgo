@@ -9,25 +9,25 @@ func compare(p *Processor, val byte, compareWith byte) {
 	p.zeroOrNegativeStatus(compareWith - val)
 }
 
-func cmp(p *Processor, op Instruction) {
+func cmp(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	compare(p, val, p.regA)
 }
 
-func cpx(p *Processor, op Instruction) {
+func cpx(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	compare(p, val, p.regX)
 }
 
-func cpy(p *Processor, op Instruction) {
+func cpy(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	compare(p, val, p.regY)
 }
 
-func adc(p *Processor, op Instruction) {
+func adc(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	addRegA(p, val)
@@ -56,7 +56,7 @@ func addRegA(p *Processor, val byte) {
 	p.zeroOrNegativeStatus(p.regA)
 }
 
-func sbc(p *Processor, op Instruction) {
+func sbc(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	val = byte(int8(-val) - 1)
@@ -68,7 +68,7 @@ func subRegA(p *Processor, val byte) {
 	addRegA(p, delta)
 }
 
-func dcp(p *Processor, op Instruction) {
+func dcp(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	val -= 1
@@ -79,7 +79,7 @@ func dcp(p *Processor, op Instruction) {
 	p.zeroOrNegativeStatus(p.regA - val)
 }
 
-func isc(p *Processor, op Instruction) {
+func isc(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	val += 1

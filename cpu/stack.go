@@ -1,28 +1,28 @@
 package cpu
 
-func tsx(p *Processor, _ Instruction) {
+func tsx(p *Processor, _ *Instruction) {
 	p.regX = p.sp
 	p.zeroOrNegativeStatus(p.regX)
 }
 
-func txs(p *Processor, _ Instruction) {
+func txs(p *Processor, _ *Instruction) {
 	p.sp = p.regX
 }
 
-func pha(p *Processor, _ Instruction) {
+func pha(p *Processor, _ *Instruction) {
 	p.stackPush(p.regA)
 }
 
-func php(p *Processor, _ Instruction) {
+func php(p *Processor, _ *Instruction) {
 	p.stackPush(p.regStatus)
 }
 
-func pla(p *Processor, _ Instruction) {
+func pla(p *Processor, _ *Instruction) {
 	p.regA = p.stackPop()
 	p.zeroOrNegativeStatus(p.regA)
 }
 
-func plp(p *Processor, _ Instruction) {
+func plp(p *Processor, _ *Instruction) {
 	p.regStatus = p.stackPop()
 }
 

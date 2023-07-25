@@ -36,7 +36,7 @@ const (
 
 // CallbackFunc 每条指令执行前的callback，返回false将结束处理器循环
 type CallbackFunc func(*Processor) bool
-type InstructionCallback func(*Processor, Instruction)
+type InstructionCallback func(*Processor, *Instruction)
 
 type Processor struct {
 	regA      byte
@@ -65,9 +65,9 @@ func (p *Processor) LoadAndRun(program []byte) {
 	p.run()
 }
 
-func (p *Processor) LoadAndRunWithCallback(eventsHandler CallbackFunc, callback InstructionCallback) {
+func (p *Processor) LoadAndRunWithCallback(callback InstructionCallback) {
 	p.reset()
-	p.runWithCallback(eventsHandler, callback)
+	p.runWithCallback(callback)
 }
 
 func (p *Processor) loadProgram(program []byte) {
@@ -113,13 +113,10 @@ func (p *Processor) run() {
 	}
 }
 
-func (p *Processor) runWithCallback(eventsHandler CallbackFunc, callback InstructionCallback) {
+func (p *Processor) runWithCallback(callback InstructionCallback) {
 	for {
 		if p.bus.PollNMIInterrupt() {
 			p.HandleInterrupt()
-		}
-		if !eventsHandler(p) {
-			break
 		}
 		p.writeMemUint8(RandomNumber, byte(2+p.randNum.Intn(13)))
 		opCode := p.readMemUint8(p.pc)
@@ -258,29 +255,29 @@ func (p *Processor) GetMemoryRange(start, end uint16) []byte {
 	return p.bus.GetRAMRange(start, end)
 }
 
-func clc(p *Processor, _ Instruction) {
+func clc(p *Processor, _ *Instruction) {
 	p.regStatus &= ^CarryStatus
 }
 
-func cld(p *Processor, _ Instruction) {
+func cld(p *Processor, _ *Instruction) {
 	p.regStatus &= ^DecimalModeStatus
 }
 
-func cli(p *Processor, _ Instruction) {
+func cli(p *Processor, _ *Instruction) {
 	p.regStatus &= ^InterruptDisableStatus
 }
 
-func clv(p *Processor, _ Instruction) {
+func clv(p *Processor, _ *Instruction) {
 	p.regStatus &= ^OverflowStatus
 }
 
-func sec(p *Processor, _ Instruction) {
+func sec(p *Processor, _ *Instruction) {
 	p.regStatus |= CarryStatus
 }
 
-func sed(p *Processor, _ Instruction) {
+func sed(p *Processor, _ *Instruction) {
 	p.regStatus |= DecimalModeStatus
 }
-func sei(p *Processor, _ Instruction) {
+func sei(p *Processor, _ *Instruction) {
 	p.regStatus |= InterruptDisableStatus
 }

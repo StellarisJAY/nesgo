@@ -1,6 +1,6 @@
 package cpu
 
-func asl(p *Processor, op Instruction) {
+func asl(p *Processor, op *Instruction) {
 	var val byte
 	var addr uint16
 	if op.AddrMode == NoneAddressing {
@@ -18,7 +18,7 @@ func asl(p *Processor, op Instruction) {
 	}
 }
 
-func lsr(p *Processor, op Instruction) {
+func lsr(p *Processor, op *Instruction) {
 	var val byte
 	var addr uint16
 	if op.AddrMode == NoneAddressing {
@@ -88,7 +88,7 @@ func rorVal(p *Processor, val byte) byte {
 	return val
 }
 
-func ror(p *Processor, op Instruction) {
+func ror(p *Processor, op *Instruction) {
 	var val byte
 	var addr uint16
 	if op.AddrMode == NoneAddressing {
@@ -105,7 +105,7 @@ func ror(p *Processor, op Instruction) {
 	}
 }
 
-func rol(p *Processor, op Instruction) {
+func rol(p *Processor, op *Instruction) {
 	var val byte
 	var addr uint16
 	if op.AddrMode == NoneAddressing {

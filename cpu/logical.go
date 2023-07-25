@@ -1,22 +1,22 @@
 package cpu
 
-func and(p *Processor, op Instruction) {
+func and(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	p.regA = p.regA & p.readMemUint8(addr)
 	p.zeroOrNegativeStatus(p.regA)
 }
 
-func eor(p *Processor, op Instruction) {
+func eor(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	eorWithA(p, p.readMemUint8(addr))
 }
 
-func ora(p *Processor, op Instruction) {
+func ora(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	oraWithA(p, p.readMemUint8(addr))
 }
 
-func bit(p *Processor, op Instruction) {
+func bit(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	res := p.regA & val
@@ -52,7 +52,7 @@ func andWithA(p *Processor, val byte) {
 	p.zeroOrNegativeStatus(p.regA)
 }
 
-func sre(p *Processor, op Instruction) {
+func sre(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	val = lsrVal(p, val)
@@ -60,7 +60,7 @@ func sre(p *Processor, op Instruction) {
 	eorWithA(p, val)
 }
 
-func slo(p *Processor, op Instruction) {
+func slo(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	val = aslVal(p, val)
@@ -68,7 +68,7 @@ func slo(p *Processor, op Instruction) {
 	oraWithA(p, val)
 }
 
-func rla(p *Processor, op Instruction) {
+func rla(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	val = rolVal(p, val)
@@ -76,7 +76,7 @@ func rla(p *Processor, op Instruction) {
 	andWithA(p, val)
 }
 
-func rra(p *Processor, op Instruction) {
+func rra(p *Processor, op *Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	val = rorVal(p, val)

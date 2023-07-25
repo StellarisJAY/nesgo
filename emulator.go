@@ -8,11 +8,10 @@ import (
 	"github.com/stellarisJAY/nesgo/trace"
 	"github.com/veandco/go-sdl2/sdl"
 	"log"
-	"time"
+	"os"
 	"unsafe"
 )
 
-const RenderInterval = 20000 * time.Nanosecond
 const SCALE = 4
 
 type Emulator struct {
@@ -48,11 +47,11 @@ func initSDL() (*sdl.Window, *sdl.Renderer, error) {
 	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
 		return nil, nil, fmt.Errorf("init sdl error %w", err)
 	}
-	w, err := sdl.CreateWindow("nesgo", sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED, ppu.WIDTH*SCALE, ppu.HEIGHT*SCALE, sdl.WINDOW_SHOWN)
+	w, err := sdl.CreateWindow("NesGO", sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED, ppu.WIDTH*SCALE, ppu.HEIGHT*SCALE, sdl.WINDOW_SHOWN)
 	if err != nil {
 		return nil, nil, fmt.Errorf("sdl create window error %w", err)
 	}
-	r, err := sdl.CreateRenderer(w, 0, sdl.RENDERER_ACCELERATED)
+	r, err := sdl.CreateRenderer(w, 0, sdl.RENDERER_PRESENTVSYNC)
 	if err != nil {
 		return nil, nil, fmt.Errorf("sdl get renderer error %w", err)
 	}
@@ -61,18 +60,16 @@ func initSDL() (*sdl.Window, *sdl.Renderer, error) {
 }
 
 func (e *Emulator) LoadAndRun(trace bool) {
-	defer e.texture.Destroy()
-	defer e.window.Destroy()
 	defer func() {
 		if err := recover(); err != nil {
 			log.Println(err)
-			select {}
+			e.onShutdown()
 		}
 	}()
 	if trace {
-		e.processor.LoadAndRunWithCallback(e.handleEvents, logInstruction)
+		e.processor.LoadAndRunWithCallback(logInstruction)
 	} else {
-		e.processor.LoadAndRunWithCallback(e.handleEvents, func(_ *cpu.Processor, _ cpu.Instruction) {})
+		e.processor.LoadAndRunWithCallback(func(_ *cpu.Processor, _ *cpu.Instruction) {})
 	}
 }
 
@@ -82,13 +79,16 @@ func (e *Emulator) RendererCallback(p *ppu.PPU) {
 	_ = e.texture.Update(nil, unsafe.Pointer(&frame[0]), ppu.WIDTH*3)
 	_ = e.renderer.Copy(e.texture, nil, nil)
 	e.renderer.Present()
+	e.handleEvents()
 }
 
-func (e *Emulator) handleEvents(p *cpu.Processor) bool {
+func (e *Emulator) handleEvents() {
 	for ev := sdl.PollEvent(); ev != nil; ev = sdl.PollEvent() {
 		switch ev.(type) {
 		case *sdl.QuitEvent:
-			return false
+			e.onShutdown()
+			os.Exit(0)
+			return
 		case *sdl.KeyboardEvent:
 			event := ev.(*sdl.KeyboardEvent)
 			switch event.Keysym.Scancode {
@@ -113,9 +113,15 @@ func (e *Emulator) handleEvents(p *cpu.Processor) bool {
 		default:
 		}
 	}
-	return true
 }
 
-func logInstruction(p *cpu.Processor, instruction cpu.Instruction) {
+func (e *Emulator) onShutdown() {
+	log.Println("shutting down nesGo emulator")
+	_ = e.texture.Destroy()
+	_ = e.renderer.Destroy()
+	_ = e.window.Destroy()
+}
+
+func logInstruction(p *cpu.Processor, instruction *cpu.Instruction) {
 	trace.Trace(p, instruction)
 }
