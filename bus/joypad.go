@@ -1,7 +1,5 @@
 package bus
 
-import "log"
-
 type JoyPadButton byte
 
 // JoyPad joy pad
@@ -27,7 +25,6 @@ func NewJoyPad() *JoyPad {
 }
 
 func (j *JoyPad) write(val byte) {
-	log.Println("write joy pad: ", val)
 	j.strobe = val&1 == 1
 	if j.strobe {
 		j.buttonIdx = 0
@@ -40,7 +37,6 @@ func (j *JoyPad) read() byte {
 	if !j.strobe && j.buttonIdx <= 7 {
 		j.buttonIdx += 1
 	}
-	log.Println("read joy pad: ", res)
 	return byte(res)
 }
 
