@@ -1,36 +1,46 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"log"
 	"os"
 )
 
-func parseArgsAndReadProgramFile(args []string) ([]byte, error) {
-	if len(args) < 2 {
-		return nil, fmt.Errorf("no input game file")
-	}
-	file, err := os.Open(args[1])
+type Configs struct {
+	game        string // game 游戏文件路径
+	enableTrace bool   // enableTrace 是否在控制台打印trace
+}
+
+func parseConfigs() (conf Configs) {
+	flag.StringVar(&conf.game, "game", "", "game file path")
+	flag.BoolVar(&conf.enableTrace, "trace", false, "enable debug tracing")
+	flag.Parse()
+	return
+}
+
+func readProgramFile(fileName string) ([]byte, error) {
+	file, err := os.Open(fileName)
 	if err != nil {
-		return nil, fmt.Errorf("can't open game file %w", err)
+		return nil, fmt.Errorf("can't open game file %s,  %w", fileName, err)
 	}
 	program, err := io.ReadAll(file)
 	if err != nil {
 		return nil, fmt.Errorf("read game file error %w", err)
 	}
-	log.Printf("loaded program: %s, size: %d", args[1], len(program))
+	log.Printf("loaded program file: %s, size: %d", fileName, len(program))
 	return program, nil
 }
 
 func main() {
-	args := os.Args
+	conf := parseConfigs()
 	var program []byte
-	if p, err := parseArgsAndReadProgramFile(args); err != nil {
+	if p, err := readProgramFile(conf.game); err != nil {
 		panic(err)
 	} else {
 		program = p
 	}
 	emulator := NewEmulator(program)
-	emulator.LoadAndRun()
+	emulator.LoadAndRun(conf.enableTrace)
 }
