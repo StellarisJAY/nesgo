@@ -6,16 +6,10 @@ func asl(p *Processor, op Instruction) {
 	if op.AddrMode == NoneAddressing {
 		val = p.regA
 	} else {
-		addr := p.getMemoryAddress(op.AddrMode)
+		addr = p.getMemoryAddress(op.AddrMode)
 		val = p.readMemUint8(addr)
 	}
-	if val&(1<<7) != 0 {
-		p.regStatus |= CarryStatus
-	} else {
-		p.regStatus &= ^CarryStatus
-	}
-	val = val << 1
-	p.zeroOrNegativeStatus(val)
+	val = aslVal(p, val)
 
 	if op.AddrMode == NoneAddressing {
 		p.regA = val
@@ -30,7 +24,7 @@ func lsr(p *Processor, op Instruction) {
 	if op.AddrMode == NoneAddressing {
 		val = p.regA
 	} else {
-		addr := p.getMemoryAddress(op.AddrMode)
+		addr = p.getMemoryAddress(op.AddrMode)
 		val = p.readMemUint8(addr)
 	}
 	val = lsrVal(p, val)
@@ -40,6 +34,17 @@ func lsr(p *Processor, op Instruction) {
 	} else {
 		p.writeMemUint8(addr, val)
 	}
+}
+
+func aslVal(p *Processor, val byte) byte {
+	if val&(1<<7) != 0 {
+		p.regStatus |= CarryStatus
+	} else {
+		p.regStatus &= ^CarryStatus
+	}
+	val = val << 1
+	p.zeroOrNegativeStatus(val)
+	return val
 }
 
 func lsrVal(p *Processor, val byte) byte {
@@ -53,15 +58,22 @@ func lsrVal(p *Processor, val byte) byte {
 	return val
 }
 
-func ror(p *Processor, op Instruction) {
-	var val byte
-	var addr uint16
-	if op.AddrMode == NoneAddressing {
-		val = p.regA
+func rolVal(p *Processor, val byte) byte {
+	oldCarry := p.regStatus&CarryStatus != 0
+	if val&(1<<7) != 0 {
+		p.regStatus = p.regStatus | CarryStatus
 	} else {
-		addr := p.getMemoryAddress(op.AddrMode)
-		val = p.readMemUint8(addr)
+		p.regStatus = p.regStatus & (^CarryStatus)
 	}
+	val = val << 1
+	if oldCarry {
+		val = val | 0b1
+	}
+	p.zeroOrNegativeStatus(val)
+	return val
+}
+
+func rorVal(p *Processor, val byte) byte {
 	oldCarry := p.regStatus&CarryStatus != 0
 	if val&1 != 0 {
 		p.regStatus = p.regStatus | CarryStatus
@@ -70,9 +82,22 @@ func ror(p *Processor, op Instruction) {
 	}
 	val = val >> 1
 	if oldCarry {
-		val = val & 0b10000000
+		val = val | 0b10000000
 	}
 	p.zeroOrNegativeStatus(val)
+	return val
+}
+
+func ror(p *Processor, op Instruction) {
+	var val byte
+	var addr uint16
+	if op.AddrMode == NoneAddressing {
+		val = p.regA
+	} else {
+		addr = p.getMemoryAddress(op.AddrMode)
+		val = p.readMemUint8(addr)
+	}
+	val = rorVal(p, val)
 	if op.AddrMode == NoneAddressing {
 		p.regA = val
 	} else {
@@ -86,20 +111,10 @@ func rol(p *Processor, op Instruction) {
 	if op.AddrMode == NoneAddressing {
 		val = p.regA
 	} else {
-		addr := p.getMemoryAddress(op.AddrMode)
+		addr = p.getMemoryAddress(op.AddrMode)
 		val = p.readMemUint8(addr)
 	}
-	oldCarry := p.regStatus&CarryStatus != 0
-	if val&(1<<7) != 0 {
-		p.regStatus = p.regStatus | CarryStatus
-	} else {
-		p.regStatus = p.regStatus & (^CarryStatus)
-	}
-	val = val << 1
-	if oldCarry {
-		val = val & 0b1
-	}
-	p.zeroOrNegativeStatus(val)
+	val = rolVal(p, val)
 	if op.AddrMode == NoneAddressing {
 		p.regA = val
 	} else {
