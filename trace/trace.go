@@ -39,5 +39,5 @@ func Trace(p *cpu.Processor, instruction cpu.Instruction) {
 	for i = 0; i < argc; i++ {
 		args.WriteString(fmt.Sprintf("%02X ", p.ReadMem8(pc+i)))
 	}
-	fmt.Printf("%04X\t%5s_%4s\t%8s\t%s\n", pc-1, instruction.Name, addrMode, args.String(), registers)
+	fmt.Printf("%04X\t%5s_%4s\t%8s\t%s CYC:%d\n", pc-1, instruction.Name, addrMode, args.String(), registers, p.Cycles())
 }

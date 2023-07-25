@@ -60,7 +60,7 @@ func initSDL() (*sdl.Window, *sdl.Renderer, error) {
 	return w, r, nil
 }
 
-func (e *Emulator) LoadAndRun() {
+func (e *Emulator) LoadAndRun(trace bool) {
 	defer e.texture.Destroy()
 	defer e.window.Destroy()
 	defer func() {
@@ -69,8 +69,11 @@ func (e *Emulator) LoadAndRun() {
 			select {}
 		}
 	}()
-	// 运行program，callback进行屏幕渲染
-	e.processor.LoadAndRunWithCallback(e.handleEvents, logInstruction)
+	if trace {
+		e.processor.LoadAndRunWithCallback(e.handleEvents, logInstruction)
+	} else {
+		e.processor.LoadAndRunWithCallback(e.handleEvents, func(_ *cpu.Processor, _ cpu.Instruction) {})
+	}
 }
 
 func (e *Emulator) RendererCallback(p *ppu.PPU) {
