@@ -25,8 +25,8 @@ func (cr *ControlRegister) VRAMIncrement() byte {
 	}
 }
 
-func (cr *ControlRegister) Set(offset byte) {
-	cr.val = cr.val | offset
+func (cr *ControlRegister) Set(data byte) {
+	cr.val = data
 }
 
 func (cr *ControlRegister) get(offset byte) bool {
