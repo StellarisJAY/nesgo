@@ -1,36 +1,30 @@
 package cpu
 
+func compare(p *Processor, val byte, compareWith byte) {
+	if val <= compareWith {
+		p.regStatus |= CarryStatus
+	} else {
+		p.regStatus &= ^CarryStatus
+	}
+	p.zeroOrNegativeStatus(compareWith - val)
+}
+
 func cmp(p *Processor, op Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
-	if p.regA >= val {
-		p.regStatus |= CarryStatus
-		if val == p.regA {
-			p.regStatus |= ZeroStatus
-		}
-	}
+	compare(p, val, p.regA)
 }
 
 func cpx(p *Processor, op Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
-	if val <= p.regX {
-		p.regStatus |= CarryStatus
-		if val == p.regX {
-			p.regStatus |= ZeroStatus
-		}
-	}
+	compare(p, val, p.regX)
 }
 
 func cpy(p *Processor, op Instruction) {
 	addr := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
-	if val <= p.regY {
-		p.regStatus |= CarryStatus
-		if val == p.regY {
-			p.regStatus |= ZeroStatus
-		}
-	}
+	compare(p, val, p.regY)
 }
 
 func adc(p *Processor, op Instruction) {
@@ -40,7 +34,12 @@ func adc(p *Processor, op Instruction) {
 }
 
 func addRegA(p *Processor, val byte) {
-	carry := uint16(p.regStatus&CarryStatus) >> 1
+	var carry uint16
+	if p.regStatus&CarryStatus != 0 {
+		carry = 1
+	} else {
+		carry = 0
+	}
 	res16 := uint16(p.regA) + uint16(val) + carry
 	if res16 > 0xff {
 		p.regStatus = p.regStatus | CarryStatus
@@ -62,4 +61,28 @@ func sbc(p *Processor, op Instruction) {
 	val := p.readMemUint8(addr)
 	val = byte(int8(-val) - 1)
 	addRegA(p, val)
+}
+
+func subRegA(p *Processor, val byte) {
+	delta := byte(int8(-val) - 1)
+	addRegA(p, delta)
+}
+
+func dcp(p *Processor, op Instruction) {
+	addr := p.getMemoryAddress(op.AddrMode)
+	val := p.readMemUint8(addr)
+	val -= 1
+	p.writeMemUint8(addr, val)
+	if val <= p.regA {
+		p.regStatus |= CarryStatus
+	}
+	p.zeroOrNegativeStatus(p.regA - val)
+}
+
+func isc(p *Processor, op Instruction) {
+	addr := p.getMemoryAddress(op.AddrMode)
+	val := p.readMemUint8(addr)
+	val += 1
+	p.writeMemUint8(addr, val)
+	subRegA(p, val)
 }
