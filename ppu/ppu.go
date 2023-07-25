@@ -253,6 +253,10 @@ func (p *PPU) PollInterrupt() bool {
 	return false
 }
 
+func (p *PPU) PeekInterrupt() bool {
+	return p.nmiInterrupt
+}
+
 func (p *PPU) FrameData() []byte {
 	return p.frame.data
 }

@@ -40,10 +40,10 @@ func NewBusWithNoROM() *Bus {
 
 func (b *Bus) Tick(cycles uint64) {
 	b.cycles += cycles
-	nmiBefore := b.PollNMIInterrupt()
+	nmiBefore := b.ppu.PeekInterrupt()
 	// ppu的cycles是CPU的三倍
 	b.ppu.Tick(cycles * 3)
-	nmiAfter := b.PollNMIInterrupt()
+	nmiAfter := b.ppu.PeekInterrupt()
 	if !nmiBefore && nmiAfter {
 		b.renderCallback(b.ppu)
 	}
@@ -150,4 +150,8 @@ func (b *Bus) writeRAM16(addr uint16, val uint16) {
 	high := byte(val >> 8)
 	b.cpuRAM[addr] = low
 	b.cpuRAM[addr+1] = high
+}
+
+func (b *Bus) Cycles() uint64 {
+	return b.cycles
 }
