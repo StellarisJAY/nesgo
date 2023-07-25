@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func Trace(p *cpu.Processor, instruction cpu.Instruction) {
+func Trace(p *cpu.Processor, instruction *cpu.Instruction) {
 	pc := p.ProgramCounter()
 	var addrMode string
 	registers := p.DumpRegisters()
