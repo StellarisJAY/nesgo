@@ -102,9 +102,12 @@ func (p *PPU) renderTile(x, y uint16, bank uint16, tileIndex byte) {
 		// 一个像素是2bits，高位与低位分别在相距8字节的两个字节里面
 		low := tile[row]
 		high := tile[row+8]
-		var col uint16 = 0
-		for ; col < 8; col++ {
-			colorId := (((high >> (8 - col)) & 1) << 1) | ((low >> (8 - col)) & 1)
+		var col int16 = 7
+		for ; col >= 0; col-- {
+			// 像素颜色顺序按照大端序，从高位开始遍历
+			colorId := ((high & 1) << 1) | (low & 1)
+			low = low >> 1
+			high = high >> 1
 			var color Color
 			switch colorId {
 			case 0:
@@ -118,7 +121,7 @@ func (p *PPU) renderTile(x, y uint16, bank uint16, tileIndex byte) {
 			default:
 				panic(fmt.Errorf("invalid color id: %d", colorId))
 			}
-			p.frame.setPixel(uint32(x+col), uint32(y+row), color)
+			p.frame.setPixel(uint32(x+uint16(col)), uint32(y+row), color)
 		}
 	}
 }
