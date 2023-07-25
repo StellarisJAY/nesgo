@@ -83,7 +83,6 @@ func (p *Processor) reset() {
 	p.sp = StackReset
 	// 从ROM读取程序的entry point
 	p.pc = p.readMemUint16(PrgROMEntryPointAddr)
-	p.pc = 0xC000
 }
 
 func (p *Processor) run() {
