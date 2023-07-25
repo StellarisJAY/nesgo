@@ -7,7 +7,6 @@ func tsx(p *Processor, _ Instruction) {
 
 func txs(p *Processor, _ Instruction) {
 	p.sp = p.regX
-	p.zeroOrNegativeStatus(p.sp)
 }
 
 func pha(p *Processor, _ Instruction) {
@@ -29,14 +28,14 @@ func plp(p *Processor, _ Instruction) {
 
 // stackPush 入栈一个byte，栈指针减小
 func (p *Processor) stackPush(val byte) {
-	p.sp -= 1
 	p.writeMemUint8(uint16(p.sp)+StackBase, val)
+	p.sp -= 1
 }
 
 // stackPop 弹出一个byte，栈指针增大
 func (p *Processor) stackPop() byte {
-	val := p.readMemUint8(uint16(p.sp) + StackBase)
 	p.sp += 1
+	val := p.readMemUint8(uint16(p.sp) + StackBase)
 	return val
 }
 
