@@ -36,3 +36,19 @@ func (cr *ControlRegister) get(offset byte) bool {
 func (cr *ControlRegister) Clear(offset byte) {
 	cr.val = cr.val & (^offset)
 }
+
+func (cr *ControlRegister) getBgPattern() uint16 {
+	if cr.get(BackgroundPattern) {
+		return 1
+	} else {
+		return 0
+	}
+}
+
+func (cr *ControlRegister) getSpritePattern() uint16 {
+	if cr.get(SpritePattern) {
+		return 1
+	} else {
+		return 0
+	}
+}
