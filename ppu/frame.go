@@ -21,8 +21,6 @@ func (f *Frame) setPixel(x, y uint32, color Color) {
 		f.data[first] = color.R
 		f.data[first+1] = color.G
 		f.data[first+2] = color.B
-	} else {
-		panic("invalid pixel position")
 	}
 }
 
