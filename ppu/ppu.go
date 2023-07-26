@@ -16,8 +16,8 @@ type PPU struct {
 	chrROM         []byte          // chrROM characterROM 保存Sprite静态数据
 	paletteTable   []byte          // paletteTable 保存编号对应的颜色
 	ram            []byte          // ram ppu RAM
-	oamAddr        byte            // oamAddr
-	oamData        []byte          // oamData
+	oamAddr        byte            // oamAddr 当前oam写地址
+	oamData        []byte          // oamData sprite数据
 	mirroring      byte            // mirroring
 	addrReg        AddrRegister    // addrReg 地址寄存器，因为ppu读取是异步的，需要寄存器记录读请求的地址
 	ctrlReg        ControlRegister // ctrlReg ppu 控制寄存器
@@ -38,7 +38,7 @@ func NewPPU(chrROM []byte, mirroring byte) *PPU {
 		paletteTable: make([]byte, 32),
 		ram:          make([]byte, 2048),
 		oamAddr:      0,
-		oamData:      make([]byte, 256),
+		oamData:      make([]byte, OAMSize),
 		mirroring:    mirroring,
 		addrReg:      NewAddrRegister(),
 		ctrlReg:      NewControlRegister(),
@@ -51,79 +51,6 @@ func NewPPU(chrROM []byte, mirroring byte) *PPU {
 
 func (p *PPU) incrementAddr() {
 	p.addrReg.inc(p.ctrlReg.VRAMIncrement())
-}
-
-// Render 渲染当前的NameTable
-func (p *PPU) Render() {
-	var bank uint16
-	if p.ctrlReg.get(BackgroundPattern) {
-		bank = 1
-	} else {
-		bank = 0
-	}
-	var i uint16
-	for i = 0; i < 960; i++ {
-		x, y := i%32*8, i/32*8
-		tileIndex := p.ram[i]
-		p.renderTile(x, y, bank, tileIndex)
-	}
-}
-
-// DisplayAllTiles 测试方法，在frame中渲染bank中的所有tiles
-func (p *PPU) DisplayAllTiles() {
-	var bank uint16 = 0
-	var x, y uint16 = 0, 0
-	var i byte = 0
-	for bank <= 1 {
-		if x >= 256 || x+8 >= 256 {
-			x = 0
-			y += 10
-		}
-		p.renderTile(x, y, bank, byte(i))
-		x += 10
-		if i == 255 {
-			i = 0
-			bank += 1
-		} else {
-			i++
-		}
-	}
-
-}
-
-// renderTile 在Frame的x，y位置渲染一个tile
-func (p *PPU) renderTile(x, y uint16, bank uint16, tileIndex byte) {
-	idx := uint16(tileIndex)
-	bankBase := bank * 0x1000
-	tile := p.chrROM[bankBase+idx*16 : bankBase+idx*16+16]
-	var row uint16 = 0
-	// 每个tile有8x8个像素
-	for ; row < 8; row++ {
-		// 一个像素是2bits，高位与低位分别在相距8字节的两个字节里面
-		low := tile[row]
-		high := tile[row+8]
-		var col int16 = 7
-		for ; col >= 0; col-- {
-			// 像素颜色顺序按照大端序，从高位开始遍历
-			colorId := ((high & 1) << 1) | (low & 1)
-			low = low >> 1
-			high = high >> 1
-			var color Color
-			switch colorId {
-			case 0:
-				color = SystemPalette[0x01]
-			case 1:
-				color = SystemPalette[0x23]
-			case 2:
-				color = SystemPalette[0x27]
-			case 3:
-				color = SystemPalette[0x30]
-			default:
-				panic(fmt.Errorf("invalid color id: %d", colorId))
-			}
-			p.frame.setPixel(uint32(x+uint16(col)), uint32(y+row), color)
-		}
-	}
 }
 
 // ReadData 返回上一个读取请求的结果，并将本次读取请求的结果放入buffer
@@ -143,8 +70,10 @@ func (p *PPU) ReadData() byte {
 	case addr <= 0x3eff:
 		panic("can't read memory between [0x3000, 0x3eff)")
 	case addr <= 0x3fff:
+		// mirror down to 32
+		addrMirror := (addr - 0x3f00) % 32
 		// 调色板的数据读取直接返回
-		return p.paletteTable[addr-0x3f00]
+		return p.paletteTable[addrMirror]
 	default:
 		panic(fmt.Errorf("invalid ppu memory addr 0x%x", addr))
 	}
@@ -165,8 +94,10 @@ func (p *PPU) WriteData(val byte) {
 		addr = addr - 0x10
 		p.paletteTable[addr-0x3f00] = val
 	case addr <= 0x3fff:
+		// mirror down to 32
+		addrMirror := (addr - 0x3f00) % 32
 		// 调色板的数据
-		p.paletteTable[addr-0x3f00] = val
+		p.paletteTable[addrMirror] = val
 	default:
 		panic(fmt.Errorf("invalid ppu memory addr 0x%x", addr))
 	}
@@ -290,21 +221,4 @@ func (p *PPU) WriteOamDMA(data []byte) {
 
 func (p *PPU) ReadOam() byte {
 	return p.oamData[p.oamAddr]
-}
-
-// ReadAndUpdateScreen 从内存读取每个cell，并在frame中修改cell的值，如果有更新则通知给渲染器
-func ReadAndUpdateScreen(memory []byte, frame []byte) (updated bool) {
-	idx := 0
-	for _, cell := range memory {
-		color := getRGBAColor(cell)
-		r, g, b := color.R, color.G, color.B
-		if frame[idx] != r || frame[idx+1] != g || frame[idx+2] != b {
-			frame[idx] = r
-			frame[idx+1] = g
-			frame[idx+2] = b
-			updated = true
-		}
-		idx += 3
-	}
-	return
 }
