@@ -118,7 +118,8 @@ func (p *Processor) runWithCallback(callback InstructionCallback) {
 		if p.bus.PollNMIInterrupt() {
 			p.HandleInterrupt()
 		}
-		p.writeMemUint8(RandomNumber, byte(2+p.randNum.Intn(13)))
+		// 在0xFE保存0~255随机数
+		p.writeMemUint8(RandomNumber, byte(p.randNum.Intn(256)))
 		opCode := p.readMemUint8(p.pc)
 		p.pc++
 		originalPc := p.pc
