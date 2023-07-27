@@ -146,7 +146,6 @@ func (p *PPU) Tick(cycles uint64) bool {
 		if p.scanLines == 241 {
 			p.statReg.setVBlankStarted()
 			p.statReg.resetSprite0Hit()
-			fmt.Println("vblank on")
 			if p.ctrlReg.get(GenerateNMI) {
 				p.nmiInterrupt = true
 			}
@@ -156,7 +155,6 @@ func (p *PPU) Tick(cycles uint64) bool {
 			p.nmiInterrupt = false
 			p.statReg.resetVBlankStarted()
 			p.statReg.resetSprite0Hit()
-			fmt.Println("vblank off")
 			return true
 		}
 	}
@@ -221,9 +219,6 @@ func (p *PPU) WriteOam(data byte) {
 func (p *PPU) WriteOamDMA(data []byte) {
 	for i := 0; i < 256; i++ {
 		p.oamData[p.oamAddr] = data[i]
-		if i == 16 {
-			fmt.Printf("sprite 0: (%d, %d) %d\n", data[i+3], data[i], data[i+1])
-		}
 		p.oamAddr += 1
 	}
 }
