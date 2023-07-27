@@ -17,6 +17,21 @@ func NewControlRegister() ControlRegister {
 	return ControlRegister{0}
 }
 
+func (cr *ControlRegister) nameTableAddr() uint16 {
+	switch cr.val & 0b11 {
+	case 0:
+		return 0x2000
+	case 1:
+		return 0x2400
+	case 2:
+		return 0x2800
+	case 3:
+		return 0x2c00
+	default:
+		panic("can't happen")
+	}
+}
+
 func (cr *ControlRegister) VRAMIncrement() byte {
 	if cr.get(AddrIncrement) {
 		return 32

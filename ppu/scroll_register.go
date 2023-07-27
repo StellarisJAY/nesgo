@@ -22,3 +22,9 @@ func (s *ScrollRegister) write(val byte) {
 func (s *ScrollRegister) resetLatch() {
 	s.latch = false
 }
+
+func (s *ScrollRegister) reset() {
+	s.latch = false
+	s.x = 0
+	s.y = 0
+}

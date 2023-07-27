@@ -25,3 +25,11 @@ func (s *StatusRegister) resetSprite0Hit() {
 func (s *StatusRegister) setVBlankStarted() {
 	s.val = s.val | VBlankStarted
 }
+
+func (s *StatusRegister) isVBlank() bool {
+	return s.val&VBlankStarted != 0
+}
+
+func (s *StatusRegister) setSprite0Hit() {
+	s.val = s.val | Sprite0Hit
+}

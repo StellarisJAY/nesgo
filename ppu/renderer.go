@@ -1,6 +1,19 @@
 package ppu
 
-import "fmt"
+import (
+	"fmt"
+)
+
+type viewPort struct {
+	x1 uint32
+	y1 uint32
+	x2 uint32
+	y2 uint32
+}
+
+func newViewPort(x1, y1, x2, y2 uint32) viewPort {
+	return viewPort{x1, y1, x2, y2}
+}
 
 // Render 渲染当前的frame
 func (p *PPU) Render() {
@@ -10,12 +23,13 @@ func (p *PPU) Render() {
 
 // renderBackground 渲染background的960个tiles
 func (p *PPU) renderBackground() {
-	var i uint16
-	// 32x30tiles，共960个，每行32个
-	for i = 0; i < 960; i++ {
-		x, y := i%32*8, i/32*8
-		tileIndex := p.ram[i]
-		p.renderTile(x, y, uint16(tileIndex), false, false, p.bgPalette(y/8, x/8), true)
+	main, second := p.nameTables()
+	scrollX, scrollY := uint32(p.scrollReg.x), uint32(p.scrollReg.y)
+	p.renderNameTable(main, newViewPort(scrollX, scrollY, 256, 240), -int32(scrollX), -int32(scrollY))
+	if scrollX > 0 {
+		p.renderNameTable(second, newViewPort(0, 0, scrollX, 240), 256-int32(scrollX), 0)
+	} else if scrollY > 0 {
+		p.renderNameTable(second, newViewPort(0, 0, 256, scrollY), 0, 240-int32(scrollY))
 	}
 }
 
@@ -29,25 +43,19 @@ func (p *PPU) renderSprites() {
 		index := p.oamData[i+1]
 		attribute := p.oamData[i+2]
 		// priority为0表示sprite在background后，跳过渲染
-		if priority := attribute & (1 << 5); priority == 1 {
-			continue
-		}
+		//if priority := attribute & (1 << 5); priority == 1 {
+		//	continue
+		//}
 		paletteIdx := attribute & 0b11
 		flipH := attribute&(1<<6) != 0
 		flipV := attribute&(1<<7) != 0
-		p.renderTile(x, y, uint16(index), flipH, flipV, p.spritePalette(paletteIdx), false)
+		p.renderSprite(x, y, uint16(index), flipH, flipV, p.spritePalette(paletteIdx))
 	}
 }
 
-// renderTile 在屏幕x，y位置渲染idx编号的tile
-func (p *PPU) renderTile(tileX, tileY uint16, idx uint16, flipH, flipV bool, palette [4]byte, background bool) {
-	var bank uint16
-	if background {
-		bank = p.ctrlReg.getBgPattern()
-	} else {
-		bank = p.ctrlReg.getSpritePattern()
-	}
-	bank = bank * 0x1000
+// renderTile 在屏幕x，y位置渲染idx编号的sprite
+func (p *PPU) renderSprite(tileX, tileY uint16, idx uint16, flipH, flipV bool, palette [4]byte) {
+	bank := p.ctrlReg.getSpritePattern() * 0x1000
 	tile := p.chrROM[bank+idx*16 : bank+idx*16+16]
 	var y uint16 = 0
 	// 每个tile有8x8个像素
@@ -65,17 +73,13 @@ func (p *PPU) renderTile(tileX, tileY uint16, idx uint16, flipH, flipV bool, pal
 			var color Color
 			switch colorId {
 			case 0:
-				// sprite的编号0是透明色，当前像素不渲染
-				if !background {
-					continue
-				}
-				color = SystemPalette[palette[0]]
+				continue
 			case 1:
-				color = SystemPalette[palette[1]]
+				color = getRGBColor(palette[1])
 			case 2:
-				color = SystemPalette[palette[2]]
+				color = getRGBColor(palette[2])
 			case 3:
-				color = SystemPalette[palette[3]]
+				color = getRGBColor(palette[3])
 			default:
 				panic(fmt.Errorf("invalid color id: %d", colorId))
 			}
@@ -91,6 +95,50 @@ func (p *PPU) renderTile(tileX, tileY uint16, idx uint16, flipH, flipV bool, pal
 			case flipH && !flipV:
 				p.frame.setPixel(uint32(tileX+7-x), uint32(tileY+y), color)
 			default:
+			}
+		}
+	}
+}
+
+func (p *PPU) renderNameTable(nameTable []byte, port viewPort, shiftX, shiftY int32) {
+	var i uint16
+	// 32x30tiles，共960个，每行32个
+	for i = 0; i < 960; i++ {
+		tileX, tileY := i%32*8, i/32*8
+		idx := uint16(nameTable[i])
+		bank := p.ctrlReg.getBgPattern() * 0x1000
+		tile := p.chrROM[bank+idx*16 : bank+idx*16+16]
+		palette := p.bgPalette(tileY/8, tileX/8)
+		var y uint16 = 0
+		// 每个tile有8x8个像素
+		for ; y < 8; y++ {
+			// 一个像素是2bits，高位与低位分别在相距8字节的两个字节里面
+			low := tile[y]
+			high := tile[y+8]
+			var x int16 = 7
+			for ; x >= 0; x-- {
+				// 像素颜色顺序按照大端序，从高位开始遍历
+				colorId := ((high & 1) << 1) | (low & 1)
+				low = low >> 1
+				high = high >> 1
+				// 将调色板的颜色编号映射到RGB颜色
+				var color Color
+				switch colorId {
+				case 0:
+					color = getRGBColor(palette[0])
+				case 1:
+					color = getRGBColor(palette[1])
+				case 2:
+					color = getRGBColor(palette[2])
+				case 3:
+					color = getRGBColor(palette[3])
+				default:
+					panic(fmt.Errorf("invalid color id: %d", colorId))
+				}
+				pixelX, pixelY := uint32(tileX+uint16(x)), uint32(tileY+y)
+				if pixelX >= port.x1 && pixelX < port.x2 && pixelY >= port.y1 && pixelY < port.y2 {
+					p.frame.setPixel(uint32(shiftX+int32(pixelX)), uint32(shiftY+int32(pixelY)), color)
+				}
 			}
 		}
 	}
@@ -129,4 +177,29 @@ func (p *PPU) bgPalette(row, col uint16) [4]byte {
 		p.paletteTable[first+1],
 		p.paletteTable[first+2],
 	}
+}
+
+// 获取当前的nameTable
+func (p *PPU) nameTables() (main, second []byte) {
+	// 虚拟的地址编号，0:0x2000,1:0x2400, 2:0x2800, 3:0x2c00
+	addr := p.ctrlReg.nameTableAddr()
+	mirror := p.mirroring
+	// Vertical   Horizontal
+	// [A] [B]    [A] [a]
+	// [a] [b]    [B] [b]
+	// main为ctrl中编号对应的A或B，second是另外一个
+	// 返回映射到物理地址的nameTable数据
+	// Horizontal的物理地址0x2400是B
+	switch {
+	case (mirror == Vertical && addr == 0x2000) || (mirror == Vertical && addr == 0x2800):
+		return p.ram[0:0x400], p.ram[0x400:0x800]
+	case (mirror == Horizontal && addr == 0x2000) || (mirror == Horizontal && addr == 0x2400):
+		return p.ram[0:0x400], p.ram[0x400:0x800]
+	case (mirror == Vertical && addr == 0x2400) || (mirror == Vertical && addr == 0x2c00):
+		return p.ram[0x400:0x800], p.ram[0:0x400]
+	case (mirror == Horizontal && addr == 0x2800) || (mirror == Horizontal && addr == 0x2c00):
+		return p.ram[0x400:0x800], p.ram[0:0x400]
+	default:
+	}
+	return nil, nil
 }
