@@ -13,25 +13,33 @@ const (
 	PPURegisterEnd  = 0x3FFF
 	PPURegisterMask = 0x2007
 
-	ROMStart = 0x8000
+	ROMStart             = 0x8000
+	BatteryBackedRAMSize = 0x2000
 )
 
 type RenderCallback func(*ppu.PPU)
 
 // Bus 虚拟总线，CPU通过总线地址访问RAM, PPU, Registers
 type Bus struct {
-	cpuRAM         [RAMSize]byte // cpuRAM cpu RAM内存区域
-	resetPC        uint16        // resetPC 重启pc
-	rom            *ROM          // rom PrgROM和ChrROM
-	ppu            *ppu.PPU      // ppu 图形处理器
-	cycles         uint64        // cycles 总线时钟周期数，用来同步CPU和PPU的周期
-	renderCallback RenderCallback
-	joyPad         *JoyPad
+	cpuRAM           [RAMSize]byte // cpuRAM cpu RAM内存区域
+	resetPC          uint16        // resetPC 重启pc
+	rom              *ROM          // rom PrgROM和ChrROM
+	ppu              *ppu.PPU      // ppu 图形处理器
+	cycles           uint64        // cycles 总线时钟周期数，用来同步CPU和PPU的周期
+	renderCallback   RenderCallback
+	joyPad           *JoyPad
+	batteryBackedRAM [BatteryBackedRAMSize]byte
 }
 
 // NewBus 创建总线，并将PPU和ROM接入总线
 func NewBus(rom *ROM, ppu *ppu.PPU, callback RenderCallback, joyPad *JoyPad) *Bus {
-	return &Bus{[2048]byte{}, 0, rom, ppu, 0, callback, joyPad}
+	return &Bus{[2048]byte{}, 0,
+		rom,
+		ppu,
+		0,
+		callback,
+		joyPad,
+		[BatteryBackedRAMSize]byte{}}
 }
 
 func NewBusWithNoROM() *Bus {
@@ -40,11 +48,10 @@ func NewBusWithNoROM() *Bus {
 
 func (b *Bus) Tick(cycles uint64) {
 	b.cycles += cycles
-	nmiBefore := b.ppu.PeekInterrupt()
+	before := b.ppu.PeekInterrupt()
 	// ppu的cycles是CPU的三倍
 	b.ppu.Tick(cycles * 3)
-	nmiAfter := b.ppu.PeekInterrupt()
-	if !nmiBefore && nmiAfter {
+	if !before && b.ppu.PeekInterrupt() {
 		b.renderCallback(b.ppu)
 	}
 }
@@ -52,22 +59,26 @@ func (b *Bus) Tick(cycles uint64) {
 func (b *Bus) ReadMemUint8(addr uint16) byte {
 	switch {
 	case addr <= CpuRAMEnd: // cpu内存
-		addr = addr & CpuRAMMask
+		addr = addr % 2048
 		return b.readRAM8(addr)
-	case addr == 0x2000 || addr == 0x2001 || addr == 0x2003 || addr == 0x2005 || addr == 0x2006: // 禁止读取ppu寄存器
-		panic("can't read write-only registers")
+	case addr == 0x2000 || addr == 0x2001 || addr == 0x2003 || addr == 0x2005 || addr == 0x2006 || addr == 0x4014: // 禁止读取ppu寄存器
+		return 0
 	case addr == 0x2002: // ppu 状态寄存器
 		return b.ppu.ReadStatus()
+	case addr == 0x2004: // oam data
+		return b.ppu.ReadOam()
 	case addr == 0x2007: // ppu读请求
 		return b.ppu.ReadData()
 	case addr <= PPURegisterEnd: // ppu寄存器mirroring
-		addr = addr & 0b00100000_00000111
+		addr = addr & 0x2007
 		return b.ReadMemUint8(addr)
 	case addr >= 0x4000 && addr <= 0x4015:
 	case addr == 0x4016:
 		return b.joyPad.read()
 	case addr == 0x4017:
-		return b.joyPad.read()
+		return 0
+	case addr >= 0x6000 && addr <= 0x7fff:
+		return b.batteryBackedRAM[addr-0x6000]
 	case addr >= ROMStart: // ROM
 		return b.rom.readProgramROM8(addr)
 	default:
@@ -79,7 +90,7 @@ func (b *Bus) ReadMemUint8(addr uint16) byte {
 func (b *Bus) WriteMemUint8(addr uint16, val byte) {
 	switch {
 	case addr <= CpuRAMEnd: // CPU RAM
-		addr = addr & CpuRAMMask
+		addr = addr % 2048
 		b.writeRAM8(addr, val)
 	case addr == 0x2000: // PPU 状态寄存器
 		b.ppu.WriteControl(val)
@@ -98,7 +109,7 @@ func (b *Bus) WriteMemUint8(addr uint16, val byte) {
 	case addr == 0x2007: // 发起写请求
 		b.ppu.WriteData(val)
 	case addr <= PPURegisterEnd:
-		addr = addr & PPURegisterMask
+		addr = addr & 0x2007
 		b.WriteMemUint8(addr, val)
 	case (addr >= 0x4000 && addr <= 0x4013) || addr == 0x4015:
 	case addr == 0x4014:
@@ -111,7 +122,9 @@ func (b *Bus) WriteMemUint8(addr uint16, val byte) {
 	case addr == 0x4016:
 		b.joyPad.write(val)
 	case addr == 0x4017:
-		b.joyPad.write(val)
+		//skip joyPad 2
+	case addr >= 0x6000 && addr <= 0x7fff:
+		b.batteryBackedRAM[addr-0x6000] = val
 	case addr >= ROMStart:
 		panic(fmt.Errorf("can't write ROM addr: 0x%x", addr))
 	default:
