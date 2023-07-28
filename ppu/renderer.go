@@ -101,6 +101,7 @@ func (p *PPU) renderSprite(tileX, tileY uint16, idx uint16, flipH, flipV bool, p
 }
 
 func (p *PPU) renderNameTable(nameTable []byte, port viewPort, shiftX, shiftY int32) {
+	attributeTable := nameTable[0x3c0:]
 	var i uint16
 	// 32x30tiles，共960个，每行32个
 	for i = 0; i < 960; i++ {
@@ -108,7 +109,7 @@ func (p *PPU) renderNameTable(nameTable []byte, port viewPort, shiftX, shiftY in
 		idx := uint16(nameTable[i])
 		bank := p.ctrlReg.getBgPattern() * 0x1000
 		tile := p.chrROM[bank+idx*16 : bank+idx*16+16]
-		palette := p.bgPalette(tileY/8, tileX/8)
+		palette := p.bgPalette(tileY/8, tileX/8, attributeTable)
 		var y uint16 = 0
 		// 每个tile有8x8个像素
 		for ; y < 8; y++ {
@@ -157,11 +158,11 @@ func (p *PPU) spritePalette(idx byte) [4]byte {
 
 // bgPalette 获取row，col位置tile的调色板
 // row和col是以tile为单位的坐标，不是像素坐标
-func (p *PPU) bgPalette(row, col uint16) [4]byte {
+func (p *PPU) bgPalette(row, col uint16, attributeTable []byte) [4]byte {
 	// 2x2的tiles组成一个meta tile，4个meta tiles的调色板编号组成attributeTable的一个字节
 	// 一行32个tiles，所以一行有8个meta tiles
 	attrIdx := row/4*8 + col/4
-	paletteByte := p.ram[0x3c0+attrIdx]
+	paletteByte := attributeTable[attrIdx]
 	// [0] [2]
 	// [4] [6]
 	// 一个attr字节表示4个相邻的meta tiles，每个meta的偏移如上
