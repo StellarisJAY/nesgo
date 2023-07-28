@@ -83,3 +83,43 @@ func rra(p *Processor, op *Instruction) {
 	p.writeMemUint8(addr, val)
 	addRegA(p, val)
 }
+
+func xaa(p *Processor, op *Instruction) {
+	p.regA = p.regX
+	p.zeroOrNegativeStatus(p.regA)
+	addr := p.getMemoryAddress(op.AddrMode)
+	andWithA(p, p.readMemUint8(addr))
+}
+
+func anc(p *Processor, op *Instruction) {
+	val := p.readMemUint8(p.getMemoryAddress(op.AddrMode))
+	andWithA(p, val)
+	if p.regStatus&NegativeStatus != 0 {
+		p.regStatus |= CarryStatus
+	} else {
+		p.regStatus &= ^CarryStatus
+	}
+}
+
+func alr(p *Processor, op *Instruction) {
+	val := p.readMemUint8(p.getMemoryAddress(op.AddrMode))
+	andWithA(p, val)
+	p.regA = lsrVal(p, p.regA)
+}
+
+func arr(p *Processor, op *Instruction) {
+	val := p.readMemUint8(p.getMemoryAddress(op.AddrMode))
+	andWithA(p, val)
+	p.regA = rorVal(p, p.regA)
+}
+
+func axs(p *Processor, op *Instruction) {
+	val := p.readMemUint8(p.getMemoryAddress(op.AddrMode))
+	ax := p.regX & p.regA
+	res := ax - val
+	if val <= res {
+		p.regStatus |= CarryStatus
+	}
+	p.zeroOrNegativeStatus(res)
+	p.regX = res
+}

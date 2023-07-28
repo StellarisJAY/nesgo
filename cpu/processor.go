@@ -175,7 +175,6 @@ func (p *Processor) HandleInterrupt() {
 	p.bus.Tick(2)
 	// 跳转到中断处理
 	p.pc = p.readMemUint16(PrgROMInterruptHandler)
-	fmt.Printf("interrupt: %x\n", p.readMemUint16(PrgROMInterruptHandler))
 }
 
 func (p *Processor) GetArgAddress(pc uint16, mode AddressMode) uint16 {

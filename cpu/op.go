@@ -430,13 +430,25 @@ var (
 		0x7a: {0x7a, "NOP", 1, 2, NoneAddressing, nop},
 		0xda: {0xda, "NOP", 1, 2, NoneAddressing, nop},
 		0xfa: {0xfa, "NOP", 1, 2, NoneAddressing, nop},
-		0x80: {0x80, "NOP", 1, 2, Immediate, nopRead},
-		0x82: {0x82, "NOP", 1, 2, Immediate, nopRead},
-		0x89: {0x89, "NOP", 1, 2, Immediate, nopRead},
-		0xc2: {0xc2, "NOP", 1, 2, Immediate, nopRead},
-		0xe2: {0xe2, "NOP", 1, 2, Immediate, nopRead},
-		0xf2: {0xf2, "NOP", 1, 2, Immediate, nopRead},
-		0x02: {0x02, "NOP", 1, 2, Immediate, nopRead},
+
+		0x80: {0x80, "NOP", 2, 2, Immediate, nopRead},
+		0x82: {0x82, "NOP", 2, 2, Immediate, nopRead},
+		0x89: {0x89, "NOP", 2, 2, Immediate, nopRead},
+		0xc2: {0xc2, "NOP", 2, 2, Immediate, nopRead},
+		0xe2: {0xe2, "NOP", 2, 2, Immediate, nopRead},
+
+		0x02: {0x02, "NOP", 1, 2, NoneAddressing, nopRead},
+		0x12: {0x12, "NOP", 1, 2, NoneAddressing, nopRead},
+		0x22: {0x22, "NOP", 1, 2, NoneAddressing, nopRead},
+		0x32: {0x32, "NOP", 1, 2, NoneAddressing, nopRead},
+		0x42: {0x42, "NOP", 1, 2, NoneAddressing, nopRead},
+		0x52: {0x52, "NOP", 1, 2, NoneAddressing, nopRead},
+		0x62: {0x62, "NOP", 1, 2, NoneAddressing, nopRead},
+		0x72: {0x72, "NOP", 1, 2, NoneAddressing, nopRead},
+		0x92: {0x92, "NOP", 1, 2, NoneAddressing, nopRead},
+		0xb2: {0xb2, "NOP", 1, 2, NoneAddressing, nopRead},
+		0xd2: {0xd2, "NOP", 1, 2, NoneAddressing, nopRead},
+		0xf2: {0xf2, "NOP", 1, 2, NoneAddressing, nopRead},
 
 		0xa7: {0xa7, "LAX", 2, 3, ZeroPage, lax},
 		0xb7: {0xb7, "LAX", 2, 4, ZeroPageY, lax},
@@ -491,6 +503,22 @@ var (
 		0x7b: {0x7b, "RRA", 3, 7, AbsoluteY, rra},
 		0x63: {0x73, "RRA", 2, 8, IndirectX, rra},
 		0x73: {0x63, "RRA", 2, 8, IndirectY, rra},
+
+		// unofficial and unstable
+		0xab: {0xab, "LXA", 2, 3, Immediate, lxa},
+		0x8b: {0x8b, "XAA", 2, 3, Immediate, xaa},
+		0xbb: {0xbb, "LAS", 3, 2, AbsoluteY, las},
+		0x9b: {0x9b, "TAS", 3, 2, AbsoluteY, tas},
+		0x93: {0x93, "AHX", 3, 8, IndirectY, ahx},
+		0x9f: {0x9f, "AHX", 3, 4, AbsoluteY, ahx},
+		0x9e: {0x9e, "SHX", 3, 4, AbsoluteY, shx},
+		0x9c: {0x9c, "SHX", 3, 4, AbsoluteX, shy},
+
+		0x0b: {0x0b, "ANC", 2, 2, Immediate, anc},
+		0x2b: {0x2b, "ANC", 2, 2, Immediate, anc},
+		0x4b: {0x4b, "ALR", 2, 2, Immediate, alr},
+		0x6b: {0x6b, "ARR", 2, 2, Immediate, arr},
+		0xcb: {0xcb, "AXS", 2, 2, Immediate, axs},
 	}
 )
 
