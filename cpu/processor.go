@@ -148,6 +148,20 @@ func (p *Processor) runWithCallback(callback InstructionCallback) {
 	}
 }
 
+func (p *Processor) Disassemble(callback InstructionCallback) {
+	p.pc = 0x8000
+	for p.pc >= 0x8000 {
+		opCode := p.readMemUint8(p.pc)
+		p.pc += 1
+		instruction, ok := Instructions[opCode]
+		if !ok {
+			panic(fmt.Errorf("unknown instruction at %04x: 0x%x", p.pc-1, opCode))
+		}
+		callback(p, instruction)
+		p.pc += uint16(instruction.Length) - 1
+	}
+}
+
 func (p *Processor) HandleInterrupt() {
 	ra := p.pc
 	// 保存PC
@@ -161,6 +175,7 @@ func (p *Processor) HandleInterrupt() {
 	p.bus.Tick(2)
 	// 跳转到中断处理
 	p.pc = p.readMemUint16(PrgROMInterruptHandler)
+	fmt.Printf("interrupt: %x\n", p.readMemUint16(PrgROMInterruptHandler))
 }
 
 func (p *Processor) GetArgAddress(pc uint16, mode AddressMode) uint16 {

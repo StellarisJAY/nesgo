@@ -9,10 +9,11 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 	"log"
 	"os"
+	"time"
 	"unsafe"
 )
 
-const SCALE = 4
+const SCALE = 3
 
 type Emulator struct {
 	processor *cpu.Processor
@@ -23,6 +24,7 @@ type Emulator struct {
 	window    *sdl.Window
 	renderer  *sdl.Renderer
 	texture   *sdl.Texture
+	keyMap    map[sdl.Scancode]bus.JoyPadButton
 }
 
 func NewEmulator(nesData []byte) *Emulator {
@@ -33,7 +35,7 @@ func NewEmulator(nesData []byte) *Emulator {
 	e.joyPad = bus.NewJoyPad()
 	e.bus = bus.NewBus(e.rom, e.ppu, e.RendererCallback, e.joyPad)
 	e.processor = cpu.NewProcessorWithROM(e.bus)
-
+	e.keyMap = make(map[sdl.Scancode]bus.JoyPadButton)
 	window, renderer, err := initSDL()
 	if err != nil {
 		panic(err)
@@ -59,18 +61,37 @@ func initSDL() (*sdl.Window, *sdl.Renderer, error) {
 	return w, r, nil
 }
 
-func (e *Emulator) LoadAndRun(trace bool) {
+// loadKeyMap 加载key绑定
+func (e *Emulator) loadKeyMap() {
+	// todo 配置文件
+	e.keyMap[sdl.SCANCODE_W] = bus.Up
+	e.keyMap[sdl.SCANCODE_S] = bus.Down
+	e.keyMap[sdl.SCANCODE_A] = bus.Left
+	e.keyMap[sdl.SCANCODE_D] = bus.Right
+
+	e.keyMap[sdl.SCANCODE_SPACE] = bus.ButtonA
+	e.keyMap[sdl.SCANCODE_F] = bus.ButtonB
+	e.keyMap[sdl.SCANCODE_TAB] = bus.Select
+	e.keyMap[sdl.SCANCODE_RETURN] = bus.Start
+}
+
+func (e *Emulator) LoadAndRun(enableTrace bool) {
 	defer func() {
 		if err := recover(); err != nil {
-			log.Println(err)
+			panic(err)
 			e.onShutdown()
 		}
 	}()
-	if trace {
-		e.processor.LoadAndRunWithCallback(logInstruction)
+	e.loadKeyMap()
+	if enableTrace {
+		e.processor.LoadAndRunWithCallback(trace.Trace)
 	} else {
 		e.processor.LoadAndRunWithCallback(func(_ *cpu.Processor, _ *cpu.Instruction) {})
 	}
+}
+
+func (e *Emulator) Disassemble() {
+	e.processor.Disassemble(trace.PrintDisassemble)
 }
 
 func (e *Emulator) RendererCallback(p *ppu.PPU) {
@@ -80,6 +101,7 @@ func (e *Emulator) RendererCallback(p *ppu.PPU) {
 	_ = e.renderer.Copy(e.texture, nil, nil)
 	e.renderer.Present()
 	e.handleEvents()
+	time.Sleep(1 * time.Millisecond)
 }
 
 func (e *Emulator) handleEvents() {
@@ -91,24 +113,20 @@ func (e *Emulator) handleEvents() {
 			return
 		case *sdl.KeyboardEvent:
 			event := ev.(*sdl.KeyboardEvent)
-			switch event.Keysym.Scancode {
-			case sdl.SCANCODE_UP:
-				e.joyPad.SetButtonPressed(bus.Up, event.State == sdl.PRESSED)
-			case sdl.SCANCODE_DOWN:
-				e.joyPad.SetButtonPressed(bus.Down, event.State == sdl.PRESSED)
-			case sdl.SCANCODE_LEFT:
-				e.joyPad.SetButtonPressed(bus.Left, event.State == sdl.PRESSED)
-			case sdl.SCANCODE_RIGHT:
-				e.joyPad.SetButtonPressed(bus.Right, event.State == sdl.PRESSED)
-			case sdl.SCANCODE_A:
-				e.joyPad.SetButtonPressed(bus.ButtonA, event.State == sdl.PRESSED)
-			case sdl.SCANCODE_B:
-				e.joyPad.SetButtonPressed(bus.ButtonB, event.State == sdl.PRESSED)
-			case sdl.SCANCODE_S:
-				e.joyPad.SetButtonPressed(bus.Select, event.State == sdl.PRESSED)
-			case sdl.SCANCODE_SPACE:
-				e.joyPad.SetButtonPressed(bus.Start, event.State == sdl.PRESSED)
-			default:
+			if event.Keysym.Scancode == sdl.SCANCODE_ESCAPE {
+				e.onShutdown()
+				os.Exit(0)
+				return
+			}
+			switch event.State {
+			case sdl.PRESSED:
+				if button, ok := e.keyMap[event.Keysym.Scancode]; ok {
+					e.joyPad.SetButtonPressed(button, true)
+				}
+			case sdl.RELEASED:
+				if button, ok := e.keyMap[event.Keysym.Scancode]; ok {
+					e.joyPad.SetButtonPressed(button, false)
+				}
 			}
 		default:
 		}
@@ -120,8 +138,4 @@ func (e *Emulator) onShutdown() {
 	_ = e.texture.Destroy()
 	_ = e.renderer.Destroy()
 	_ = e.window.Destroy()
-}
-
-func logInstruction(p *cpu.Processor, instruction *cpu.Instruction) {
-	trace.Trace(p, instruction)
 }

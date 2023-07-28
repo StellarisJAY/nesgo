@@ -11,11 +11,13 @@ import (
 type Configs struct {
 	game        string // game 游戏文件路径
 	enableTrace bool   // enableTrace 是否在控制台打印trace
+	disassemble bool
 }
 
 func parseConfigs() (conf Configs) {
 	flag.StringVar(&conf.game, "game", "", "game file path")
 	flag.BoolVar(&conf.enableTrace, "trace", false, "enable debug tracing")
+	flag.BoolVar(&conf.disassemble, "disassemble", false, "disassemble program")
 	flag.Parse()
 	return
 }
@@ -42,5 +44,9 @@ func main() {
 		program = p
 	}
 	emulator := NewEmulator(program)
-	emulator.LoadAndRun(conf.enableTrace)
+	if conf.disassemble {
+		emulator.Disassemble()
+	} else {
+		emulator.LoadAndRun(conf.enableTrace)
+	}
 }
