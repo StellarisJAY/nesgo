@@ -7,7 +7,7 @@ func jmp(p *Processor, op *Instruction) {
 
 func jmpIndirect(p *Processor, _ *Instruction) {
 	// 先从参数取到地址
-	addr := p.getMemoryAddress(Absolute)
+	addr := p.readMemUint16(p.pc)
 	var target uint16
 	if addr&0xFF == 0xFF {
 		low := p.readMemUint8(addr)
@@ -16,7 +16,6 @@ func jmpIndirect(p *Processor, _ *Instruction) {
 	} else {
 		target = p.readMemUint16(addr)
 	}
-	// 在地址取到跳转目标
 	p.pc = target
 }
 
