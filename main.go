@@ -6,18 +6,23 @@ import (
 	"io"
 	"log"
 	"os"
+	"time"
 )
 
-type Configs struct {
-	game        string // game 游戏文件路径
-	enableTrace bool   // enableTrace 是否在控制台打印trace
-	disassemble bool
+type Config struct {
+	game          string        // game 游戏文件路径
+	enableTrace   bool          // enableTrace 是否在控制台打印trace
+	disassemble   bool          // disassemble 打印程序的反汇编结果
+	scale         int           // scale 屏幕放大尺寸，原始尺寸：256x240像素
+	frameInterval time.Duration // frameInterval 每一帧画面渲染间隔时间
 }
 
-func parseConfigs() (conf Configs) {
-	flag.StringVar(&conf.game, "game", "", "game file path")
+func parseConfig() (conf Config) {
+	flag.StringVar(&conf.game, "game", "games/super.nes", "game file path")
 	flag.BoolVar(&conf.enableTrace, "trace", false, "enable debug tracing")
 	flag.BoolVar(&conf.disassemble, "disassemble", false, "disassemble program")
+	flag.IntVar(&conf.scale, "scale", 1, "game screen scale")
+	flag.DurationVar(&conf.frameInterval, "interval", 1*time.Millisecond, "interval between each frame")
 	flag.Parse()
 	return
 }
@@ -36,14 +41,14 @@ func readProgramFile(fileName string) ([]byte, error) {
 }
 
 func main() {
-	conf := parseConfigs()
+	conf := parseConfig()
 	var program []byte
 	if p, err := readProgramFile(conf.game); err != nil {
 		panic(err)
 	} else {
 		program = p
 	}
-	emulator := NewEmulator(program)
+	emulator := NewEmulator(program, conf)
 	if conf.disassemble {
 		emulator.Disassemble()
 	} else {

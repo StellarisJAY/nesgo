@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/stellarisJAY/nesgo/bus"
+	"github.com/stellarisJAY/nesgo/cartridge"
 	"github.com/stellarisJAY/nesgo/cpu"
 	"github.com/stellarisJAY/nesgo/ppu"
 	"github.com/stellarisJAY/nesgo/trace"
@@ -13,30 +14,35 @@ import (
 	"unsafe"
 )
 
-const SCALE = 3
-
+// Emulator 模拟器
 type Emulator struct {
 	processor *cpu.Processor
-	rom       *bus.ROM
+	cartridge cartridge.Cartridge
 	bus       *bus.Bus
 	ppu       *ppu.PPU
 	joyPad    *bus.JoyPad
-	window    *sdl.Window
-	renderer  *sdl.Renderer
-	texture   *sdl.Texture
-	keyMap    map[sdl.Scancode]bus.JoyPadButton
+
+	window   *sdl.Window
+	renderer *sdl.Renderer
+	texture  *sdl.Texture
+
+	keyMap map[sdl.Scancode]bus.JoyPadButton
+
+	config Config
 }
 
-func NewEmulator(nesData []byte) *Emulator {
+func NewEmulator(nesData []byte, config Config) *Emulator {
 	e := &Emulator{
-		rom: bus.NewROM(nesData),
+		cartridge: cartridge.MakeCartridge(nesData),
+		config:    config,
 	}
-	e.ppu = ppu.NewPPU(e.rom.GetChrROM(), byte(e.rom.GetMirroring()))
+	e.ppu = ppu.NewPPU(e.cartridge.GetChrROM(), byte(e.cartridge.GetMirroring()))
 	e.joyPad = bus.NewJoyPad()
-	e.bus = bus.NewBus(e.rom, e.ppu, e.RendererCallback, e.joyPad)
+	e.bus = bus.NewBus(e.cartridge, e.ppu, e.RendererCallback, e.joyPad)
 	e.processor = cpu.NewProcessorWithROM(e.bus)
 	e.keyMap = make(map[sdl.Scancode]bus.JoyPadButton)
-	window, renderer, err := initSDL()
+	scale := int32(e.config.scale)
+	window, renderer, err := initSDL(scale)
 	if err != nil {
 		panic(err)
 	}
@@ -45,11 +51,11 @@ func NewEmulator(nesData []byte) *Emulator {
 	return e
 }
 
-func initSDL() (*sdl.Window, *sdl.Renderer, error) {
+func initSDL(scale int32) (*sdl.Window, *sdl.Renderer, error) {
 	if err := sdl.Init(sdl.INIT_EVERYTHING); err != nil {
 		return nil, nil, fmt.Errorf("init sdl error %w", err)
 	}
-	w, err := sdl.CreateWindow("NesGO", sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED, ppu.WIDTH*SCALE, ppu.HEIGHT*SCALE, sdl.WINDOW_SHOWN)
+	w, err := sdl.CreateWindow("NesGO", sdl.WINDOWPOS_CENTERED, sdl.WINDOWPOS_CENTERED, ppu.WIDTH*scale, ppu.HEIGHT*scale, sdl.WINDOW_SHOWN)
 	if err != nil {
 		return nil, nil, fmt.Errorf("sdl create window error %w", err)
 	}
@@ -57,7 +63,7 @@ func initSDL() (*sdl.Window, *sdl.Renderer, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("sdl get renderer error %w", err)
 	}
-	_ = r.SetScale(SCALE, SCALE)
+	_ = r.SetScale(float32(scale), float32(scale))
 	return w, r, nil
 }
 
@@ -101,7 +107,8 @@ func (e *Emulator) RendererCallback(p *ppu.PPU) {
 	_ = e.renderer.Copy(e.texture, nil, nil)
 	e.renderer.Present()
 	e.handleEvents()
-	time.Sleep(1 * time.Millisecond)
+	time.Sleep(e.config.frameInterval)
+	e.handleEvents()
 }
 
 func (e *Emulator) handleEvents() {
