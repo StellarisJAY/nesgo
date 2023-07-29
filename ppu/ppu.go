@@ -138,7 +138,7 @@ func (p *PPU) mirrorVRAMAddr(addr uint16) uint16 {
 func (p *PPU) Tick(cycles uint64) bool {
 	p.cycles += cycles
 	if p.cycles >= 341 {
-		if p.isSprite0Hit(cycles) {
+		if p.isSprite0Hit(p.cycles) {
 			p.statReg.setSprite0Hit()
 		}
 		p.cycles -= 341
@@ -150,7 +150,7 @@ func (p *PPU) Tick(cycles uint64) bool {
 				p.nmiInterrupt = true
 			}
 		}
-		if p.scanLines >= 400 {
+		if p.scanLines >= 262 {
 			p.scanLines = 0
 			p.nmiInterrupt = false
 			p.statReg.resetVBlankStarted()
@@ -176,7 +176,7 @@ func (p *PPU) WriteAddrReg(val byte) {
 
 func (p *PPU) ReadStatus() byte {
 	status := p.statReg.val
-	// 读取状态会导致reset vblan、addr
+	// 读取状态会导致reset vblank addr
 	p.statReg.resetVBlankStarted()
 	p.addrReg.resetLatch()
 	p.scrollReg.resetLatch()
