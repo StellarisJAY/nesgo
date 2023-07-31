@@ -43,9 +43,9 @@ func (p *PPU) renderSprites() {
 		index := p.oamData[i+1]
 		attribute := p.oamData[i+2]
 		// priority为0表示sprite在background后，跳过渲染
-		//if priority := attribute & (1 << 5); priority == 1 {
-		//	continue
-		//}
+		if priority := attribute & (1 << 5); priority == 1 {
+			continue
+		}
 		paletteIdx := attribute & 0b11
 		flipH := attribute&(1<<6) != 0
 		flipV := attribute&(1<<7) != 0
