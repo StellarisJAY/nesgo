@@ -35,6 +35,8 @@ func (p *PPU) renderBackground() {
 
 // renderSprites 渲染oam中记录的所有sprites
 func (p *PPU) renderSprites() {
+	bank := p.ctrlReg.getSpritePattern()
+	patternTable := p.getChrBank(bank)
 	// oam数据记录64个sprite的位置和状态，每个sprite占用4字节
 	for i := 0; i < len(p.oamData); i += 4 {
 		// byte0 byte3 是 y和x
@@ -49,14 +51,13 @@ func (p *PPU) renderSprites() {
 		paletteIdx := attribute & 0b11
 		flipH := attribute&(1<<6) != 0
 		flipV := attribute&(1<<7) != 0
-		p.renderSprite(x, y, uint16(index), flipH, flipV, p.spritePalette(paletteIdx))
+		p.renderSprite(x, y, uint16(index), flipH, flipV, p.spritePalette(paletteIdx), patternTable)
 	}
 }
 
 // renderTile 在屏幕x，y位置渲染idx编号的sprite
-func (p *PPU) renderSprite(tileX, tileY uint16, idx uint16, flipH, flipV bool, palette [4]byte) {
-	bank := p.ctrlReg.getSpritePattern() * 0x1000
-	tile := p.chrROM[bank+idx*16 : bank+idx*16+16]
+func (p *PPU) renderSprite(tileX, tileY uint16, idx uint16, flipH, flipV bool, palette [4]byte, patternTable []byte) {
+	tile := patternTable[idx*16 : idx*16+16]
 	var y uint16 = 0
 	// 每个tile有8x8个像素
 	for ; y < 8; y++ {
@@ -102,13 +103,14 @@ func (p *PPU) renderSprite(tileX, tileY uint16, idx uint16, flipH, flipV bool, p
 
 func (p *PPU) renderNameTable(nameTable []byte, port viewPort, shiftX, shiftY int32) {
 	attributeTable := nameTable[0x3c0:]
+	bank := p.ctrlReg.getBgPattern()
+	patternTable := p.getChrBank(bank)
 	var i uint16
 	// 32x30tiles，共960个，每行32个
 	for i = 0; i < 960; i++ {
 		tileX, tileY := i%32*8, i/32*8
 		idx := uint16(nameTable[i])
-		bank := p.ctrlReg.getBgPattern() * 0x1000
-		tile := p.chrROM[bank+idx*16 : bank+idx*16+16]
+		tile := patternTable[idx*16 : idx*16+16]
 		palette := p.bgPalette(tileY/8, tileX/8, attributeTable)
 		var y uint16 = 0
 		// 每个tile有8x8个像素
@@ -184,10 +186,10 @@ func (p *PPU) bgPalette(row, col uint16, attributeTable []byte) [4]byte {
 func (p *PPU) nameTables() (main, second []byte) {
 	// 虚拟的地址编号，0:0x2000,1:0x2400, 2:0x2800, 3:0x2c00
 	addr := p.ctrlReg.nameTableAddr()
-	mirror := p.mirroring
-	// Vertical   Horizontal
-	// [A] [B]    [A] [a]
-	// [a] [b]    [B] [b]
+	mirror := p.getMirroring()
+	// Vertical   Horizontal   OneScreen
+	// [A] [B]    [A] [a]      [A] [A]
+	// [a] [b]    [B] [b]      [A] [A]
 	// main为ctrl中编号对应的A或B，second是另外一个
 	// 返回映射到物理地址的nameTable数据
 	// Horizontal的物理地址0x2400是B
@@ -200,6 +202,8 @@ func (p *PPU) nameTables() (main, second []byte) {
 		return p.ram[0x400:0x800], p.ram[0:0x400]
 	case (mirror == Horizontal && addr == 0x2800) || (mirror == Horizontal && addr == 0x2c00):
 		return p.ram[0x400:0x800], p.ram[0:0x400]
+	case mirror == OneScreen:
+		return p.ram[0:0x400], p.ram[0:0x400]
 	default:
 	}
 	return nil, nil

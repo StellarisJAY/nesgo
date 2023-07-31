@@ -2,14 +2,13 @@ package cartridge
 
 import "log"
 
-type Mirroring byte
-
 var NES = [4]byte{0x4E, 0x45, 0x53, 0x1A}
 
 const (
-	Vertical Mirroring = iota
+	Vertical byte = iota
 	Horizontal
 	FourScreen
+	OneScreen
 	ProgramPageSize = 16 * 1024
 	CHRPageSize     = 8 * 1024
 	HeaderSize      = 16
@@ -18,8 +17,9 @@ const (
 type Cartridge interface {
 	Read(addr uint16) byte
 	Write(addr uint16, val byte)
-	GetMirroring() Mirroring
-	GetChrROM() []byte
+	GetMirroring() byte
+	// GetChrBank 获取bank编号对应的chr patternTable
+	GetChrBank(bank byte) []byte
 }
 
 func EmptyMapper0() Cartridge {
@@ -41,7 +41,7 @@ func MakeCartridge(raw []byte) Cartridge {
 		return nil
 	}
 	// read Mirroring from raw[6] raw[7]
-	var mirroring Mirroring
+	var mirroring byte
 	if raw[6]&1 != 0 {
 		mirroring = Vertical
 	} else {
@@ -54,6 +54,8 @@ func MakeCartridge(raw []byte) Cartridge {
 	switch mapperNumber {
 	case 0:
 		return newMapper0(raw, mirroring)
+	case 1:
+		return NewMapper1(raw)
 	default:
 		panic("unsupported mapper")
 	}
@@ -73,4 +75,19 @@ func loadPrgAndChrROM(raw []byte) ([]byte, []byte, []byte) {
 	log.Printf("prg rom: %d KiB", programSize>>10)
 	log.Printf("chr rom: %d KiB", chrSize>>10)
 	return raw[HeaderSize : HeaderSize+512], raw[programStart : programStart+programSize], raw[chrStart : chrStart+chrSize]
+}
+
+func splitPrgAndChr(raw []byte) (uint16, uint16, uint16) {
+	// program and chr offsets
+	hasTrainer := raw[6]&0b100 != 0
+	programSize := uint16(raw[4]) * ProgramPageSize
+	chrSize := uint16(raw[5]) * CHRPageSize
+	var programStart uint16 = HeaderSize
+	if hasTrainer {
+		programStart += 512
+	}
+	chrStart := programStart + programSize
+	log.Printf("prg rom: %d KiB", programSize>>10)
+	log.Printf("chr rom: %d KiB", chrSize>>10)
+	return HeaderSize, programStart, chrStart
 }

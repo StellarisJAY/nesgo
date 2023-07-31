@@ -52,7 +52,7 @@ func (cr *ControlRegister) Clear(offset byte) {
 	cr.val = cr.val & (^offset)
 }
 
-func (cr *ControlRegister) getBgPattern() uint16 {
+func (cr *ControlRegister) getBgPattern() byte {
 	if cr.get(BackgroundPattern) {
 		return 1
 	} else {
@@ -60,7 +60,7 @@ func (cr *ControlRegister) getBgPattern() uint16 {
 	}
 }
 
-func (cr *ControlRegister) getSpritePattern() uint16 {
+func (cr *ControlRegister) getSpritePattern() byte {
 	if cr.get(SpritePattern) {
 		return 1
 	} else {

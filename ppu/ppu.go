@@ -8,19 +8,20 @@ const (
 	Vertical byte = iota
 	Horizontal
 	FourScreen
+	OneScreen
 	OAMSize = 256
 )
 
 // PPU 图形处理器
 type PPU struct {
-	chrROM         []byte          // chrROM characterROM 保存Sprite静态数据
-	paletteTable   []byte          // paletteTable 保存编号对应的颜色
-	ram            []byte          // ram ppu RAM
-	oamAddr        byte            // oamAddr 当前oam写地址
-	oamData        []byte          // oamData sprite数据
-	mirroring      byte            // mirroring
-	addrReg        AddrRegister    // addrReg 地址寄存器，因为ppu读取是异步的，需要寄存器记录读请求的地址
-	ctrlReg        ControlRegister // ctrlReg ppu 控制寄存器
+	getChrBank     func(byte) []byte // getChrBank 动态获取chr的patternTable，mapper可以动态切换patternTable
+	getMirroring   func() byte       // getMirroring 动态获取mirroring
+	paletteTable   []byte            // paletteTable 保存编号对应的颜色
+	ram            []byte            // ram ppu RAM
+	oamAddr        byte              // oamAddr 当前oam写地址
+	oamData        []byte            // oamData sprite数据
+	addrReg        AddrRegister      // addrReg 地址寄存器，因为ppu读取是异步的，需要寄存器记录读请求的地址
+	ctrlReg        ControlRegister   // ctrlReg ppu 控制寄存器
 	maskReg        MaskRegister
 	scrollReg      ScrollRegister
 	internalBuffer byte           // internalBuffer 异步读取缓冲区
@@ -32,14 +33,14 @@ type PPU struct {
 	frame        *Frame
 }
 
-func NewPPU(chrROM []byte, mirroring byte) *PPU {
+func NewPPU(mirroring byte, getChrBank func(byte) []byte, getMirroring func() byte) *PPU {
 	return &PPU{
-		chrROM:       chrROM,
+		getChrBank:   getChrBank,
+		getMirroring: getMirroring,
 		paletteTable: make([]byte, 32),
 		ram:          make([]byte, 2048),
 		oamAddr:      0,
 		oamData:      make([]byte, OAMSize),
-		mirroring:    mirroring,
 		addrReg:      NewAddrRegister(),
 		ctrlReg:      NewControlRegister(),
 		statReg:      NewStatusRegister(),
@@ -61,9 +62,9 @@ func (p *PPU) ReadData() byte {
 	switch {
 	case addr <= 0x1fff: // chr ROM
 		result := p.internalBuffer
-		p.internalBuffer = p.chrROM[addr]
+		p.internalBuffer = p.getChrBank(byte(addr / 0x1000))[addr%0x1000]
 		return result
-	case addr <= 0x2fff: // ppu RAM
+	case addr >= 0x2000 && addr <= 0x2fff: // ppu RAM
 		result := p.internalBuffer
 		mirrorAddr := p.mirrorVRAMAddr(addr)
 		p.internalBuffer = p.ram[mirrorAddr]
@@ -113,7 +114,7 @@ func (p *PPU) mirrorVRAMAddr(addr uint16) uint16 {
 	if nameTable == 0 {
 		return idx
 	}
-	switch p.mirroring {
+	switch p.getMirroring() {
 	// Vertical，A：0x2000~0x23ff和0x2800~0x2bff
 	// [A] [B]
 	// [a] [b]
@@ -130,6 +131,9 @@ func (p *PPU) mirrorVRAMAddr(addr uint16) uint16 {
 		} else {
 			return idx - 0x400
 		}
+	case OneScreen:
+		// OneScreen: 全部映射到[0x2000,0x2400)
+		return idx % 0x400
 	default:
 	}
 	return idx

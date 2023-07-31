@@ -6,14 +6,14 @@ import (
 
 // Mapper0 not switchable prg and chr rom
 type Mapper0 struct {
-	program          []byte    // program 程序代码
-	chr              []byte    // chr 图形数据
-	mirroring        Mirroring // mirroring
+	program          []byte // program 程序代码
+	chr              []byte // chr 图形数据
+	mirroring        byte   // mirroring
 	batteryBackedRAM []byte
 	trainer          []byte
 }
 
-func newMapper0(raw []byte, mirroring Mirroring) *Mapper0 {
+func newMapper0(raw []byte, mirroring byte) *Mapper0 {
 	var prgRAM []byte
 	if raw[6]&0b10 != 0 {
 		prgRAM = make([]byte, 0x1000)
@@ -82,10 +82,15 @@ func (r *Mapper0) writePrgRAM(addr uint16, val byte) {
 	}
 }
 
-func (r *Mapper0) GetMirroring() Mirroring {
+func (r *Mapper0) GetMirroring() byte {
 	return r.mirroring
 }
 
 func (r *Mapper0) GetChrROM() []byte {
 	return r.chr
+}
+
+func (r *Mapper0) GetChrBank(bank byte) []byte {
+	offset := uint16(bank) * 0x1000
+	return r.chr[offset : offset+4096]
 }
