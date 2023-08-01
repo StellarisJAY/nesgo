@@ -202,8 +202,10 @@ func (p *PPU) nameTables() (main, second []byte) {
 		return p.ram[0x400:0x800], p.ram[0:0x400]
 	case (mirror == Horizontal && addr == 0x2800) || (mirror == Horizontal && addr == 0x2c00):
 		return p.ram[0x400:0x800], p.ram[0:0x400]
-	case mirror == OneScreen:
-		return p.ram[0:0x400], p.ram[0:0x400]
+	case mirror == OneScreenLow:
+		return p.ram[0:0x400], p.ram[0x400:0x800]
+	case mirror == OneScreenHigh:
+		return p.ram[0x400:0x800], p.ram[0:0x400]
 	default:
 	}
 	return nil, nil
