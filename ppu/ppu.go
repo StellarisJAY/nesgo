@@ -8,7 +8,8 @@ const (
 	Vertical byte = iota
 	Horizontal
 	FourScreen
-	OneScreen
+	OneScreenLow
+	OneScreenHigh
 	OAMSize = 256
 )
 
@@ -16,12 +17,13 @@ const (
 type PPU struct {
 	getChrBank     func(byte) []byte // getChrBank 动态获取chr的patternTable，mapper可以动态切换patternTable
 	getMirroring   func() byte       // getMirroring 动态获取mirroring
-	paletteTable   []byte            // paletteTable 保存编号对应的颜色
-	ram            []byte            // ram ppu RAM
-	oamAddr        byte              // oamAddr 当前oam写地址
-	oamData        []byte            // oamData sprite数据
-	addrReg        AddrRegister      // addrReg 地址寄存器，因为ppu读取是异步的，需要寄存器记录读请求的地址
-	ctrlReg        ControlRegister   // ctrlReg ppu 控制寄存器
+	writeCHR       func(uint16, byte)
+	paletteTable   []byte          // paletteTable 保存编号对应的颜色
+	ram            []byte          // ram ppu RAM
+	oamAddr        byte            // oamAddr 当前oam写地址
+	oamData        []byte          // oamData sprite数据
+	addrReg        AddrRegister    // addrReg 地址寄存器，因为ppu读取是异步的，需要寄存器记录读请求的地址
+	ctrlReg        ControlRegister // ctrlReg ppu 控制寄存器
 	maskReg        MaskRegister
 	scrollReg      ScrollRegister
 	internalBuffer byte           // internalBuffer 异步读取缓冲区
@@ -33,10 +35,11 @@ type PPU struct {
 	frame        *Frame
 }
 
-func NewPPU(mirroring byte, getChrBank func(byte) []byte, getMirroring func() byte) *PPU {
+func NewPPU(mirroring byte, getChrBank func(byte) []byte, getMirroring func() byte, writeCHR func(uint16, byte)) *PPU {
 	return &PPU{
 		getChrBank:   getChrBank,
 		getMirroring: getMirroring,
+		writeCHR:     writeCHR,
 		paletteTable: make([]byte, 32),
 		ram:          make([]byte, 2048),
 		oamAddr:      0,
@@ -88,6 +91,7 @@ func (p *PPU) WriteData(val byte) {
 	addr := p.addrReg.get()
 	switch {
 	case addr <= 0x1fff: // chr ROM
+		p.writeCHR(addr, val)
 	case addr <= 0x2fff: // ppu RAM
 		p.ram[p.mirrorVRAMAddr(addr)] = val
 	case addr <= 0x3eff: // 0x3000~0x3eff映射到0x2000~0x2eff
@@ -131,9 +135,12 @@ func (p *PPU) mirrorVRAMAddr(addr uint16) uint16 {
 		} else {
 			return idx - 0x400
 		}
-	case OneScreen:
-		// OneScreen: 全部映射到[0x2000,0x2400)
+	case OneScreenLow:
+		// OneScreenLow: [0x2000,0x2400)
 		return idx % 0x400
+	case OneScreenHigh:
+		// OneScreenHigh: [0x2400, 0x2800)
+		return (idx % 0x400) + 0x400
 	default:
 	}
 	return idx
@@ -149,7 +156,7 @@ func (p *PPU) Tick(cycles uint64) bool {
 		p.scanLines += 1
 		if p.scanLines == 241 {
 			p.statReg.setVBlankStarted()
-			p.statReg.resetSprite0Hit()
+			p.statReg.setSprite0Hit()
 			if p.ctrlReg.get(GenerateNMI) {
 				p.nmiInterrupt = true
 			}
@@ -209,6 +216,10 @@ func (p *PPU) WriteMask(val byte) {
 
 func (p *PPU) WriteScroll(val byte) {
 	p.scrollReg.write(val)
+}
+
+func (p *PPU) WriteStatus(val byte) {
+	p.statReg.val = val
 }
 
 func (p *PPU) WriteOamAddr(val byte) {

@@ -11,6 +11,7 @@ type Mapper0 struct {
 	mirroring        byte   // mirroring
 	batteryBackedRAM []byte
 	trainer          []byte
+	chrRAM           bool
 }
 
 func newMapper0(raw []byte, mirroring byte) *Mapper0 {
@@ -18,13 +19,20 @@ func newMapper0(raw []byte, mirroring byte) *Mapper0 {
 	if raw[6]&0b10 != 0 {
 		prgRAM = make([]byte, 0x1000)
 	}
-	trainer, prgROM, chrROM := loadPrgAndChrROM(raw)
+	trainer, prgROM, chrROM, chrRAM := loadPrgAndChrROM(raw)
+	var chr []byte
+	if chrRAM {
+		chr = make([]byte, 0x2000)
+	} else {
+		chr = chrROM
+	}
 	return &Mapper0{
 		program:          prgROM,
-		chr:              chrROM,
+		chr:              chr,
 		mirroring:        mirroring,
 		trainer:          trainer,
 		batteryBackedRAM: prgRAM,
+		chrRAM:           chrRAM,
 	}
 }
 
@@ -93,4 +101,12 @@ func (r *Mapper0) GetChrROM() []byte {
 func (r *Mapper0) GetChrBank(bank byte) []byte {
 	offset := uint16(bank) * 0x1000
 	return r.chr[offset : offset+4096]
+}
+
+func (r *Mapper0) WriteCHR(addr uint16, val byte) {
+	if r.chrRAM {
+		r.chr[addr-0x1000] = val
+	} else {
+		panic("can't write CHR while CHR RAM not enabled")
+	}
 }

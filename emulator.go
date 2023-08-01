@@ -36,7 +36,7 @@ func NewEmulator(nesData []byte, config Config) *Emulator {
 		cartridge: cartridge.MakeCartridge(nesData),
 		config:    config,
 	}
-	e.ppu = ppu.NewPPU(byte(e.cartridge.GetMirroring()), e.cartridge.GetChrBank, e.cartridge.GetMirroring)
+	e.ppu = ppu.NewPPU(e.cartridge.GetMirroring(), e.cartridge.GetChrBank, e.cartridge.GetMirroring, e.cartridge.WriteCHR)
 	e.joyPad = bus.NewJoyPad()
 	e.bus = bus.NewBus(e.cartridge, e.ppu, e.RendererCallback, e.joyPad)
 	e.processor = cpu.NewProcessorWithROM(e.bus)

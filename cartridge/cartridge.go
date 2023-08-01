@@ -8,7 +8,9 @@ const (
 	Vertical byte = iota
 	Horizontal
 	FourScreen
-	OneScreen
+	OneScreenLow
+	OneScreenHigh
+
 	ProgramPageSize = 16 * 1024
 	CHRPageSize     = 8 * 1024
 	HeaderSize      = 16
@@ -20,6 +22,7 @@ type Cartridge interface {
 	GetMirroring() byte
 	// GetChrBank 获取bank编号对应的chr patternTable
 	GetChrBank(bank byte) []byte
+	WriteCHR(addr uint16, val byte)
 }
 
 func EmptyMapper0() Cartridge {
@@ -62,7 +65,7 @@ func MakeCartridge(raw []byte) Cartridge {
 }
 
 // loadPrgAndChrROM 分割prg和chr rom，返回trainer，prg，chr
-func loadPrgAndChrROM(raw []byte) ([]byte, []byte, []byte) {
+func loadPrgAndChrROM(raw []byte) (trainer, prg, chr []byte, chrRAM bool) {
 	// program and chr offsets
 	hasTrainer := raw[6]&0b100 != 0
 	programSize := uint16(raw[4]) * ProgramPageSize
@@ -70,24 +73,39 @@ func loadPrgAndChrROM(raw []byte) ([]byte, []byte, []byte) {
 	var programStart uint16 = HeaderSize
 	if hasTrainer {
 		programStart += 512
+		trainer = raw[HeaderSize : HeaderSize+512]
 	}
 	chrStart := programStart + programSize
+	prg = raw[programStart : programStart+programSize]
 	log.Printf("prg rom: %d KiB", programSize>>10)
-	log.Printf("chr rom: %d KiB", chrSize>>10)
-	return raw[HeaderSize : HeaderSize+512], raw[programStart : programStart+programSize], raw[chrStart : chrStart+chrSize]
+	if chrSize == 0 {
+		log.Println("using chr RAM")
+		chrRAM = true
+		return
+	} else {
+		log.Printf("chr rom: %d KiB", chrSize>>10)
+		chr = raw[chrStart : chrStart+chrSize]
+		return
+	}
 }
 
-func splitPrgAndChr(raw []byte) (uint16, uint16, uint16) {
+func splitPrgAndChr(raw []byte) (trainerStart, prgStart, chrStart uint32, chrRAM bool) {
 	// program and chr offsets
 	hasTrainer := raw[6]&0b100 != 0
-	programSize := uint16(raw[4]) * ProgramPageSize
-	chrSize := uint16(raw[5]) * CHRPageSize
-	var programStart uint16 = HeaderSize
+	programSize := uint32(raw[4]) * ProgramPageSize
+	chrSize := uint32(raw[5]) * CHRPageSize
+	prgStart = HeaderSize
 	if hasTrainer {
-		programStart += 512
+		prgStart += 512
 	}
-	chrStart := programStart + programSize
+	chrStart = prgStart + programSize
+	chrRAM = chrSize == 0
 	log.Printf("prg rom: %d KiB", programSize>>10)
-	log.Printf("chr rom: %d KiB", chrSize>>10)
-	return HeaderSize, programStart, chrStart
+	if chrRAM {
+		log.Println("using chr RAM")
+	} else {
+		log.Printf("chr rom: %d KiB", chrSize>>10)
+	}
+
+	return
 }
