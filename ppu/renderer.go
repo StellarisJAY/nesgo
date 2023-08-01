@@ -36,7 +36,6 @@ func (p *PPU) renderBackground() {
 // renderSprites 渲染oam中记录的所有sprites
 func (p *PPU) renderSprites() {
 	bank := p.ctrlReg.getSpritePattern()
-	patternTable := p.getChrBank(bank)
 	// oam数据记录64个sprite的位置和状态，每个sprite占用4字节
 	for i := 0; i < len(p.oamData); i += 4 {
 		// byte0 byte3 是 y和x
@@ -48,20 +47,33 @@ func (p *PPU) renderSprites() {
 		if priority := attribute & (1 << 5); priority == 1 {
 			continue
 		}
-		paletteIdx := attribute & 0b11
 		flipH := attribute&(1<<6) != 0
 		flipV := attribute&(1<<7) != 0
-		p.renderSprite(x, y, uint16(index), flipH, flipV, p.spritePalette(paletteIdx), patternTable)
+		paletteIdx := attribute & 0b11
+		if p.ctrlReg.isBigSprite() {
+			// 渲染8x16 sprite
+			pt := p.getChrBank(index & 1)
+			// top和bottom两个tile的index
+			topIdx := uint16(index & 0b11111110)
+			bottomIdx := topIdx + 1
+			p.renderSprite(x, y, flipH, flipV, pt[topIdx*16:topIdx*16+16], p.spritePalette(paletteIdx))
+			p.renderSprite(x, y+8, flipH, flipV, pt[bottomIdx*16:bottomIdx*16+16], p.spritePalette(paletteIdx))
+		} else {
+			// 8x8 pixels small sprite
+			patternTable := p.getChrBank(bank)
+			idx := uint16(index)
+			tile := patternTable[idx*16 : idx*16+16]
+			p.renderSprite(x, y, flipH, flipV, tile, p.spritePalette(paletteIdx))
+		}
+
 	}
 }
 
-// renderTile 在屏幕x，y位置渲染idx编号的sprite
-func (p *PPU) renderSprite(tileX, tileY uint16, idx uint16, flipH, flipV bool, palette [4]byte, patternTable []byte) {
-	tile := patternTable[idx*16 : idx*16+16]
+func (p *PPU) renderSprite(tileX, tileY uint16, flipH, flipV bool, tile []byte, palette [4]byte) {
 	var y uint16 = 0
-	// 每个tile有8x8个像素
+	// 每个tile有8 x height个像素
 	for ; y < 8; y++ {
-		// 一个像素是2bits，高位与低位分别在相距8字节的两个字节里面
+		// 一个像素是2bits，高位与低位分别在相距 height 字节的两个字节里面
 		low := tile[y]
 		high := tile[y+8]
 		var x int16 = 7

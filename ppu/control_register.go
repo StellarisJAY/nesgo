@@ -67,3 +67,7 @@ func (cr *ControlRegister) getSpritePattern() byte {
 		return 0
 	}
 }
+
+func (cr *ControlRegister) isBigSprite() bool {
+	return cr.get(SpriteSize)
+}
