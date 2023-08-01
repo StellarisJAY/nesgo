@@ -19,8 +19,9 @@ const (
 	StackReset               = 0xFD
 	RandomNumber      uint16 = 0xFE
 
-	PrgROMEntryPointAddr   uint16 = 0xFFFC // 程序entry point在ROM的地址
-	PrgROMInterruptHandler uint16 = 0xFFFA // 程序中断处理函数地址
+	ResetVector uint16 = 0xFFFC // 程序entry point在ROM的地址
+	NMIVector   uint16 = 0xFFFA // 程序中断处理函数地址
+	BrkVector   uint16 = 0xFFFE
 )
 
 const (
@@ -48,6 +49,13 @@ type Processor struct {
 	bus       *bus.Bus // bus 总线，通过总线访问内存或mmio寄存器
 	randNum   *rand.Rand
 }
+
+type Interrupt byte
+
+const (
+	NMIInterrupt Interrupt = iota
+	BrkInterrupt
+)
 
 func NewProcessor() Processor {
 	source := rand.NewSource(time.Now().UnixMilli())
@@ -82,7 +90,7 @@ func (p *Processor) reset() {
 	p.regStatus = 0b100100
 	p.sp = StackReset
 	// 从ROM读取程序的entry point
-	p.pc = p.readMemUint16(PrgROMEntryPointAddr)
+	p.pc = p.readMemUint16(ResetVector)
 }
 
 func (p *Processor) run() {
@@ -116,7 +124,7 @@ func (p *Processor) run() {
 func (p *Processor) runWithCallback(callback InstructionCallback) {
 	for {
 		if p.bus.PollNMIInterrupt() {
-			p.HandleInterrupt()
+			p.handleInterrupt(NMIInterrupt)
 		}
 		// 在0xFE保存0~255随机数
 		p.writeMemUint8(RandomNumber, byte(p.randNum.Intn(256)))
@@ -130,8 +138,7 @@ func (p *Processor) runWithCallback(callback InstructionCallback) {
 		callback(p, instruction)
 		switch opCode {
 		case BRK:
-			p.regStatus |= BreakStatus
-			return
+			p.handleInterrupt(BrkInterrupt)
 		case NOP:
 			continue
 		case INX:
@@ -162,19 +169,35 @@ func (p *Processor) Disassemble(callback InstructionCallback) {
 	}
 }
 
-func (p *Processor) HandleInterrupt() {
+func (p *Processor) handleInterrupt(interrupt Interrupt) {
+	if interrupt == BrkInterrupt {
+		p.pc += 1
+	}
 	ra := p.pc
 	// 保存PC
 	p.stackPush(byte(ra >> 8))
 	p.stackPush(byte(ra & 0xff))
+
+	var vector uint16
 	status := p.regStatus
-	status |= Break2Status
+	switch interrupt {
+	case NMIInterrupt:
+		status |= Break2Status
+		status &= ^BreakStatus
+		vector = NMIVector
+	case BrkInterrupt:
+		status |= BreakStatus
+		status |= Break2Status
+		vector = BrkVector
+	default:
+		panic("unsupported interrupt type")
+	}
 	// 保存状态，中断关闭
-	p.stackPush(status)
 	p.regStatus |= InterruptDisableStatus
+	p.stackPush(status)
 	p.bus.Tick(2)
 	// 跳转到中断处理
-	p.pc = p.readMemUint16(PrgROMInterruptHandler)
+	p.pc = p.readMemUint16(vector)
 }
 
 func (p *Processor) GetArgAddress(pc uint16, mode AddressMode) uint16 {

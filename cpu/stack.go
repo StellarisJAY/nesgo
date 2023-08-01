@@ -14,6 +14,8 @@ func pha(p *Processor, _ *Instruction) {
 }
 
 func php(p *Processor, _ *Instruction) {
+	p.regStatus |= Break2Status
+	p.regStatus |= BreakStatus
 	p.stackPush(p.regStatus)
 }
 
