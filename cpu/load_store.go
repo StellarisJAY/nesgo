@@ -31,11 +31,8 @@ func ldy(p *Processor, op *Instruction) {
 }
 
 func sta(p *Processor, op *Instruction) {
-	addr, cross := p.getMemoryAddress(op.AddrMode)
+	addr, _ := p.getMemoryAddress(op.AddrMode)
 	p.writeMemUint8(addr, p.regA)
-	if cross {
-		p.bus.Tick(1)
-	}
 }
 
 func stx(p *Processor, op *Instruction) {

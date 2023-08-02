@@ -460,7 +460,7 @@ var (
 		0x87: {0x87, "SAX", 2, 3, ZeroPage, sax},
 		0x97: {0x97, "SAX", 2, 4, ZeroPageY, sax},
 		0x8f: {0x8f, "SAX", 3, 4, Absolute, sax},
-		0x83: {0x83, "SAX", 2, 5, IndirectX, sax},
+		0x83: {0x83, "SAX", 2, 6, IndirectX, sax},
 
 		0xeb: {0xeb, "SBC", 2, 2, Immediate, sbc},
 
@@ -509,7 +509,7 @@ var (
 		0x8b: {0x8b, "XAA", 2, 3, Immediate, xaa},
 		0xbb: {0xbb, "LAS", 3, 2, AbsoluteY, las},
 		0x9b: {0x9b, "TAS", 3, 2, AbsoluteY, tas},
-		0x93: {0x93, "AHX", 3, 8, IndirectY, ahx},
+		0x93: {0x93, "AHX", 2, 8, IndirectY, ahx},
 		0x9f: {0x9f, "AHX", 3, 4, AbsoluteY, ahx},
 		0x9e: {0x9e, "SHX", 3, 4, AbsoluteY, shx},
 		0x9c: {0x9c, "SHY", 3, 4, AbsoluteX, shy},

@@ -78,7 +78,7 @@ func subRegA(p *Processor, val byte) {
 }
 
 func dcp(p *Processor, op *Instruction) {
-	addr, cross := p.getMemoryAddress(op.AddrMode)
+	addr, _ := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	val -= 1
 	p.writeMemUint8(addr, val)
@@ -86,18 +86,12 @@ func dcp(p *Processor, op *Instruction) {
 		p.regStatus |= CarryStatus
 	}
 	p.zeroOrNegativeStatus(p.regA - val)
-	if cross {
-		p.bus.Tick(1)
-	}
 }
 
 func isc(p *Processor, op *Instruction) {
-	addr, cross := p.getMemoryAddress(op.AddrMode)
+	addr, _ := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	val += 1
 	p.writeMemUint8(addr, val)
 	subRegA(p, val)
-	if cross {
-		p.bus.Tick(1)
-	}
 }

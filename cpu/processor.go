@@ -140,7 +140,6 @@ func (p *Processor) runWithCallback(callback InstructionCallback) {
 		case BRK:
 			p.handleInterrupt(BrkInterrupt)
 		case NOP:
-			continue
 		case INX:
 			p.inx()
 		case INY:
@@ -148,10 +147,10 @@ func (p *Processor) runWithCallback(callback InstructionCallback) {
 		default:
 			instruction.handler(p, instruction)
 		}
+		p.bus.Tick(uint64(instruction.Cycle))
 		if p.pc == originalPc {
 			p.pc += uint16(instruction.Length - 1)
 		}
-		p.bus.Tick(uint64(instruction.Cycle))
 	}
 }
 
@@ -185,6 +184,7 @@ func (p *Processor) handleInterrupt(interrupt Interrupt) {
 		status |= Break2Status
 		status &= ^BreakStatus
 		vector = NMIVector
+		p.bus.Tick(2)
 	case BrkInterrupt:
 		status |= BreakStatus
 		status |= Break2Status
@@ -195,7 +195,6 @@ func (p *Processor) handleInterrupt(interrupt Interrupt) {
 	// 保存状态，中断关闭
 	p.regStatus |= InterruptDisableStatus
 	p.stackPush(status)
-	p.bus.Tick(2)
 	// 跳转到中断处理
 	p.pc = p.readMemUint16(vector)
 }
@@ -240,7 +239,7 @@ func (p *Processor) writeMemUint16(addr uint16, val uint16) {
 }
 
 func pageCross(addr1, addr2 uint16) bool {
-	return (addr1 & 0xFF) != (addr2 & 0xFF)
+	return (addr1 & 0xFF00) != (addr2 & 0xFF00)
 }
 
 func (p *Processor) getAbsoluteAddress(pc uint16, mode AddressMode) (uint16, bool) {
