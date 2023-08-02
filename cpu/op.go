@@ -268,10 +268,10 @@ var (
 		STY_ABS: {STY_ABS, "STY", 3, 4, Absolute, sty},
 		// LDX
 		LDX_IM:  {LDX_IM, "LDX", 2, 2, Immediate, ldx},
-		LDX_ZP:  {LDX_ZP, "LDX", 2, 2, ZeroPage, ldx},
-		LDX_ZPY: {LDX_ZPY, "LDX", 2, 2, ZeroPageY, ldx},
-		LDX_ABS: {LDX_ABS, "LDX", 3, 2, Absolute, ldx},
-		LDX_ABY: {LDX_ABY, "LDX", 3, 2, AbsoluteY, ldx},
+		LDX_ZP:  {LDX_ZP, "LDX", 2, 3, ZeroPage, ldx},
+		LDX_ZPY: {LDX_ZPY, "LDX", 2, 4, ZeroPageY, ldx},
+		LDX_ABS: {LDX_ABS, "LDX", 3, 4, Absolute, ldx},
+		LDX_ABY: {LDX_ABY, "LDX", 3, 4, AbsoluteY, ldx},
 		// LDY
 		LDY_IM:  {LDY_IM, "LDY", 2, 2, Immediate, ldy},
 		LDY_ZP:  {LDY_ZP, "LDY", 2, 3, ZeroPage, ldy},
@@ -512,7 +512,7 @@ var (
 		0x93: {0x93, "AHX", 3, 8, IndirectY, ahx},
 		0x9f: {0x9f, "AHX", 3, 4, AbsoluteY, ahx},
 		0x9e: {0x9e, "SHX", 3, 4, AbsoluteY, shx},
-		0x9c: {0x9c, "SHX", 3, 4, AbsoluteX, shy},
+		0x9c: {0x9c, "SHY", 3, 4, AbsoluteX, shy},
 
 		0x0b: {0x0b, "ANC", 2, 2, Immediate, anc},
 		0x2b: {0x2b, "ANC", 2, 2, Immediate, anc},
@@ -536,8 +536,11 @@ func (p *Processor) zeroOrNegativeStatus(value byte) {
 }
 
 func nopRead(p *Processor, op *Instruction) {
-	addr := p.getMemoryAddress(op.AddrMode)
+	addr, cross := p.getMemoryAddress(op.AddrMode)
 	_ = p.readMemUint8(addr)
+	if cross {
+		p.bus.Tick(1)
+	}
 }
 
 func nop(_ *Processor, _ *Instruction) {}

@@ -1,7 +1,7 @@
 package cpu
 
 func jmp(p *Processor, op *Instruction) {
-	addr := p.getMemoryAddress(op.AddrMode)
+	addr, _ := p.getMemoryAddress(op.AddrMode)
 	p.pc = addr
 }
 
@@ -26,7 +26,7 @@ func jsr(p *Processor, _ *Instruction) {
 	p.stackPush(byte(ra >> 8))
 	p.stackPush(byte(ra & 0xFF))
 	// 跳转到目标地址
-	target := p.getMemoryAddress(Absolute)
+	target, _ := p.getMemoryAddress(Absolute)
 	p.pc = target
 }
 
@@ -49,57 +49,48 @@ func rti(p *Processor, _ *Instruction) {
 	p.pc = ra
 }
 
-func jmpOffset(p *Processor) {
-	addr := p.getMemoryAddress(Immediate)
-	offset := int8(p.readMemUint8(addr))
-	target := p.pc + 1 + uint16(offset)
-	p.pc = target
+func branch(p *Processor, condition bool) {
+	if condition {
+		// branch 成功会+1 cycle
+		p.bus.Tick(1)
+		addr, _ := p.getMemoryAddress(Immediate)
+		offset := int8(p.readMemUint8(addr))
+		target := p.pc + 1 + uint16(offset)
+		if pageCross(p.pc+1, target) {
+			p.bus.Tick(1)
+		}
+		p.pc = target
+	}
 }
 
 func bcc(p *Processor, _ *Instruction) {
-	if p.regStatus&CarryStatus == 0 {
-		jmpOffset(p)
-	}
+	branch(p, p.regStatus&CarryStatus == 0)
 }
 
 func bcs(p *Processor, _ *Instruction) {
-	if p.regStatus&CarryStatus != 0 {
-		jmpOffset(p)
-	}
+	branch(p, p.regStatus&CarryStatus != 0)
 }
 
 func beq(p *Processor, _ *Instruction) {
-	if p.regStatus&ZeroStatus != 0 {
-		jmpOffset(p)
-	}
+	branch(p, p.regStatus&ZeroStatus != 0)
 }
 
 func bne(p *Processor, _ *Instruction) {
-	if p.regStatus&ZeroStatus == 0 {
-		jmpOffset(p)
-	}
+	branch(p, p.regStatus&ZeroStatus == 0)
 }
 
 func bmi(p *Processor, _ *Instruction) {
-	if p.regStatus&NegativeStatus != 0 {
-		jmpOffset(p)
-	}
+	branch(p, p.regStatus&NegativeStatus != 0)
 }
 
 func bpl(p *Processor, _ *Instruction) {
-	if p.regStatus&NegativeStatus == 0 {
-		jmpOffset(p)
-	}
+	branch(p, p.regStatus&NegativeStatus == 0)
 }
 
 func bvc(p *Processor, _ *Instruction) {
-	if p.regStatus&OverflowStatus == 0 {
-		jmpOffset(p)
-	}
+	branch(p, p.regStatus&OverflowStatus == 0)
 }
 
 func bvs(p *Processor, _ *Instruction) {
-	if p.regStatus&OverflowStatus != 0 {
-		jmpOffset(p)
-	}
+	branch(p, p.regStatus&OverflowStatus != 0)
 }

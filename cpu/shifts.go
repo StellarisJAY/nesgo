@@ -3,10 +3,11 @@ package cpu
 func asl(p *Processor, op *Instruction) {
 	var val byte
 	var addr uint16
+	var cross bool
 	if op.AddrMode == NoneAddressing {
 		val = p.regA
 	} else {
-		addr = p.getMemoryAddress(op.AddrMode)
+		addr, cross = p.getMemoryAddress(op.AddrMode)
 		val = p.readMemUint8(addr)
 	}
 	val = aslVal(p, val)
@@ -16,15 +17,19 @@ func asl(p *Processor, op *Instruction) {
 	} else {
 		p.writeMemUint8(addr, val)
 	}
+	if cross {
+		p.bus.Tick(1)
+	}
 }
 
 func lsr(p *Processor, op *Instruction) {
 	var val byte
 	var addr uint16
+	var cross bool
 	if op.AddrMode == NoneAddressing {
 		val = p.regA
 	} else {
-		addr = p.getMemoryAddress(op.AddrMode)
+		addr, cross = p.getMemoryAddress(op.AddrMode)
 		val = p.readMemUint8(addr)
 	}
 	val = lsrVal(p, val)
@@ -33,6 +38,9 @@ func lsr(p *Processor, op *Instruction) {
 		p.regA = val
 	} else {
 		p.writeMemUint8(addr, val)
+	}
+	if cross {
+		p.bus.Tick(1)
 	}
 }
 
@@ -91,10 +99,11 @@ func rorVal(p *Processor, val byte) byte {
 func ror(p *Processor, op *Instruction) {
 	var val byte
 	var addr uint16
+	var cross bool
 	if op.AddrMode == NoneAddressing {
 		val = p.regA
 	} else {
-		addr = p.getMemoryAddress(op.AddrMode)
+		addr, cross = p.getMemoryAddress(op.AddrMode)
 		val = p.readMemUint8(addr)
 	}
 	val = rorVal(p, val)
@@ -103,15 +112,19 @@ func ror(p *Processor, op *Instruction) {
 	} else {
 		p.writeMemUint8(addr, val)
 	}
+	if cross {
+		p.bus.Tick(1)
+	}
 }
 
 func rol(p *Processor, op *Instruction) {
 	var val byte
 	var addr uint16
+	var cross bool
 	if op.AddrMode == NoneAddressing {
 		val = p.regA
 	} else {
-		addr = p.getMemoryAddress(op.AddrMode)
+		addr, cross = p.getMemoryAddress(op.AddrMode)
 		val = p.readMemUint8(addr)
 	}
 	val = rolVal(p, val)
@@ -119,5 +132,8 @@ func rol(p *Processor, op *Instruction) {
 		p.regA = val
 	} else {
 		p.writeMemUint8(addr, val)
+	}
+	if cross {
+		p.bus.Tick(1)
 	}
 }

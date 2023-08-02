@@ -200,10 +200,6 @@ func (p *Processor) handleInterrupt(interrupt Interrupt) {
 	p.pc = p.readMemUint16(vector)
 }
 
-func (p *Processor) GetArgAddress(pc uint16, mode AddressMode) uint16 {
-	return p.getAddress(pc, mode)
-}
-
 func (p *Processor) ReadMem8(addr uint16) byte {
 	return p.readMemUint8(addr)
 }
@@ -243,25 +239,35 @@ func (p *Processor) writeMemUint16(addr uint16, val uint16) {
 	p.writeMemUint8(addr+1, high)
 }
 
-func (p *Processor) getAddress(pc uint16, mode AddressMode) uint16 {
+func pageCross(addr1, addr2 uint16) bool {
+	return (addr1 & 0xFF) != (addr2 & 0xFF)
+}
+
+func (p *Processor) getAbsoluteAddress(pc uint16, mode AddressMode) (uint16, bool) {
 	var addr uint16
+	cross := false
 	switch mode {
 	case Immediate:
 		addr = p.pc
 	case ZeroPage:
-		addr = uint16(p.readMemUint8(pc))
+		pos := p.readMemUint8(pc)
+		addr = uint16(pos)
 	case Absolute:
 		addr = p.readMemUint16(p.pc)
 	case ZeroPageX:
-		addr = uint16(p.readMemUint8(pc) + p.regX)
+		pos := p.readMemUint8(pc) + p.regX
+		addr = uint16(pos)
 	case ZeroPageY:
-		addr = uint16(p.readMemUint8(pc) + p.regY)
+		pos := p.readMemUint8(pc) + p.regY
+		addr = uint16(pos)
 	case AbsoluteX:
-		addr = p.readMemUint16(pc)
-		addr += uint16(p.regX)
+		base := p.readMemUint16(pc)
+		addr = base + uint16(p.regX)
+		cross = pageCross(base, addr)
 	case AbsoluteY:
-		addr = p.readMemUint16(pc)
-		addr += uint16(p.regY)
+		base := p.readMemUint16(pc)
+		addr = base + uint16(p.regY)
+		cross = pageCross(base, addr)
 	case IndirectX:
 		base := p.readMemUint8(pc)
 		ptr := base + p.regX
@@ -273,19 +279,21 @@ func (p *Processor) getAddress(pc uint16, mode AddressMode) uint16 {
 		base := p.readMemUint8(pc)
 		low := p.readMemUint8(uint16(base))
 		high := p.readMemUint8(uint16(base + 1))
-		addr = uint16(high)<<8 + uint16(low) + uint16(p.regY)
+		baseAddr := uint16(high)<<8 + uint16(low)
+		addr = baseAddr + uint16(p.regY)
+		cross = pageCross(baseAddr, addr)
 	case NoneAddressing:
 		addr = pc
 	}
-	return addr
+	return addr, cross
 }
 
 func (p *Processor) DumpRegisters() string {
 	return fmt.Sprintf("A:%02X X:%02X Y:%02X P:%02X SP:%02X", p.regA, p.regX, p.regY, p.regStatus, p.sp)
 }
 
-func (p *Processor) getMemoryAddress(mode AddressMode) uint16 {
-	return p.getAddress(p.pc, mode)
+func (p *Processor) getMemoryAddress(mode AddressMode) (uint16, bool) {
+	return p.getAbsoluteAddress(p.pc, mode)
 }
 
 // GetMemoryRange 获取start到end范围内的内存切片

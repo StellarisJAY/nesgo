@@ -10,27 +10,33 @@ func compare(p *Processor, val byte, compareWith byte) {
 }
 
 func cmp(p *Processor, op *Instruction) {
-	addr := p.getMemoryAddress(op.AddrMode)
+	addr, cross := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	compare(p, val, p.regA)
+	if cross {
+		p.bus.Tick(1)
+	}
 }
 
 func cpx(p *Processor, op *Instruction) {
-	addr := p.getMemoryAddress(op.AddrMode)
+	addr, _ := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	compare(p, val, p.regX)
 }
 
 func cpy(p *Processor, op *Instruction) {
-	addr := p.getMemoryAddress(op.AddrMode)
+	addr, _ := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	compare(p, val, p.regY)
 }
 
 func adc(p *Processor, op *Instruction) {
-	addr := p.getMemoryAddress(op.AddrMode)
+	addr, cross := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	addRegA(p, val)
+	if cross {
+		p.bus.Tick(1)
+	}
 }
 
 func addRegA(p *Processor, val byte) {
@@ -57,10 +63,13 @@ func addRegA(p *Processor, val byte) {
 }
 
 func sbc(p *Processor, op *Instruction) {
-	addr := p.getMemoryAddress(op.AddrMode)
+	addr, cross := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	val = byte(int8(-val) - 1)
 	addRegA(p, val)
+	if cross {
+		p.bus.Tick(1)
+	}
 }
 
 func subRegA(p *Processor, val byte) {
@@ -69,7 +78,7 @@ func subRegA(p *Processor, val byte) {
 }
 
 func dcp(p *Processor, op *Instruction) {
-	addr := p.getMemoryAddress(op.AddrMode)
+	addr, cross := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	val -= 1
 	p.writeMemUint8(addr, val)
@@ -77,12 +86,18 @@ func dcp(p *Processor, op *Instruction) {
 		p.regStatus |= CarryStatus
 	}
 	p.zeroOrNegativeStatus(p.regA - val)
+	if cross {
+		p.bus.Tick(1)
+	}
 }
 
 func isc(p *Processor, op *Instruction) {
-	addr := p.getMemoryAddress(op.AddrMode)
+	addr, cross := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	val += 1
 	p.writeMemUint8(addr, val)
 	subRegA(p, val)
+	if cross {
+		p.bus.Tick(1)
+	}
 }

@@ -11,7 +11,7 @@ func (p *Processor) iny() {
 }
 
 func inc(p *Processor, op *Instruction) {
-	addr := p.getMemoryAddress(op.AddrMode)
+	addr, _ := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	value := wrappingAddOne(val)
 	p.zeroOrNegativeStatus(value)
@@ -46,9 +46,12 @@ func dey(p *Processor, _ *Instruction) {
 }
 
 func dec(p *Processor, op *Instruction) {
-	addr := p.getMemoryAddress(op.AddrMode)
+	addr, cross := p.getMemoryAddress(op.AddrMode)
 	val := p.readMemUint8(addr)
 	val = wrappingMinusOne(val)
 	p.zeroOrNegativeStatus(val)
 	p.writeMemUint8(addr, val)
+	if cross {
+		p.bus.Tick(1)
+	}
 }
