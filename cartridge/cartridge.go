@@ -59,6 +59,10 @@ func MakeCartridge(raw []byte) Cartridge {
 		return newMapper0(raw, mirroring)
 	case 1:
 		return NewMapper1(raw)
+	case 2:
+		return NewMapper002(raw, mirroring)
+	case 3:
+		return NewMapper003(raw, mirroring)
 	default:
 		panic("unsupported mapper")
 	}

@@ -1,7 +1,7 @@
 package cartridge
 
 import (
-	"fmt"
+	"log"
 )
 
 // Mapper0 not switchable prg and chr rom
@@ -56,7 +56,7 @@ func (r *Mapper0) Write(addr uint16, val byte) {
 	case addr >= 0x6000 && addr <= 0x7fff:
 		r.writePrgRAM(addr, val)
 	case addr >= 0x8000:
-		panic(fmt.Errorf("attempt to write mapper-0 prg ROM at 0x%x", addr))
+		log.Printf("attempt to write mapper-0 prg ROM at 0x%x\n", addr)
 	default:
 		return
 	}
@@ -105,8 +105,6 @@ func (r *Mapper0) GetChrBank(bank byte) []byte {
 
 func (r *Mapper0) WriteCHR(addr uint16, val byte) {
 	if r.chrRAM {
-		r.chr[addr-0x1000] = val
-	} else {
-		panic("can't write CHR while CHR RAM not enabled")
+		r.chr[addr] = val
 	}
 }
