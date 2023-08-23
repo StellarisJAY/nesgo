@@ -6,11 +6,10 @@ import (
 )
 
 const (
-	RAMSize           = 2048
-	CpuRAMEnd         = 0x1FFF
-	CpuRAMMask uint16 = 0x7FF
-
-	PPURegisterEnd = 0x3FFF
+	RAMSize               = 2048
+	CpuRAMEnd             = 0x1FFF
+	CpuRAMMask     uint16 = 0x7FF
+	PPURegisterEnd        = 0x3FFF
 )
 
 type RenderCallback func(*ppu.PPU)
@@ -35,10 +34,6 @@ func NewBus(cartridge cartridge.Cartridge, ppu *ppu.PPU, callback RenderCallback
 		renderCallback: callback,
 		joyPad:         joyPad,
 	}
-}
-
-func NewBusWithNoROM() *Bus {
-	return NewBus(cartridge.EmptyMapper0(), nil, nil, nil)
 }
 
 func (b *Bus) Tick(cycles uint64) {
@@ -89,7 +84,6 @@ func (b *Bus) WriteMemUint8(addr uint16, val byte) {
 	case addr == 0x2001:
 		b.ppu.WriteMask(val)
 	case addr == 0x2002:
-		panic("can't write ppu status")
 	case addr == 0x2003:
 		b.ppu.WriteOamAddr(val)
 	case addr == 0x2004:

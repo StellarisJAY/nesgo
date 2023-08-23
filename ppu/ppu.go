@@ -35,7 +35,7 @@ type PPU struct {
 	frame        *Frame
 }
 
-func NewPPU(mirroring byte, getChrBank func(byte) []byte, getMirroring func() byte, writeCHR func(uint16, byte)) *PPU {
+func NewPPU(getChrBank func(byte) []byte, getMirroring func() byte, writeCHR func(uint16, byte)) *PPU {
 	return &PPU{
 		getChrBank:   getChrBank,
 		getMirroring: getMirroring,
@@ -156,7 +156,7 @@ func (p *PPU) Tick(cycles uint64) bool {
 		p.scanLines += 1
 		if p.scanLines == 241 {
 			p.statReg.setVBlankStarted()
-			p.statReg.setSprite0Hit()
+			p.statReg.resetSprite0Hit()
 			if p.ctrlReg.get(GenerateNMI) {
 				p.nmiInterrupt = true
 			}
@@ -246,5 +246,5 @@ func (p *PPU) ReadOam() byte {
 func (p *PPU) isSprite0Hit(cycles uint64) bool {
 	y := uint64(p.oamData[0])
 	x := uint64(p.oamData[3])
-	return (y == uint64(p.scanLines)) && (x <= cycles) && p.maskReg.getBit(ShowSprite8)
+	return (y == uint64(p.scanLines)) && (x <= cycles) && p.maskReg.getBit(ShowSprite)
 }

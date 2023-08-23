@@ -36,10 +36,10 @@ func NewEmulator(nesData []byte, config Config) *Emulator {
 		cartridge: cartridge.MakeCartridge(nesData),
 		config:    config,
 	}
-	e.ppu = ppu.NewPPU(e.cartridge.GetMirroring(), e.cartridge.GetChrBank, e.cartridge.GetMirroring, e.cartridge.WriteCHR)
+	e.ppu = ppu.NewPPU(e.cartridge.GetChrBank, e.cartridge.GetMirroring, e.cartridge.WriteCHR)
 	e.joyPad = bus.NewJoyPad()
 	e.bus = bus.NewBus(e.cartridge, e.ppu, e.RendererCallback, e.joyPad)
-	e.processor = cpu.NewProcessorWithROM(e.bus)
+	e.processor = cpu.NewProcessor(e.bus)
 	e.keyMap = make(map[sdl.Scancode]bus.JoyPadButton)
 	scale := int32(e.config.scale)
 	window, renderer, err := initSDL(scale)
@@ -84,8 +84,8 @@ func (e *Emulator) loadKeyMap() {
 func (e *Emulator) LoadAndRun(enableTrace bool) {
 	defer func() {
 		if err := recover(); err != nil {
-			panic(err)
 			e.onShutdown()
+			panic(err)
 		}
 	}()
 	e.loadKeyMap()

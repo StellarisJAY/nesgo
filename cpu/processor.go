@@ -3,25 +3,16 @@ package cpu
 import (
 	"fmt"
 	"github.com/stellarisJAY/nesgo/bus"
-	"math/rand"
-	"time"
 )
 
-// 内存布局
-// 屏幕像素点：[0x0200, 0x0600)，共32x32个像素点，一行32个像素
-// 程序代码：[0x8000, ...)
-// 栈：[0x0100, 0x01FF)，共256字节
-// 上一个Input：0xFF
-// 随机数：0xFE
 const (
-	ProgramEntryPoint        = 0x0600
-	StackBase                = 0x0100
-	StackReset               = 0xFD
-	RandomNumber      uint16 = 0xFE
+	ProgramEntryPoint = 0x0600
+	StackBase         = 0x0100
+	StackReset        = 0xFD
 
 	ResetVector uint16 = 0xFFFC // 程序entry point在ROM的地址
 	NMIVector   uint16 = 0xFFFA // 程序中断处理函数地址
-	BrkVector   uint16 = 0xFFFE
+	BrkVector   uint16 = 0xFFFE // BRK处理函数
 )
 
 const (
@@ -47,7 +38,6 @@ type Processor struct {
 	pc        uint16   // pc 程序计数器
 	sp        byte     // sp 栈指针，记录栈地址的低8位，高位固定为0x0100
 	bus       *bus.Bus // bus 总线，通过总线访问内存或mmio寄存器
-	randNum   *rand.Rand
 }
 
 type Interrupt byte
@@ -57,20 +47,8 @@ const (
 	BrkInterrupt
 )
 
-func NewProcessor() Processor {
-	source := rand.NewSource(time.Now().UnixMilli())
-	return Processor{randNum: rand.New(source), bus: bus.NewBusWithNoROM()}
-}
-
-func NewProcessorWithROM(bus *bus.Bus) *Processor {
-	source := rand.NewSource(time.Now().UnixMilli())
-	return &Processor{randNum: rand.New(source), bus: bus}
-}
-
-func (p *Processor) LoadAndRun(program []byte) {
-	p.loadProgram(program)
-	p.reset()
-	p.run()
+func NewProcessor(bus *bus.Bus) *Processor {
+	return &Processor{bus: bus}
 }
 
 func (p *Processor) LoadAndRunWithCallback(callback InstructionCallback) {
@@ -93,41 +71,11 @@ func (p *Processor) reset() {
 	p.pc = p.readMemUint16(ResetVector)
 }
 
-func (p *Processor) run() {
-	for {
-		opCode := p.readMemUint8(p.pc)
-		p.pc++
-		originalPc := p.pc
-		instruction, ok := Instructions[opCode]
-		if !ok {
-			panic(fmt.Errorf("unknown instruction: 0x%x", opCode))
-		}
-		switch opCode {
-		case BRK:
-			p.regStatus |= BreakStatus
-			return
-		case NOP:
-			continue
-		case INX:
-			p.inx()
-		case INY:
-			p.iny()
-		default:
-			instruction.handler(p, instruction)
-		}
-		if p.pc == originalPc {
-			p.pc += uint16(instruction.Length - 1)
-		}
-	}
-}
-
 func (p *Processor) runWithCallback(callback InstructionCallback) {
 	for {
 		if p.bus.PollNMIInterrupt() {
 			p.handleInterrupt(NMIInterrupt)
 		}
-		// 在0xFE保存0~255随机数
-		p.writeMemUint8(RandomNumber, byte(p.randNum.Intn(256)))
 		opCode := p.readMemUint8(p.pc)
 		p.pc++
 		originalPc := p.pc
@@ -247,12 +195,12 @@ func (p *Processor) getAbsoluteAddress(pc uint16, mode AddressMode) (uint16, boo
 	cross := false
 	switch mode {
 	case Immediate:
-		addr = p.pc
+		addr = pc
 	case ZeroPage:
 		pos := p.readMemUint8(pc)
 		addr = uint16(pos)
 	case Absolute:
-		addr = p.readMemUint16(p.pc)
+		addr = p.readMemUint16(pc)
 	case ZeroPageX:
 		pos := p.readMemUint8(pc) + p.regX
 		addr = uint16(pos)
