@@ -3,11 +3,10 @@ package cartridge
 type Mapper002 struct {
 	raw       []byte
 	mirroring byte
-
-	prgStart uint32
-	prgBanks [2][]byte
-
-	chrRAM bool
+	prgStart  uint32
+	prgBanks  [2][]byte
+	chrStart  uint32
+	chrRAM    bool
 }
 
 func NewMapper002(raw []byte, mirroring byte) *Mapper002 {
@@ -18,10 +17,11 @@ func NewMapper002(raw []byte, mirroring byte) *Mapper002 {
 		mirroring: mirroring,
 		prgStart:  prgStart,
 		prgBanks: [2][]byte{
-			raw[prgStart : prgStart+0x4000],
-			raw[lastBank : lastBank+0x4000],
+			raw[prgStart : prgStart+0x4000], // switchable 16KiB bank
+			raw[lastBank : lastBank+0x4000], // fix to last bank
 		},
-		chrRAM: chrRAM,
+		chrStart: chrStart,
+		chrRAM:   chrRAM,
 	}
 }
 
@@ -40,6 +40,11 @@ func (m *Mapper002) Write(addr uint16, val byte) {
 	switch {
 	case addr >= 0x6000 && addr <= 0x7fff:
 	case addr >= 0x8000:
+		// ignore top 4 bits
+		bank := uint32(val & 0x0f)
+		// switch first 16KiB bank
+		start := bank*0x4000 + m.prgStart
+		m.prgBanks[0] = m.raw[start : start+0x4000]
 	}
 }
 
@@ -48,7 +53,7 @@ func (m *Mapper002) GetMirroring() byte {
 }
 
 func (m *Mapper002) GetChrBank(bank byte) []byte {
-	offset := uint32(bank) * 0x1000
+	offset := uint32(bank)*0x1000 + m.chrStart
 	return m.raw[offset : offset+0x1000]
 }
 
