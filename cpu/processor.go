@@ -1,6 +1,7 @@
 package cpu
 
 import (
+	"context"
 	"fmt"
 	"github.com/stellarisJAY/nesgo/bus"
 )
@@ -51,9 +52,9 @@ func NewProcessor(bus *bus.Bus) *Processor {
 	return &Processor{bus: bus}
 }
 
-func (p *Processor) LoadAndRunWithCallback(callback InstructionCallback) {
+func (p *Processor) LoadAndRunWithCallback(ctx context.Context, callback InstructionCallback) {
 	p.reset()
-	p.runWithCallback(callback)
+	p.runWithCallback(ctx, callback)
 }
 
 func (p *Processor) loadProgram(program []byte) {
@@ -71,8 +72,13 @@ func (p *Processor) reset() {
 	p.pc = p.readMemUint16(ResetVector)
 }
 
-func (p *Processor) runWithCallback(callback InstructionCallback) {
+func (p *Processor) runWithCallback(ctx context.Context, callback InstructionCallback) {
 	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
 		if p.bus.PollNMIInterrupt() {
 			p.handleInterrupt(NMIInterrupt)
 		}

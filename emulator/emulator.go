@@ -1,13 +1,16 @@
-package main
+package emulator
 
 import (
+	"context"
 	"fmt"
 	"github.com/stellarisJAY/nesgo/bus"
 	"github.com/stellarisJAY/nesgo/cartridge"
+	"github.com/stellarisJAY/nesgo/config"
 	"github.com/stellarisJAY/nesgo/cpu"
 	"github.com/stellarisJAY/nesgo/ppu"
 	"github.com/stellarisJAY/nesgo/trace"
 	"github.com/veandco/go-sdl2/sdl"
+	"io"
 	"log"
 	"os"
 	"time"
@@ -28,26 +31,43 @@ type Emulator struct {
 
 	keyMap map[sdl.Scancode]bus.JoyPadButton
 
-	config Config
+	config config.Config
 }
 
-func NewEmulator(nesData []byte, config Config) *Emulator {
+func NewEmulator(nesData []byte, conf config.Config) *Emulator {
 	e := &Emulator{
 		cartridge: cartridge.MakeCartridge(nesData),
-		config:    config,
+		config:    conf,
 	}
-	e.ppu = ppu.NewPPU(e.cartridge.GetChrBank, e.cartridge.GetMirroring, e.cartridge.WriteCHR)
 	e.joyPad = bus.NewJoyPad()
+	e.ppu = ppu.NewPPU(e.cartridge.GetChrBank, e.cartridge.GetMirroring, e.cartridge.WriteCHR)
 	e.bus = bus.NewBus(e.cartridge, e.ppu, e.RendererCallback, e.joyPad)
 	e.processor = cpu.NewProcessor(e.bus)
 	e.keyMap = make(map[sdl.Scancode]bus.JoyPadButton)
-	scale := int32(e.config.scale)
+	scale := int32(e.config.Scale)
 	window, renderer, err := initSDL(scale)
 	if err != nil {
 		panic(err)
 	}
 	texture, _ := renderer.CreateTexture(sdl.PIXELFORMAT_RGB24, sdl.TEXTUREACCESS_STREAMING, ppu.WIDTH, ppu.HEIGHT)
 	e.window, e.renderer, e.texture = window, renderer, texture
+	return e
+}
+
+func NewServerEmulator(game string, conf config.Config, callback bus.RenderCallback) *Emulator {
+	nesData, err := ReadGameFile(game)
+	if err != nil {
+		panic(err)
+	}
+	e := &Emulator{
+		cartridge: cartridge.MakeCartridge(nesData),
+		config:    conf,
+	}
+	e.keyMap = make(map[sdl.Scancode]bus.JoyPadButton)
+	e.joyPad = bus.NewJoyPad()
+	e.ppu = ppu.NewPPU(e.cartridge.GetChrBank, e.cartridge.GetMirroring, e.cartridge.WriteCHR)
+	e.bus = bus.NewBus(e.cartridge, e.ppu, callback, e.joyPad)
+	e.processor = cpu.NewProcessor(e.bus)
 	return e
 }
 
@@ -81,7 +101,20 @@ func (e *Emulator) loadKeyMap() {
 	e.keyMap[sdl.SCANCODE_RETURN] = bus.Start
 }
 
-func (e *Emulator) LoadAndRun(enableTrace bool) {
+func ReadGameFile(fileName string) ([]byte, error) {
+	file, err := os.Open(fileName)
+	if err != nil {
+		return nil, fmt.Errorf("can't open game file %s,  %w", fileName, err)
+	}
+	program, err := io.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("read game file error %w", err)
+	}
+	log.Printf("loaded program file: %s, size: %d", fileName, len(program))
+	return program, nil
+}
+
+func (e *Emulator) LoadAndRun(ctx context.Context, enableTrace bool) {
 	defer func() {
 		if err := recover(); err != nil {
 			e.onShutdown()
@@ -90,9 +123,9 @@ func (e *Emulator) LoadAndRun(enableTrace bool) {
 	}()
 	e.loadKeyMap()
 	if enableTrace {
-		e.processor.LoadAndRunWithCallback(trace.Trace)
+		e.processor.LoadAndRunWithCallback(ctx, trace.Trace)
 	} else {
-		e.processor.LoadAndRunWithCallback(func(_ *cpu.Processor, _ *cpu.Instruction) {})
+		e.processor.LoadAndRunWithCallback(ctx, func(_ *cpu.Processor, _ *cpu.Instruction) {})
 	}
 }
 
@@ -107,7 +140,7 @@ func (e *Emulator) RendererCallback(p *ppu.PPU) {
 	_ = e.renderer.Copy(e.texture, nil, nil)
 	e.renderer.Present()
 	e.handleEvents()
-	time.Sleep(e.config.frameInterval)
+	time.Sleep(e.config.FrameInterval)
 	e.handleEvents()
 }
 
@@ -138,6 +171,10 @@ func (e *Emulator) handleEvents() {
 		default:
 		}
 	}
+}
+
+func (e *Emulator) SetJoyPadButtonPressed(button bus.JoyPadButton, pressed bool) {
+	e.joyPad.SetButtonPressed(button, pressed)
 }
 
 func (e *Emulator) onShutdown() {
