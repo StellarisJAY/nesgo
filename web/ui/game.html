@@ -4,15 +4,23 @@
 </head>
 <html lang="cn">
     <p>{{.id}}</p>
-    <canvas id="{{.id}}" width="256" height="240"></canvas>
+    <canvas id="{{.id}}" width="256" height="240" style="margin:auto"></canvas>
+    <button onclick="incScale()">+</button>
+    <button onclick="decScale()">-</button>
 </html>
 
 <script>
     const width = 256
     const height = 240
+    let scale = 3;
     const c = document.getElementsByTagName("canvas").item(0)
+    c.width = width * scale
+    c.height = height * scale
+
+    const maxScale = 3
+    const minScale = 1
+
     const gameId = c.id
-    const scale =2
     let ctx = c.getContext('2d')
     let ws = new WebSocket("ws://localhost:8080/ws/"+gameId)
 
@@ -43,15 +51,44 @@
 
     function drawFrame(frameData) {
         const view = new DataView(frameData)
-        let imageData = ctx.getImageData(0, 0, width, height)
-        let j = 0
+        let imageData = ctx.getImageData(0, 0, width * scale, height* scale)
         for (let i = 0; i < view.byteLength; i+=3) {
-            imageData.data[j] = view.getUint8(i)
-            imageData.data[j+1] = view.getUint8(i+1)
-            imageData.data[j+2] = view.getUint8(i+2)
-            imageData.data[j+3] = 255
-            j+=4
+            setScaledPixel(i / 3, view.getUint8(i), view.getUint8(i+1), view.getUint8(i+2), imageData)
         }
         ctx.putImageData(imageData, 0, 0)
+    }
+
+    function setScaledPixel(pixelNum, r,g,b, imageData) {
+        let row = Math.floor(pixelNum / width)
+        let col = pixelNum % width
+        let x0 = col * scale
+        let y0 = row * scale
+        for (let p = 0; p < scale; p++) {
+            for (let q = 0; q < scale; q++){
+                let index = xyToFrameIndex(x0+p,y0+q)
+                let i = index * 4
+                imageData.data[i] = r
+                imageData.data[i+1] = g
+                imageData.data[i+2] = b
+                imageData.data[i+3] = 255
+            }
+        }
+    }
+
+    function xyToFrameIndex(x, y) {
+        let w = width * scale
+        return x + y * w
+    }
+
+    function incScale() {
+        scale = Math.min(maxScale, scale + 1)
+        c.width = width * scale
+        c.height = height * scale
+    }
+
+    function decScale() {
+        scale = Math.max(minScale, scale - 1)
+        c.width = width * scale
+        c.height = height * scale
     }
 </script>
