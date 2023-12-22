@@ -1,0 +1,57 @@
+<!DocType html>
+<head>
+    <title>{{.game}}</title>
+</head>
+<html lang="cn">
+    <p>{{.id}}</p>
+    <canvas id="{{.id}}" width="256" height="240"></canvas>
+</html>
+
+<script>
+    const width = 256
+    const height = 240
+    const c = document.getElementsByTagName("canvas").item(0)
+    const gameId = c.id
+    const scale =2
+    let ctx = c.getContext('2d')
+    let ws = new WebSocket("ws://localhost:8080/ws/"+gameId)
+
+    ws.onmessage = function (event) {
+        // blob to frame
+        let reader = new FileReader()
+        reader.onloadend = function () {
+            drawFrame(reader.result)
+        }
+        reader.readAsArrayBuffer(event.data)
+    }
+
+    onkeydown = function (event) {
+        const code = event.code
+        if (code === "KeyA" || code === "KeyD" || code === "KeyW" || code === "KeyS" ||
+            code === "Space" || code === "Enter" || code === "KeyJ") {
+            ws.send(JSON.stringify({"KeyCode": code, "Action": 0}))
+        }
+    }
+
+    onkeyup = function (event) {
+        const code = event.code
+        if (code === "KeyA" || code === "KeyD" || code === "KeyW" || code === "KeyS" ||
+            code === "Space" || code === "Enter" || code === "KeyJ") {
+            ws.send(JSON.stringify({"KeyCode": code, "Action": 1}))
+        }
+    }
+
+    function drawFrame(frameData) {
+        const view = new DataView(frameData)
+        let imageData = ctx.getImageData(0, 0, width, height)
+        let j = 0
+        for (let i = 0; i < view.byteLength; i+=3) {
+            imageData.data[j] = view.getUint8(i)
+            imageData.data[j+1] = view.getUint8(i+1)
+            imageData.data[j+2] = view.getUint8(i+2)
+            imageData.data[j+3] = 255
+            j+=4
+        }
+        ctx.putImageData(imageData, 0, 0)
+    }
+</script>
