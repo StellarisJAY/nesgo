@@ -210,6 +210,10 @@ func (p *PPU) FrameData() []byte {
 	return p.frame.data
 }
 
+func (p *PPU) CompressedFrameData() []byte {
+	return p.frame.compressedFrameData()
+}
+
 func (p *PPU) WriteMask(val byte) {
 	p.maskReg.set(val)
 }

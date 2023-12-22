@@ -132,7 +132,7 @@ func (g *GameSession) onConnectionClose() {
 // GameService renderCallback 渲染回调，发送画面给前端
 func (g *GameSession) renderCallback(p *ppu.PPU) {
 	p.Render()
-	_ = g.conn.WriteMessage(websocket.BinaryMessage, p.FrameData())
+	_ = g.conn.WriteMessage(websocket.BinaryMessage, p.CompressedFrameData())
 	g.pullInput()
 	time.Sleep(8 * time.Millisecond)
 	g.pullInput()

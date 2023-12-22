@@ -28,7 +28,7 @@
         // blob to frame
         let reader = new FileReader()
         reader.onloadend = function () {
-            drawFrame(reader.result)
+            drawCompressedFrame(reader.result)
         }
         reader.readAsArrayBuffer(event.data)
     }
@@ -54,6 +54,20 @@
         let imageData = ctx.getImageData(0, 0, width * scale, height* scale)
         for (let i = 0; i < view.byteLength; i+=3) {
             setScaledPixel(i / 3, view.getUint8(i), view.getUint8(i+1), view.getUint8(i+2), imageData)
+        }
+        ctx.putImageData(imageData, 0, 0)
+    }
+
+    function drawCompressedFrame(frameData) {
+        const view = new DataView(frameData)
+        let imageData = ctx.getImageData(0, 0, width * scale, height * scale)
+        const frameSize = width * height
+        for (let i = 0; i < frameSize; i++) {
+            let colorId = view.getUint8(i)
+            setScaledPixel(i, view.getUint8(frameSize + colorId*3),
+                view.getUint8(frameSize + colorId*3 + 1),
+                view.getUint8(frameSize + colorId*3 + 2),
+            imageData)
         }
         ctx.putImageData(imageData, 0, 0)
     }
