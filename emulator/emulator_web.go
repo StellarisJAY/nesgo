@@ -47,3 +47,7 @@ func (e *Emulator) LoadAndRun(ctx context.Context, enableTrace bool) {
 		e.processor.LoadAndRunWithCallback(ctx, func(_ *cpu.Processor, _ *cpu.Instruction) {})
 	}
 }
+
+func (e *Emulator) BoostCPU(rate float64) {
+	e.bus.BoostCPU(rate)
+}

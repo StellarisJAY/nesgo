@@ -3,13 +3,16 @@ package bus
 import (
 	"github.com/stellarisJAY/nesgo/cartridge"
 	"github.com/stellarisJAY/nesgo/ppu"
+	"time"
 )
 
 const (
-	RAMSize               = 2048
-	CpuRAMEnd             = 0x1FFF
-	CpuRAMMask     uint16 = 0x7FF
-	PPURegisterEnd        = 0x3FFF
+	RAMSize                = 2048
+	CpuRAMEnd              = 0x1FFF
+	CpuRAMMask     uint16  = 0x7FF
+	PPURegisterEnd         = 0x3FFF
+	CPUFrequency           = 1790000 // Approximate CPUFrequency 1.79MHz see:https://www.nesdev.org/wiki/CPU
+	CPUMaxBoost    float64 = 5.0
 )
 
 type RenderCallback func(*ppu.PPU)
@@ -23,6 +26,9 @@ type Bus struct {
 	cycles         uint64              // cycles 总线时钟周期数，用来同步CPU和PPU的周期
 	renderCallback RenderCallback
 	joyPad         *JoyPad
+
+	lastRenderCycles uint64
+	cpuBoost         float64
 }
 
 // NewBus 创建总线，并将PPU和ROM接入总线
@@ -33,6 +39,7 @@ func NewBus(cartridge cartridge.Cartridge, ppu *ppu.PPU, callback RenderCallback
 		ppu:            ppu,
 		renderCallback: callback,
 		joyPad:         joyPad,
+		cpuBoost:       1.0,
 	}
 }
 
@@ -43,7 +50,16 @@ func (b *Bus) Tick(cycles uint64) {
 	b.ppu.Tick(cycles * 3)
 	if !before && b.ppu.PeekInterrupt() {
 		b.renderCallback(b.ppu)
+		// 两次渲染之间的cpu cycles除以CPU频率等于帧之间的间隔时间, nanoseconds
+		freq := uint64(CPUFrequency * b.cpuBoost)
+		frameTime := (b.cycles - b.lastRenderCycles) * 1000_000_000 / freq
+		time.Sleep(time.Duration(frameTime))
+		b.lastRenderCycles = b.cycles
 	}
+}
+
+func (b *Bus) BoostCPU(rate float64) {
+	b.cpuBoost = min(CPUMaxBoost, max(1.0, rate))
 }
 
 func (b *Bus) ReadMemUint8(addr uint16) byte {

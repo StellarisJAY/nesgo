@@ -14,7 +14,6 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 	"log"
 	"os"
-	"time"
 	"unsafe"
 )
 
@@ -95,14 +94,12 @@ func (e *Emulator) LoadAndRun(ctx context.Context, enableTrace bool) {
 }
 
 func (e *Emulator) RendererCallback(p *ppu.PPU) {
+	e.handleEvents()
 	p.Render()
 	frame := p.FrameData()
 	_ = e.texture.Update(nil, unsafe.Pointer(&frame[0]), ppu.WIDTH*3)
 	_ = e.renderer.Copy(e.texture, nil, nil)
 	e.renderer.Present()
-	e.handleEvents()
-	time.Sleep(e.config.FrameInterval)
-	e.handleEvents()
 }
 
 func (e *Emulator) handleEvents() {
