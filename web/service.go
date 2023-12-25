@@ -102,7 +102,7 @@ func makeGameSession(id, game string, conf config.Config) *GameSession {
 		keyInputs: make([]ControlMessage, 0),
 		m:         &sync.Mutex{},
 	}
-	g.e = emulator.NewServerEmulator(gameFile, conf, g.renderCallback)
+	g.e = emulator.NewEmulator(gameFile, conf, g.renderCallback)
 	return g
 }
 
