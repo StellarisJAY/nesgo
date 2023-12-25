@@ -1,6 +1,6 @@
 module github.com/stellarisJAY/nesgo
 
-go 1.19
+go 1.21
 
 require github.com/veandco/go-sdl2 v0.4.35
 
