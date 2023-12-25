@@ -48,6 +48,6 @@ func (e *Emulator) LoadAndRun(ctx context.Context, enableTrace bool) {
 	}
 }
 
-func (e *Emulator) BoostCPU(rate float64) {
-	e.bus.BoostCPU(rate)
+func (e *Emulator) BoostCPU(rate float64) float64 {
+	return e.bus.BoostCPU(rate)
 }

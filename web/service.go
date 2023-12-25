@@ -13,6 +13,7 @@ import (
 	"log"
 	"math/rand"
 	"path/filepath"
+	"strconv"
 	"sync"
 )
 
@@ -90,6 +91,23 @@ func (s *GameService) HandleWebsocket(c *gin.Context) {
 		return nil
 	})
 	session.startGame(ctx)
+}
+
+func (s *GameService) HandleCPUBoost(c *gin.Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			if e, ok := err.(error); ok {
+				c.JSON(500, fmt.Sprintf("{\"error\":\"%s\"}", e.Error()))
+			}
+		}
+	}()
+	id := c.Param("id")
+	rate, _ := strconv.ParseFloat(c.Param("rate"), 64)
+	s.mutex.Lock()
+	session := s.sessions[id]
+	rate = session.e.BoostCPU(rate)
+	s.mutex.Unlock()
+	c.String(200, fmt.Sprintf("%.1f", rate))
 }
 
 func makeGameSession(id, game string, conf config.Config) *GameSession {

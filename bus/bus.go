@@ -58,8 +58,9 @@ func (b *Bus) Tick(cycles uint64) {
 	}
 }
 
-func (b *Bus) BoostCPU(rate float64) {
+func (b *Bus) BoostCPU(rate float64) float64 {
 	b.cpuBoost = min(CPUMaxBoost, max(1.0, rate))
+	return b.cpuBoost
 }
 
 func (b *Bus) ReadMemUint8(addr uint16) byte {

@@ -20,5 +20,7 @@ func setupRouter(config config.Config) *gin.Engine {
 	r.GET("/game/:name", gameService.HandleGamePage)
 	// game session websocket
 	r.GET("/ws/:id", gameService.HandleWebsocket)
+	// boost game session
+	r.POST("/game/:id/boost/:rate", gameService.HandleCPUBoost)
 	return r
 }
