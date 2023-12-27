@@ -58,6 +58,18 @@ func (f *Frame) compressedFrameData() []byte {
 	return result
 }
 
+func decompressFrame(data []byte) []byte {
+	pixels := data[:WIDTH*HEIGHT]
+	colors := data[WIDTH*HEIGHT:]
+	frame := make([]byte, WIDTH*HEIGHT*3)
+	for i, p := range pixels {
+		frame[i*3] = colors[p*3]
+		frame[i*3+1] = colors[p*3+1]
+		frame[i*3+2] = colors[p*3+2]
+	}
+	return frame
+}
+
 func (f *Frame) Data() []byte {
 	return f.data
 }

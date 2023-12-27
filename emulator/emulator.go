@@ -11,6 +11,12 @@ import (
 	"io"
 	"log"
 	"os"
+	"time"
+)
+
+const (
+	snapshotInterval = 30 * time.Second
+	maxSnapshots     = 4
 )
 
 type RawEmulator struct {
@@ -21,6 +27,16 @@ type RawEmulator struct {
 	joyPad    *bus.JoyPad
 
 	config config.Config
+
+	lastSnapshotTime time.Time
+	snapshots        []Snapshot
+}
+
+type Snapshot struct {
+	processor cpu.Snapshot
+	ppu       ppu.Snapshot
+	bus       bus.Snapshot
+	timestamp time.Time
 }
 
 func ReadGameFile(fileName string) ([]byte, error) {
@@ -42,4 +58,27 @@ func (e *RawEmulator) Disassemble() {
 
 func (e *RawEmulator) SetJoyPadButtonPressed(button bus.JoyPadButton, pressed bool) {
 	e.joyPad.SetButtonPressed(button, pressed)
+}
+
+func (e *RawEmulator) MakeSnapshot() {
+	e.lastSnapshotTime = time.Now()
+	s := Snapshot{
+		processor: e.processor.MakeSnapshot(),
+		ppu:       e.ppu.MakeSnapshot(),
+		bus:       e.bus.MakeSnapshot(),
+		timestamp: e.lastSnapshotTime,
+	}
+	e.snapshots = append(e.snapshots, s)
+	if len(e.snapshots) > maxSnapshots {
+		e.snapshots = e.snapshots[1:]
+	}
+	log.Println("new snapshot done")
+}
+
+func (e *RawEmulator) Pause() {
+	e.processor.Pause()
+}
+
+func (e *RawEmulator) Resume() {
+	e.processor.Resume()
 }

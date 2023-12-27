@@ -37,6 +37,7 @@ type GameSession struct {
 
 const (
 	ActionButtonDown int = iota
+	ActionButtonUp
 )
 
 type ControlMessage struct {
@@ -108,6 +109,36 @@ func (s *GameService) HandleCPUBoost(c *gin.Context) {
 	rate = session.e.BoostCPU(rate)
 	s.mutex.Unlock()
 	c.String(200, fmt.Sprintf("%.1f", rate))
+}
+
+func (s *GameService) HandlePauseGame(c *gin.Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			if e, ok := err.(error); ok {
+				c.JSON(500, fmt.Sprintf("{\"error\":\"%s\"}", e.Error()))
+			}
+		}
+	}()
+	id := c.Param("id")
+	s.mutex.Lock()
+	session := s.sessions[id]
+	session.e.Pause()
+	s.mutex.Unlock()
+}
+
+func (s *GameService) HandleResumeGame(c *gin.Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			if e, ok := err.(error); ok {
+				c.JSON(500, fmt.Sprintf("{\"error\":\"%s\"}", e.Error()))
+			}
+		}
+	}()
+	id := c.Param("id")
+	s.mutex.Lock()
+	session := s.sessions[id]
+	session.e.Resume()
+	s.mutex.Unlock()
 }
 
 func makeGameSession(id, game string, conf config.Config) *GameSession {
@@ -192,11 +223,19 @@ func (g *GameSession) readLoop() {
 		case websocket.TextMessage:
 			msg := ControlMessage{}
 			_ = json.Unmarshal(data, &msg)
-			g.m.Lock()
-			g.keyInputs = append(g.keyInputs, msg)
-			g.m.Unlock()
+			g.HandleMessage(msg)
 		default:
 		}
+	}
+}
+
+func (g *GameSession) HandleMessage(msg ControlMessage) {
+	switch msg.Action {
+	case ActionButtonDown, ActionButtonUp:
+		g.m.Lock()
+		g.keyInputs = append(g.keyInputs, msg)
+		g.m.Unlock()
+	default:
 	}
 }
 

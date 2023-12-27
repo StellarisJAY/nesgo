@@ -14,6 +14,7 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 	"log"
 	"os"
+	"time"
 	"unsafe"
 )
 
@@ -127,6 +128,18 @@ func (e *Emulator) handleEvents() {
 				}
 			}
 		default:
+		}
+	}
+}
+
+func (e *Emulator) snapshotLoop(ctx context.Context) {
+	ticker := time.NewTicker(snapshotInterval)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			e.MakeSnapshot()
 		}
 	}
 }

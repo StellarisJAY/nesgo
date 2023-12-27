@@ -22,5 +22,8 @@ func setupRouter(config config.Config) *gin.Engine {
 	r.GET("/ws/:id", gameService.HandleWebsocket)
 	// boost game session
 	r.POST("/game/:id/boost/:rate", gameService.HandleCPUBoost)
+
+	r.POST("/game/:id/pause", gameService.HandlePauseGame)
+	r.POST("/game/:id/resume", gameService.HandleResumeGame)
 	return r
 }

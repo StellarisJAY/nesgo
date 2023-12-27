@@ -31,6 +31,13 @@ type Bus struct {
 	cpuBoost         float64
 }
 
+type Snapshot struct {
+	cpuRAM           [RAMSize]byte
+	cycles           uint64
+	lastRenderCycles uint64
+	cpuBoost         float64
+}
+
 // NewBus 创建总线，并将PPU和ROM接入总线
 func NewBus(cartridge cartridge.Cartridge, ppu *ppu.PPU, callback RenderCallback, joyPad *JoyPad) *Bus {
 	return &Bus{
@@ -41,6 +48,22 @@ func NewBus(cartridge cartridge.Cartridge, ppu *ppu.PPU, callback RenderCallback
 		joyPad:         joyPad,
 		cpuBoost:       1.0,
 	}
+}
+
+func (b *Bus) MakeSnapshot() Snapshot {
+	return Snapshot{
+		cpuRAM:           b.cpuRAM,
+		cycles:           b.cycles,
+		lastRenderCycles: b.lastRenderCycles,
+		cpuBoost:         b.cpuBoost,
+	}
+}
+
+func (b *Bus) Reverse(s Snapshot) {
+	b.cpuRAM = s.cpuRAM
+	b.cycles = s.cycles
+	b.lastRenderCycles = s.lastRenderCycles
+	b.cpuBoost = s.cpuBoost
 }
 
 func (b *Bus) Tick(cycles uint64) {

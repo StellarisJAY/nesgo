@@ -10,6 +10,7 @@ import (
 	"github.com/stellarisJAY/nesgo/cpu"
 	"github.com/stellarisJAY/nesgo/ppu"
 	"github.com/stellarisJAY/nesgo/trace"
+	"time"
 )
 
 // Emulator browser render emulator
@@ -45,6 +46,18 @@ func (e *Emulator) LoadAndRun(ctx context.Context, enableTrace bool) {
 		e.processor.LoadAndRunWithCallback(ctx, trace.Trace)
 	} else {
 		e.processor.LoadAndRunWithCallback(ctx, func(_ *cpu.Processor, _ *cpu.Instruction) {})
+	}
+}
+
+func (e *Emulator) snapshotLoop(ctx context.Context) {
+	ticker := time.NewTicker(snapshotInterval)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			e.MakeSnapshot()
+		}
 	}
 }
 

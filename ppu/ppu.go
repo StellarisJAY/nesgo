@@ -35,6 +35,23 @@ type PPU struct {
 	frame        *Frame
 }
 
+type Snapshot struct {
+	paletteTable   []byte
+	ram            []byte
+	oamAddr        byte
+	oamData        []byte
+	addrReg        AddrRegister
+	ctrlReg        ControlRegister
+	maskReg        MaskRegister
+	scrollReg      ScrollRegister
+	internalBuffer byte
+	statReg        StatusRegister
+	cycles         uint64
+	scanLines      uint16
+	nmiInterrupt   bool
+	frame          []byte
+}
+
 func NewPPU(getChrBank func(byte) []byte, getMirroring func() byte, writeCHR func(uint16, byte)) *PPU {
 	return &PPU{
 		getChrBank:   getChrBank,
@@ -51,6 +68,50 @@ func NewPPU(getChrBank func(byte) []byte, getMirroring func() byte, writeCHR fun
 		maskReg:      NewMaskRegister(),
 		scrollReg:    NewScrollRegister(),
 	}
+}
+
+func (p *PPU) MakeSnapshot() Snapshot {
+	return Snapshot{
+		paletteTable:   p.paletteTable,
+		ram:            p.ram,
+		oamAddr:        p.oamAddr,
+		oamData:        p.oamData,
+		addrReg:        p.addrReg,
+		ctrlReg:        p.ctrlReg,
+		maskReg:        p.maskReg,
+		scrollReg:      p.scrollReg,
+		internalBuffer: p.internalBuffer,
+		statReg:        p.statReg,
+		cycles:         p.cycles,
+		scanLines:      p.scanLines,
+		nmiInterrupt:   p.nmiInterrupt,
+		frame:          p.frame.compressedFrameData(),
+	}
+}
+
+func (p *PPU) Reverse(s Snapshot) {
+	frame := p.frame
+	frame.data = decompressFrame(s.frame)
+	rev := PPU{
+		getChrBank:     p.getChrBank,
+		getMirroring:   p.getMirroring,
+		writeCHR:       p.writeCHR,
+		paletteTable:   s.paletteTable,
+		ram:            s.ram,
+		oamAddr:        s.oamAddr,
+		oamData:        s.oamData,
+		addrReg:        s.addrReg,
+		ctrlReg:        s.ctrlReg,
+		maskReg:        s.maskReg,
+		scrollReg:      s.scrollReg,
+		internalBuffer: s.internalBuffer,
+		statReg:        s.statReg,
+		cycles:         s.cycles,
+		scanLines:      s.scanLines,
+		nmiInterrupt:   s.nmiInterrupt,
+		frame:          p.frame,
+	}
+	*p = rev
 }
 
 func (p *PPU) incrementAddr() {

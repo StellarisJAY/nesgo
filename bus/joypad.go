@@ -24,6 +24,12 @@ func NewJoyPad() *JoyPad {
 	return &JoyPad{false, 0, 0}
 }
 
+func (j *JoyPad) Clear() {
+	j.strobe = false
+	j.buttonIdx = 0
+	j.buttonIdx = 0
+}
+
 func (j *JoyPad) write(val byte) {
 	j.strobe = val&1 == 1
 	if j.strobe {
