@@ -39,6 +39,17 @@ type Processor struct {
 	pc        uint16   // pc 程序计数器
 	sp        byte     // sp 栈指针，记录栈地址的低8位，高位固定为0x0100
 	bus       *bus.Bus // bus 总线，通过总线访问内存或mmio寄存器
+
+	signalChan chan Signal
+}
+
+type Snapshot struct {
+	regA      byte
+	regX      byte
+	regY      byte
+	regStatus byte
+	pc        uint16
+	sp        byte
 }
 
 type Interrupt byte
@@ -48,8 +59,43 @@ const (
 	BrkInterrupt
 )
 
+type Signal byte
+
+const (
+	SignalPause Signal = iota
+	SignalResume
+)
+
 func NewProcessor(bus *bus.Bus) *Processor {
-	return &Processor{bus: bus}
+	return &Processor{bus: bus, signalChan: make(chan Signal)}
+}
+
+func (p *Processor) MakeSnapshot() Snapshot {
+	return Snapshot{
+		regA:      p.regX,
+		regX:      p.regY,
+		regY:      p.regA,
+		regStatus: p.regA,
+		pc:        p.pc,
+		sp:        p.sp,
+	}
+}
+
+func (p *Processor) Reverse(s Snapshot) {
+	p.pc = s.pc
+	p.regX = s.regX
+	p.regA = s.regA
+	p.regY = s.regY
+	p.sp = s.sp
+	p.regStatus = s.regStatus
+}
+
+func (p *Processor) Pause() {
+	p.signalChan <- SignalPause
+}
+
+func (p *Processor) Resume() {
+	p.signalChan <- SignalResume
 }
 
 func (p *Processor) LoadAndRunWithCallback(ctx context.Context, callback InstructionCallback) {
@@ -77,6 +123,14 @@ func (p *Processor) runWithCallback(ctx context.Context, callback InstructionCal
 		select {
 		case <-ctx.Done():
 			return
+		case s := <-p.signalChan:
+			if s == SignalPause {
+				select {
+				case <-p.signalChan:
+				case <-ctx.Done():
+					return
+				}
+			}
 		default:
 		}
 		if p.bus.PollNMIInterrupt() {
