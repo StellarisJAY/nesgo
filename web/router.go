@@ -25,5 +25,7 @@ func setupRouter(config config.Config) *gin.Engine {
 
 	r.POST("/game/:id/pause", gameService.HandlePauseGame)
 	r.POST("/game/:id/resume", gameService.HandleResumeGame)
+
+	r.POST("/game/:id/reverse", gameService.HandleReverseOne)
 	return r
 }

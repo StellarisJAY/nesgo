@@ -35,21 +35,7 @@
                 <path d="M533.2 492.3L277.9 166.1c-3-3.9-7.7-6.1-12.6-6.1H188c-6.7 0-10.4 7.7-6.3 12.9L447.1 512 181.7 851.1c-4.1 5.2-0.4 12.9 6.3 12.9h77.3c4.9 0 9.6-2.3 12.6-6.1l255.3-326.1c9.1-11.7 9.1-27.9 0-39.5z" p-id="8375"></path><path d="M837.2 492.3L581.9 166.1c-3-3.9-7.7-6.1-12.6-6.1H492c-6.7 0-10.4 7.7-6.3 12.9L751.1 512 485.7 851.1c-4.1 5.2-0.4 12.9 6.3 12.9h77.3c4.9 0 9.6-2.3 12.6-6.1l255.3-326.1c9.1-11.7 9.1-27.9 0-39.5z" p-id="8376">
             </path></svg>
         </button>
-
         <button onclick="resumeOrPauseGame()" id="resumePauseButton"></button>
-
-        <button>
-            <svg t="1703663876930" class="icon" viewBox="0 0 1024 1024" version="1.1"
-                 xmlns="http://www.w3.org/2000/svg" p-id="8654" width="20" height="20">
-                <path d="M347.591 528.95l383.21 301.024C745.05 841.166 766 831.078 766 813.024v-602.05c0-18.05-20.95-28.14-35.199-16.948l-383.21 301.023c-11.01 8.65-11.01 25.252 0 33.901M330 864h-64a8 8 0 0 1-8-8V168a8 8 0 0 1 8-8h64a8 8 0 0 1 8 8v688a8 8 0 0 1-8 8" fill="#333333" p-id="8655">
-            </path></svg>
-        </button>
-        <button>
-            <svg t="1703663926707" class="icon" viewBox="0 0 1024 1024" version="1.1"
-                 xmlns="http://www.w3.org/2000/svg" p-id="8793" width="20" height="20">
-                <path d="M517.6 273.5L230.2 499.3c-4.1 3.2-6.2 8-6.2 12.7 0 4.7 2.1 9.5 6.2 12.7l287.4 225.8c10.7 8.4 26.4 0.8 26.4-12.7V286.2c0-13.5-15.7-21.1-26.4-12.7z m320 0L550.2 499.3c-4.1 3.2-6.2 8-6.2 12.7 0 4.7 2.1 9.5 6.2 12.7l287.4 225.8c10.7 8.4 26.4 0.8 26.4-12.7V286.2c0-13.5-15.7-21.1-26.4-12.7z m-620-25.5h-51.2c-3.5 0-6.4 2.7-6.4 6v516c0 3.3 2.9 6 6.4 6h51.2c3.5 0 6.4-2.7 6.4-6V254c0-3.3-2.9-6-6.4-6z" fill="#333333" p-id="8794">
-            </path></svg>
-        </button>
     </div>
 </html>
 
@@ -115,6 +101,12 @@
 
     onkeyup = function (event) {
         const code = event.code
+        if (code === "KeyP") {
+            resumeOrPauseGame()
+        }
+        if (code === "Backspace") {
+            reverseOnce()
+        }
         if (gameState === "paused") {
             return
         }
@@ -239,6 +231,16 @@
                     gameState = "running"
                     document.getElementById("resumePauseButton").innerHTML = pauseIcon
                 }
+            })
+            .catch(err=>{
+                console.error(err)
+            })
+    }
+
+    function reverseOnce() {
+        fetch("http://localhost:8080/game/"+gameId+"/reverse", {method: "POST"})
+            .then(res=>{
+
             })
             .catch(err=>{
                 console.error(err)

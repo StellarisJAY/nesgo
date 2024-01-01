@@ -106,7 +106,7 @@ func (s *GameService) HandleCPUBoost(c *gin.Context) {
 	rate, _ := strconv.ParseFloat(c.Param("rate"), 64)
 	s.mutex.Lock()
 	session := s.sessions[id]
-	rate = session.e.BoostCPU(rate)
+	rate = session.e.SetCPUBoostRate(rate)
 	s.mutex.Unlock()
 	c.String(200, fmt.Sprintf("%.1f", rate))
 }
@@ -138,6 +138,24 @@ func (s *GameService) HandleResumeGame(c *gin.Context) {
 	s.mutex.Lock()
 	session := s.sessions[id]
 	session.e.Resume()
+	s.mutex.Unlock()
+}
+
+func (s *GameService) HandleReverseOne(c *gin.Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			if e, ok := err.(error); ok {
+				log.Println("reverse once error ", err)
+				c.JSON(500, fmt.Sprintf("{\"error\":\"%s\"}", e.Error()))
+			}
+		}
+	}()
+	id := c.Param("id")
+	s.mutex.Lock()
+	session := s.sessions[id]
+	if revFrame := session.e.ReverseOnce(); revFrame != nil {
+		_ = session.conn.WriteMessage(websocket.BinaryMessage, revFrame)
+	}
 	s.mutex.Unlock()
 }
 
