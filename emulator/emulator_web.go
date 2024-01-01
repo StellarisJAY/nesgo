@@ -10,7 +10,7 @@ import (
 	"github.com/stellarisJAY/nesgo/cpu"
 	"github.com/stellarisJAY/nesgo/ppu"
 	"github.com/stellarisJAY/nesgo/trace"
-	"time"
+	"sync"
 )
 
 // Emulator browser render emulator
@@ -27,6 +27,7 @@ func NewEmulator(game string, conf config.Config, callback bus.RenderCallback) *
 		RawEmulator{
 			cartridge: cartridge.MakeCartridge(nesData),
 			config:    conf,
+			m:         &sync.Mutex{},
 		},
 	}
 	e.joyPad = bus.NewJoyPad()
@@ -43,24 +44,11 @@ func (e *Emulator) LoadAndRun(ctx context.Context, enableTrace bool) {
 		}
 	}()
 	if enableTrace {
-		e.processor.LoadAndRunWithCallback(ctx, trace.Trace)
+		e.processor.LoadAndRunWithCallback(ctx, trace.Trace, nil)
 	} else {
-		e.processor.LoadAndRunWithCallback(ctx, func(_ *cpu.Processor, _ *cpu.Instruction) {})
+		e.processor.LoadAndRunWithCallback(ctx, nil,
+			func(_ *cpu.Processor) {
+				e.MakeSnapshot()
+			})
 	}
-}
-
-func (e *Emulator) snapshotLoop(ctx context.Context) {
-	ticker := time.NewTicker(snapshotInterval)
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			e.MakeSnapshot()
-		}
-	}
-}
-
-func (e *Emulator) BoostCPU(rate float64) float64 {
-	return e.bus.BoostCPU(rate)
 }

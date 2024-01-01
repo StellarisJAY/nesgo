@@ -14,7 +14,7 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 	"log"
 	"os"
-	"time"
+	"sync"
 	"unsafe"
 )
 
@@ -32,6 +32,7 @@ func NewEmulator(nesData []byte, conf config.Config) *Emulator {
 		RawEmulator: RawEmulator{
 			cartridge: cartridge.MakeCartridge(nesData),
 			config:    conf,
+			m:         &sync.Mutex{},
 		},
 	}
 	e.joyPad = bus.NewJoyPad()
@@ -88,9 +89,11 @@ func (e *Emulator) LoadAndRun(ctx context.Context, enableTrace bool) {
 	}()
 	e.loadKeyMap()
 	if enableTrace {
-		e.processor.LoadAndRunWithCallback(ctx, trace.Trace)
+		e.processor.LoadAndRunWithCallback(ctx, trace.Trace, nil)
 	} else {
-		e.processor.LoadAndRunWithCallback(ctx, func(_ *cpu.Processor, _ *cpu.Instruction) {})
+		e.processor.LoadAndRunWithCallback(ctx, nil, func(_ *cpu.Processor) {
+			e.MakeSnapshot()
+		})
 	}
 }
 
@@ -117,6 +120,20 @@ func (e *Emulator) handleEvents() {
 				os.Exit(0)
 				return
 			}
+			if event.Keysym.Scancode == sdl.SCANCODE_F1 && event.State == sdl.RELEASED {
+				e.BoostCPU(0.5)
+				continue
+			}
+			if event.Keysym.Scancode == sdl.SCANCODE_F2 && event.State == sdl.RELEASED {
+				e.BoostCPU(-0.5)
+				continue
+			}
+			// reverse game
+			if event.Keysym.Scancode == sdl.SCANCODE_BACKSPACE && event.State == sdl.RELEASED {
+				// 此时handleEvent和cpu循环是同一个goroutine，发送pause信号会阻塞。所以需要创建新的goroutine
+				go e.ReverseOnce()
+				continue
+			}
 			switch event.State {
 			case sdl.PRESSED:
 				if button, ok := e.keyMap[event.Keysym.Scancode]; ok {
@@ -128,18 +145,6 @@ func (e *Emulator) handleEvents() {
 				}
 			}
 		default:
-		}
-	}
-}
-
-func (e *Emulator) snapshotLoop(ctx context.Context) {
-	ticker := time.NewTicker(snapshotInterval)
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			e.MakeSnapshot()
 		}
 	}
 }
