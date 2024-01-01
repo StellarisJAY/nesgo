@@ -52,8 +52,9 @@ func (f *Frame) compressedFrameData() []byte {
 		}
 	}
 	bufLen := WIDTH*HEIGHT + len(colors)*3
-	copy(f.compressBuffer[WIDTH*HEIGHT:bufLen], colorVals[:len(colors)*3])
-	result := f.compressBuffer[:bufLen]
+	result := make([]byte, bufLen)
+	copy(result[:WIDTH*HEIGHT], f.compressBuffer[:WIDTH*HEIGHT])
+	copy(result[WIDTH*HEIGHT:bufLen], colorVals[:len(colors)*3])
 	f.compressBuffer = f.compressBuffer[:0]
 	return result
 }

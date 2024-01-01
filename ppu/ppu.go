@@ -2,6 +2,7 @@ package ppu
 
 import (
 	"fmt"
+	"slices"
 )
 
 const (
@@ -72,10 +73,10 @@ func NewPPU(getChrBank func(byte) []byte, getMirroring func() byte, writeCHR fun
 
 func (p *PPU) MakeSnapshot() Snapshot {
 	return Snapshot{
-		paletteTable:   p.paletteTable,
-		ram:            p.ram,
+		paletteTable:   slices.Clone(p.paletteTable),
+		ram:            slices.Clone(p.ram),
 		oamAddr:        p.oamAddr,
-		oamData:        p.oamData,
+		oamData:        slices.Clone(p.oamData),
 		addrReg:        p.addrReg,
 		ctrlReg:        p.ctrlReg,
 		maskReg:        p.maskReg,
@@ -89,7 +90,7 @@ func (p *PPU) MakeSnapshot() Snapshot {
 	}
 }
 
-func (p *PPU) Reverse(s Snapshot) {
+func (p *PPU) Reverse(s Snapshot) []byte {
 	frame := p.frame
 	frame.data = decompressFrame(s.frame)
 	rev := PPU{
@@ -112,6 +113,7 @@ func (p *PPU) Reverse(s Snapshot) {
 		frame:          p.frame,
 	}
 	*p = rev
+	return s.frame
 }
 
 func (p *PPU) incrementAddr() {

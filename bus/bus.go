@@ -51,8 +51,10 @@ func NewBus(cartridge cartridge.Cartridge, ppu *ppu.PPU, callback RenderCallback
 }
 
 func (b *Bus) MakeSnapshot() Snapshot {
+	var ram [RAMSize]byte
+	copy(ram[:], b.cpuRAM[:])
 	return Snapshot{
-		cpuRAM:           b.cpuRAM,
+		cpuRAM:           ram,
 		cycles:           b.cycles,
 		lastRenderCycles: b.lastRenderCycles,
 		cpuBoost:         b.cpuBoost,
@@ -81,7 +83,11 @@ func (b *Bus) Tick(cycles uint64) {
 	}
 }
 
-func (b *Bus) BoostCPU(rate float64) float64 {
+func (b *Bus) BoostCPU(delta float64) float64 {
+	return b.SetCPUBoostRate(b.cpuBoost + delta)
+}
+
+func (b *Bus) SetCPUBoostRate(rate float64) float64 {
 	b.cpuBoost = min(CPUMaxBoost, max(1.0, rate))
 	return b.cpuBoost
 }
