@@ -27,8 +27,8 @@ const (
 	NegativeStatus         byte = 1 << 7
 )
 
-// CallbackFunc 每条指令执行前的callback，返回false将结束处理器循环
-type CallbackFunc func(*Processor) bool
+// CallbackFunc 每条指令执行前的callback
+type CallbackFunc func(*Processor)
 type InstructionCallback func(*Processor, *Instruction)
 
 type Processor struct {
@@ -98,9 +98,9 @@ func (p *Processor) Resume() {
 	p.signalChan <- SignalResume
 }
 
-func (p *Processor) LoadAndRunWithCallback(ctx context.Context, callback InstructionCallback) {
+func (p *Processor) LoadAndRunWithCallback(ctx context.Context, callback InstructionCallback, cpuCallback CallbackFunc) {
 	p.reset()
-	p.runWithCallback(ctx, callback)
+	p.runWithCallback(ctx, callback, cpuCallback)
 }
 
 func (p *Processor) loadProgram(program []byte) {
@@ -118,20 +118,25 @@ func (p *Processor) reset() {
 	p.pc = p.readMemUint16(ResetVector)
 }
 
-func (p *Processor) runWithCallback(ctx context.Context, callback InstructionCallback) {
+func (p *Processor) runWithCallback(ctx context.Context, insCallback InstructionCallback, cpuCallback CallbackFunc) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case s := <-p.signalChan:
-			if s == SignalPause {
+			// 重复暂停信号处理
+			sig := s
+			for sig == SignalPause {
 				select {
-				case <-p.signalChan:
+				case sig = <-p.signalChan:
 				case <-ctx.Done():
 					return
 				}
 			}
 		default:
+		}
+		if cpuCallback != nil {
+			cpuCallback(p)
 		}
 		if p.bus.PollNMIInterrupt() {
 			p.handleInterrupt(NMIInterrupt)
@@ -143,7 +148,9 @@ func (p *Processor) runWithCallback(ctx context.Context, callback InstructionCal
 		if !ok {
 			panic(fmt.Errorf("unknown instruction at %04x: 0x%x", originalPc-1, opCode))
 		}
-		callback(p, instruction)
+		if insCallback != nil {
+			insCallback(p, instruction)
+		}
 		switch opCode {
 		case BRK:
 			p.handleInterrupt(BrkInterrupt)
