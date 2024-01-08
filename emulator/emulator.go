@@ -34,11 +34,19 @@ type RawEmulator struct {
 	snapshots        []Snapshot
 }
 
-type Snapshot struct {
-	processor cpu.Snapshot
-	ppu       ppu.Snapshot
-	bus       bus.Snapshot
-	timestamp time.Time
+func (e *RawEmulator) init() {
+	s, err := os.Stat(e.config.SaveDirectory)
+	if os.IsNotExist(err) {
+		err := os.MkdirAll(e.config.SaveDirectory, 0744)
+		if err != nil {
+			log.Println(err)
+			panic("Unable to find or create save directory")
+		}
+	} else if err != nil {
+		panic("Unable to find save directory")
+	} else if !s.IsDir() {
+		panic("Provided save directory is not a directory")
+	}
 }
 
 func ReadGameFile(fileName string) ([]byte, error) {
@@ -62,25 +70,6 @@ func (e *RawEmulator) SetJoyPadButtonPressed(button bus.JoyPadButton, pressed bo
 	e.joyPad.SetButtonPressed(button, pressed)
 }
 
-func (e *RawEmulator) MakeSnapshot() {
-	if time.Now().After(e.lastSnapshotTime.Add(snapshotInterval)) {
-		e.lastSnapshotTime = time.Now()
-		// 必须保证每个组件MakeSnapshot时没有线程安全问题
-		s := Snapshot{
-			processor: e.processor.MakeSnapshot(),
-			ppu:       e.ppu.MakeSnapshot(),
-			bus:       e.bus.MakeSnapshot(),
-			timestamp: e.lastSnapshotTime,
-		}
-		e.m.Lock()
-		defer e.m.Unlock()
-		e.snapshots = append(e.snapshots, s)
-		if len(e.snapshots) > maxSnapshots {
-			e.snapshots = e.snapshots[1:]
-		}
-	}
-}
-
 func (e *RawEmulator) Pause() {
 	e.processor.Pause()
 }
@@ -99,9 +88,22 @@ func (e *RawEmulator) ReverseOnce() []byte {
 		e.Pause()
 		defer e.Resume()
 		last := e.snapshots[len(e.snapshots)-1]
-		e.processor.Reverse(last.processor)
-		revFrame := e.ppu.Reverse(last.ppu)
-		e.bus.Reverse(last.bus)
+		e.processor.Reverse(last.Processor)
+		revFrame := e.ppu.Reverse(last.PPU)
+		e.bus.Reverse(last.Bus)
+		e.snapshots = e.snapshots[:len(e.snapshots)-1]
+		return revFrame
+	}
+	return nil
+}
+
+// ReverseOnceNoBlock 不阻塞的回溯，只能在单线程模式下使用
+func (e *RawEmulator) ReverseOnceNoBlock() []byte {
+	if len(e.snapshots) > 0 {
+		last := e.snapshots[len(e.snapshots)-1]
+		e.processor.Reverse(last.Processor)
+		revFrame := e.ppu.Reverse(last.PPU)
+		e.bus.Reverse(last.Bus)
 		e.snapshots = e.snapshots[:len(e.snapshots)-1]
 		return revFrame
 	}

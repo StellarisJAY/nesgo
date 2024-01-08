@@ -14,7 +14,10 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 	"sync"
+	"time"
 	"unsafe"
 )
 
@@ -47,6 +50,7 @@ func NewEmulator(nesData []byte, conf config.Config) *Emulator {
 	}
 	texture, _ := renderer.CreateTexture(sdl.PIXELFORMAT_RGB24, sdl.TEXTUREACCESS_STREAMING, ppu.WIDTH, ppu.HEIGHT)
 	e.window, e.renderer, e.texture = window, renderer, texture
+	e.init()
 	return e
 }
 
@@ -92,7 +96,7 @@ func (e *Emulator) LoadAndRun(ctx context.Context, enableTrace bool) {
 		e.processor.LoadAndRunWithCallback(ctx, trace.Trace, nil)
 	} else {
 		e.processor.LoadAndRunWithCallback(ctx, nil, func(_ *cpu.Processor) {
-			e.MakeSnapshot()
+			e.PushSnapshot()
 		})
 	}
 }
@@ -104,6 +108,35 @@ func (e *Emulator) RendererCallback(p *ppu.PPU) {
 	_ = e.texture.Update(nil, unsafe.Pointer(&frame[0]), ppu.WIDTH*3)
 	_ = e.renderer.Copy(e.texture, nil, nil)
 	e.renderer.Present()
+}
+
+// readLatestSave 从存档文件夹读取当前游戏的最新存档文件
+func (e *Emulator) readLatestSave() ([]byte, error) {
+	dir := e.config.SaveDirectory
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	currentGame := filepath.Base(e.config.Game)
+	latestTime, latestName := time.UnixMilli(0), ""
+	for _, entry := range entries {
+		name := entry.Name()
+		// 过滤文件名
+		if strings.HasSuffix(name, ".save") && strings.HasPrefix(name, currentGame) {
+			info, err := entry.Info()
+			if err != nil {
+				continue
+			}
+			// 根据时间选最新文件
+			if info.ModTime().After(latestTime) {
+				latestTime, latestName = info.ModTime(), name
+			}
+		}
+	}
+	if latestName == "" {
+		return nil, os.ErrNotExist
+	}
+	return os.ReadFile(filepath.Join(e.config.SaveDirectory, latestName))
 }
 
 func (e *Emulator) handleEvents() {
@@ -128,11 +161,29 @@ func (e *Emulator) handleEvents() {
 				e.BoostCPU(-0.5)
 				continue
 			}
-			// reverse game
+			// Backspace 回溯游戏
 			if event.Keysym.Scancode == sdl.SCANCODE_BACKSPACE && event.State == sdl.RELEASED {
-				// 此时handleEvent和cpu循环是同一个goroutine，发送pause信号会阻塞。所以需要创建新的goroutine
-				go e.ReverseOnce()
+				// 此时handleEvent和cpu循环是同一个goroutine，不需要pause保证线程安全
+				_ = e.ReverseOnceNoBlock()
 				continue
+			}
+			// F5 快速存档
+			if event.Keysym.Scancode == sdl.SCANCODE_F5 && event.State == sdl.RELEASED {
+				if err := e.Save(); err != nil {
+					log.Println("save game error:", err)
+				}
+				continue
+			}
+			// F8 加载最新存档
+			if event.Keysym.Scancode == sdl.SCANCODE_F8 && event.State == sdl.RELEASED {
+				data, err := e.readLatestSave()
+				if err != nil {
+					log.Println("can't load latest saved game, error:", err)
+					continue
+				}
+				if err := e.Load(data); err != nil {
+					log.Println("can't load saved game, error:", err)
+				}
 			}
 			switch event.State {
 			case sdl.PRESSED:
