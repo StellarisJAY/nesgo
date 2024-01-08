@@ -37,20 +37,20 @@ type PPU struct {
 }
 
 type Snapshot struct {
-	paletteTable   []byte
-	ram            []byte
-	oamAddr        byte
-	oamData        []byte
-	addrReg        AddrRegister
-	ctrlReg        ControlRegister
-	maskReg        MaskRegister
-	scrollReg      ScrollRegister
-	internalBuffer byte
-	statReg        StatusRegister
-	cycles         uint64
-	scanLines      uint16
-	nmiInterrupt   bool
-	frame          []byte
+	PaletteTable   []byte
+	Ram            []byte
+	OamAddr        byte
+	OamData        []byte
+	AddrReg        AddrRegister
+	CtrlReg        ControlRegister
+	MashReg        MaskRegister
+	ScrollReg      ScrollRegister
+	InternalBuffer byte
+	StatReg        StatusRegister
+	Cycles         uint64
+	ScanLines      uint16
+	NMIInterrupt   bool
+	Frame          []byte
 }
 
 func NewPPU(getChrBank func(byte) []byte, getMirroring func() byte, writeCHR func(uint16, byte)) *PPU {
@@ -73,47 +73,47 @@ func NewPPU(getChrBank func(byte) []byte, getMirroring func() byte, writeCHR fun
 
 func (p *PPU) MakeSnapshot() Snapshot {
 	return Snapshot{
-		paletteTable:   slices.Clone(p.paletteTable),
-		ram:            slices.Clone(p.ram),
-		oamAddr:        p.oamAddr,
-		oamData:        slices.Clone(p.oamData),
-		addrReg:        p.addrReg,
-		ctrlReg:        p.ctrlReg,
-		maskReg:        p.maskReg,
-		scrollReg:      p.scrollReg,
-		internalBuffer: p.internalBuffer,
-		statReg:        p.statReg,
-		cycles:         p.cycles,
-		scanLines:      p.scanLines,
-		nmiInterrupt:   p.nmiInterrupt,
-		frame:          p.frame.compressedFrameData(),
+		PaletteTable:   slices.Clone(p.paletteTable),
+		Ram:            slices.Clone(p.ram),
+		OamAddr:        p.oamAddr,
+		OamData:        slices.Clone(p.oamData),
+		AddrReg:        p.addrReg,
+		CtrlReg:        p.ctrlReg,
+		MashReg:        p.maskReg,
+		ScrollReg:      p.scrollReg,
+		InternalBuffer: p.internalBuffer,
+		StatReg:        p.statReg,
+		Cycles:         p.cycles,
+		ScanLines:      p.scanLines,
+		NMIInterrupt:   p.nmiInterrupt,
+		Frame:          p.frame.compressedFrameData(),
 	}
 }
 
 func (p *PPU) Reverse(s Snapshot) []byte {
 	frame := p.frame
-	frame.data = decompressFrame(s.frame)
+	frame.data = decompressFrame(s.Frame)
 	rev := PPU{
 		getChrBank:     p.getChrBank,
 		getMirroring:   p.getMirroring,
 		writeCHR:       p.writeCHR,
-		paletteTable:   s.paletteTable,
-		ram:            s.ram,
-		oamAddr:        s.oamAddr,
-		oamData:        s.oamData,
-		addrReg:        s.addrReg,
-		ctrlReg:        s.ctrlReg,
-		maskReg:        s.maskReg,
-		scrollReg:      s.scrollReg,
-		internalBuffer: s.internalBuffer,
-		statReg:        s.statReg,
-		cycles:         s.cycles,
-		scanLines:      s.scanLines,
-		nmiInterrupt:   s.nmiInterrupt,
+		paletteTable:   s.PaletteTable,
+		ram:            s.Ram,
+		oamAddr:        s.OamAddr,
+		oamData:        s.OamData,
+		addrReg:        s.AddrReg,
+		ctrlReg:        s.CtrlReg,
+		maskReg:        s.MashReg,
+		scrollReg:      s.ScrollReg,
+		internalBuffer: s.InternalBuffer,
+		statReg:        s.StatReg,
+		cycles:         s.Cycles,
+		scanLines:      s.ScanLines,
+		nmiInterrupt:   s.NMIInterrupt,
 		frame:          p.frame,
 	}
 	*p = rev
-	return s.frame
+	return s.Frame
 }
 
 func (p *PPU) incrementAddr() {
@@ -145,7 +145,7 @@ func (p *PPU) ReadData() byte {
 		// 调色板的数据读取直接返回
 		return p.paletteTable[addrMirror]
 	default:
-		panic(fmt.Errorf("invalid ppu memory addr 0x%x", addr))
+		panic(fmt.Errorf("invalid ppu memory addr 0x%X", addr))
 	}
 	return 0
 }
@@ -168,7 +168,7 @@ func (p *PPU) WriteData(val byte) {
 		// 调色板的数据
 		p.paletteTable[addrMirror] = val
 	default:
-		panic(fmt.Errorf("invalid ppu memory addr 0x%x", addr))
+		panic(fmt.Errorf("invalid ppu memory addr 0x%X", addr))
 	}
 	p.incrementAddr()
 }
@@ -249,7 +249,7 @@ func (p *PPU) WriteAddrReg(val byte) {
 }
 
 func (p *PPU) ReadStatus() byte {
-	status := p.statReg.val
+	status := p.statReg.Val
 	// 读取状态会导致reset vblank addr
 	p.statReg.resetVBlankStarted()
 	p.addrReg.resetLatch()
@@ -286,7 +286,7 @@ func (p *PPU) WriteScroll(val byte) {
 }
 
 func (p *PPU) WriteStatus(val byte) {
-	p.statReg.val = val
+	p.statReg.Val = val
 }
 
 func (p *PPU) WriteOamAddr(val byte) {

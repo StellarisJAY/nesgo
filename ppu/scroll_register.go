@@ -1,9 +1,9 @@
 package ppu
 
 type ScrollRegister struct {
-	x     byte
-	y     byte
-	latch bool
+	X     byte
+	Y     byte
+	Latch bool
 }
 
 func NewScrollRegister() ScrollRegister {
@@ -11,20 +11,20 @@ func NewScrollRegister() ScrollRegister {
 }
 
 func (s *ScrollRegister) write(val byte) {
-	if !s.latch {
-		s.x = val
+	if !s.Latch {
+		s.X = val
 	} else {
-		s.y = val
+		s.Y = val
 	}
-	s.latch = !s.latch
+	s.Latch = !s.Latch
 }
 
 func (s *ScrollRegister) resetLatch() {
-	s.latch = false
+	s.Latch = false
 }
 
 func (s *ScrollRegister) reset() {
-	s.latch = false
-	s.x = 0
-	s.y = 0
+	s.Latch = false
+	s.X = 0
+	s.Y = 0
 }

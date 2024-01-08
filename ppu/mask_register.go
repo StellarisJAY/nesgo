@@ -1,7 +1,7 @@
 package ppu
 
 type MaskRegister struct {
-	val byte
+	Val byte
 }
 
 const (
@@ -20,9 +20,9 @@ func NewMaskRegister() MaskRegister {
 }
 
 func (m *MaskRegister) set(val byte) {
-	m.val = val
+	m.Val = val
 }
 
 func (m *MaskRegister) getBit(offset byte) bool {
-	return m.val&offset != 0
+	return m.Val&offset != 0
 }

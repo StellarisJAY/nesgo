@@ -32,10 +32,10 @@ type Bus struct {
 }
 
 type Snapshot struct {
-	cpuRAM           [RAMSize]byte
-	cycles           uint64
-	lastRenderCycles uint64
-	cpuBoost         float64
+	CpuRAM          [RAMSize]byte
+	Cycles          uint64
+	LastRenderCycle uint64
+	CpuBoost        float64
 }
 
 // NewBus 创建总线，并将PPU和ROM接入总线
@@ -54,18 +54,18 @@ func (b *Bus) MakeSnapshot() Snapshot {
 	var ram [RAMSize]byte
 	copy(ram[:], b.cpuRAM[:])
 	return Snapshot{
-		cpuRAM:           ram,
-		cycles:           b.cycles,
-		lastRenderCycles: b.lastRenderCycles,
-		cpuBoost:         b.cpuBoost,
+		CpuRAM:          ram,
+		Cycles:          b.cycles,
+		LastRenderCycle: b.lastRenderCycles,
+		CpuBoost:        b.cpuBoost,
 	}
 }
 
 func (b *Bus) Reverse(s Snapshot) {
-	b.cpuRAM = s.cpuRAM
-	b.cycles = s.cycles
-	b.lastRenderCycles = s.lastRenderCycles
-	b.cpuBoost = s.cpuBoost
+	b.cpuRAM = s.CpuRAM
+	b.cycles = s.Cycles
+	b.lastRenderCycles = s.LastRenderCycle
+	b.cpuBoost = s.CpuBoost
 }
 
 func (b *Bus) Tick(cycles uint64) {

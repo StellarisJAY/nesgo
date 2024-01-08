@@ -24,7 +24,7 @@ func (p *PPU) Render() {
 // renderBackground 渲染background的960个tiles
 func (p *PPU) renderBackground() {
 	main, second := p.nameTables()
-	scrollX, scrollY := uint32(p.scrollReg.x), uint32(p.scrollReg.y)
+	scrollX, scrollY := uint32(p.scrollReg.X), uint32(p.scrollReg.Y)
 	p.renderNameTable(main, newViewPort(scrollX, scrollY, 256, 240), -int32(scrollX), -int32(scrollY))
 	if scrollX > 0 {
 		p.renderNameTable(second, newViewPort(0, 0, scrollX, 240), 256-int32(scrollX), 0)
@@ -71,7 +71,7 @@ func (p *PPU) renderSprites() {
 
 func (p *PPU) renderSprite(tileX, tileY uint16, flipH, flipV bool, tile []byte, palette [4]byte) {
 	var y uint16 = 0
-	// 每个tile有8 x height个像素
+	// 每个tile有8 X height个像素
 	for ; y < 8; y++ {
 		// 一个像素是2bits，高位与低位分别在相距 height 字节的两个字节里面
 		low := tile[y]

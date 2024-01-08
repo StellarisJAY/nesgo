@@ -3,33 +3,33 @@ package ppu
 // AddrRegister ppu地址寄存器
 // 通过修改0x2006寄存器来设置ppu地址
 type AddrRegister struct {
-	low     byte
-	high    byte
-	highPtr bool
+	Low     byte
+	High    byte
+	HighPtr bool
 }
 
 func NewAddrRegister() AddrRegister {
 	return AddrRegister{
-		low:     0,
-		high:    0,
-		highPtr: true,
+		Low:     0,
+		High:    0,
+		HighPtr: true,
 	}
 }
 
 func (ag *AddrRegister) set(addr uint16) {
-	ag.high = byte(addr >> 8)
-	ag.low = byte(addr & 0xFF)
+	ag.High = byte(addr >> 8)
+	ag.Low = byte(addr & 0xFF)
 }
 
 func (ag *AddrRegister) get() uint16 {
-	return uint16(ag.high)<<8 + uint16(ag.low)
+	return uint16(ag.High)<<8 + uint16(ag.Low)
 }
 
 func (ag *AddrRegister) inc(delta byte) {
-	low := ag.low
-	ag.low += delta
-	if ag.low < low {
-		ag.high += 1
+	low := ag.Low
+	ag.Low += delta
+	if ag.Low < low {
+		ag.High += 1
 	}
 	// 超过了可访问地址[,0x4000)
 	if ag.get() > 0x3FFF {
@@ -39,18 +39,18 @@ func (ag *AddrRegister) inc(delta byte) {
 
 // update 先修改高位再修改低位
 func (ag *AddrRegister) update(data byte) {
-	if ag.highPtr {
-		ag.high = data
+	if ag.HighPtr {
+		ag.High = data
 	} else {
-		ag.low = data
+		ag.Low = data
 	}
 	// 超过了可访问地址[,0x4000)
 	if ag.get() > 0x3FFF {
 		ag.set(ag.get() & 0x3FFF)
 	}
-	ag.highPtr = !ag.highPtr
+	ag.HighPtr = !ag.HighPtr
 }
 
 func (ag *AddrRegister) resetLatch() {
-	ag.highPtr = true
+	ag.HighPtr = true
 }

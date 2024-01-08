@@ -2,7 +2,7 @@ package ppu
 
 // ControlRegister ppu控制寄存器
 type ControlRegister struct {
-	val byte
+	Val byte
 }
 
 const (
@@ -18,7 +18,7 @@ func NewControlRegister() ControlRegister {
 }
 
 func (cr *ControlRegister) nameTableAddr() uint16 {
-	switch cr.val & 0b11 {
+	switch cr.Val & 0b11 {
 	case 0:
 		return 0x2000
 	case 1:
@@ -41,15 +41,15 @@ func (cr *ControlRegister) VRAMIncrement() byte {
 }
 
 func (cr *ControlRegister) Set(data byte) {
-	cr.val = data
+	cr.Val = data
 }
 
 func (cr *ControlRegister) get(offset byte) bool {
-	return cr.val&offset != 0
+	return cr.Val&offset != 0
 }
 
 func (cr *ControlRegister) Clear(offset byte) {
-	cr.val = cr.val & (^offset)
+	cr.Val = cr.Val & (^offset)
 }
 
 func (cr *ControlRegister) getBgPattern() byte {

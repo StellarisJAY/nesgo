@@ -1,7 +1,7 @@
 package ppu
 
 type StatusRegister struct {
-	val byte
+	Val byte
 }
 
 const (
@@ -15,21 +15,21 @@ func NewStatusRegister() StatusRegister {
 }
 
 func (s *StatusRegister) resetVBlankStarted() {
-	s.val = s.val & (^VBlankStarted)
+	s.Val = s.Val & (^VBlankStarted)
 }
 
 func (s *StatusRegister) resetSprite0Hit() {
-	s.val = s.val & (^Sprite0Hit)
+	s.Val = s.Val & (^Sprite0Hit)
 }
 
 func (s *StatusRegister) setVBlankStarted() {
-	s.val = s.val | VBlankStarted
+	s.Val = s.Val | VBlankStarted
 }
 
 func (s *StatusRegister) isVBlank() bool {
-	return s.val&VBlankStarted != 0
+	return s.Val&VBlankStarted != 0
 }
 
 func (s *StatusRegister) setSprite0Hit() {
-	s.val = s.val | Sprite0Hit
+	s.Val = s.Val | Sprite0Hit
 }

@@ -44,12 +44,12 @@ type Processor struct {
 }
 
 type Snapshot struct {
-	regA      byte
-	regX      byte
-	regY      byte
-	regStatus byte
-	pc        uint16
-	sp        byte
+	RegA      byte
+	RegX      byte
+	RegY      byte
+	RegStatus byte
+	PC        uint16
+	SP        byte
 }
 
 type Interrupt byte
@@ -72,22 +72,22 @@ func NewProcessor(bus *bus.Bus) *Processor {
 
 func (p *Processor) MakeSnapshot() Snapshot {
 	return Snapshot{
-		regA:      p.regX,
-		regX:      p.regY,
-		regY:      p.regA,
-		regStatus: p.regA,
-		pc:        p.pc,
-		sp:        p.sp,
+		RegA:      p.regX,
+		RegX:      p.regY,
+		RegY:      p.regA,
+		RegStatus: p.regA,
+		PC:        p.pc,
+		SP:        p.sp,
 	}
 }
 
 func (p *Processor) Reverse(s Snapshot) {
-	p.pc = s.pc
-	p.regX = s.regX
-	p.regA = s.regA
-	p.regY = s.regY
-	p.sp = s.sp
-	p.regStatus = s.regStatus
+	p.pc = s.PC
+	p.regX = s.RegX
+	p.regA = s.RegA
+	p.regY = s.RegY
+	p.sp = s.SP
+	p.regStatus = s.RegStatus
 }
 
 func (p *Processor) Pause() {
@@ -100,7 +100,7 @@ func (p *Processor) Resume() {
 
 func (p *Processor) LoadAndRunWithCallback(ctx context.Context, callback InstructionCallback, cpuCallback CallbackFunc) {
 	p.reset()
-	p.runWithCallback(ctx, callback, cpuCallback)
+	p.RunWithCallbacks(ctx, callback, cpuCallback)
 }
 
 func (p *Processor) loadProgram(program []byte) {
@@ -118,7 +118,7 @@ func (p *Processor) reset() {
 	p.pc = p.readMemUint16(ResetVector)
 }
 
-func (p *Processor) runWithCallback(ctx context.Context, insCallback InstructionCallback, cpuCallback CallbackFunc) {
+func (p *Processor) RunWithCallbacks(ctx context.Context, insCallback InstructionCallback, cpuCallback CallbackFunc) {
 	for {
 		select {
 		case <-ctx.Done():
