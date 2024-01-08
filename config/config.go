@@ -6,13 +6,15 @@ import (
 )
 
 type Config struct {
-	Game          string        // Game 游戏文件路径
-	EnableTrace   bool          // EnableTrace 是否在控制台打印trace
-	Disassemble   bool          // Disassemble 打印程序的反汇编结果
-	Scale         int           // Scale 屏幕放大尺寸，原始尺寸：256x240像素
-	FrameInterval time.Duration // FrameInterval 每一帧画面渲染间隔时间
-	ServerAddr    string
-	GameDirectory string
+	Game               string        // Game 游戏文件路径
+	EnableTrace        bool          // EnableTrace 是否在控制台打印trace
+	Disassemble        bool          // Disassemble 打印程序的反汇编结果
+	Scale              int           // Scale 屏幕放大尺寸，原始尺寸：256x240像素
+	FrameInterval      time.Duration // FrameInterval 每一帧画面渲染间隔时间
+	ServerAddr         string
+	GameDirectory      string
+	SaveDirectory      string
+	SnapshotSerializer string
 }
 
 func ParseConfig() (conf Config) {
@@ -23,6 +25,8 @@ func ParseConfig() (conf Config) {
 	flag.DurationVar(&conf.FrameInterval, "interval", 1*time.Millisecond, "interval between each frame")
 	flag.StringVar(&conf.ServerAddr, "addr", ":8080", "Web server addr")
 	flag.StringVar(&conf.GameDirectory, "dir", "", "Game directory")
+	flag.StringVar(&conf.SaveDirectory, "save-dir", "", "Game save directory")
+	flag.StringVar(&conf.SnapshotSerializer, "serializer", "gob", "Game save serializer")
 	flag.Parse()
 	return
 }
