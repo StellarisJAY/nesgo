@@ -44,6 +44,7 @@ type ControlMessage struct {
 	KeyCode string `json:"KeyCode"`
 	Action  int    `json:"Action"`
 }
+
 func NewGameService(conf config.Config) *GameService {
 	return &GameService{
 		mutex:    &sync.Mutex{},
@@ -53,13 +54,6 @@ func NewGameService(conf config.Config) *GameService {
 }
 
 func (s *GameService) HandleGamePage(c *gin.Context) {
-	defer func() {
-		if err := recover(); err != nil {
-			if e, ok := err.(error); ok {
-				c.JSON(500, fmt.Sprintf("{\"error\":\"%s\"}", e.Error()))
-			}
-		}
-	}()
 	id := instanceId()
 	gameName := c.Param("name")
 	session := makeGameSession(id, gameName, s.conf)
@@ -71,13 +65,6 @@ func (s *GameService) HandleGamePage(c *gin.Context) {
 }
 
 func (s *GameService) HandleWebsocket(c *gin.Context) {
-	defer func() {
-		if err := recover(); err != nil {
-			if e, ok := err.(error); ok {
-				c.JSON(500, fmt.Sprintf("{\"error\":\"%s\"}", e.Error()))
-			}
-		}
-	}()
 	id := c.Param("id")
 	conn, err := websocket.Upgrade(c.Writer, c.Request, nil, 1024, 1024)
 	if err != nil {
@@ -102,13 +89,6 @@ func (s *GameService) HandleWebsocket(c *gin.Context) {
 }
 
 func (s *GameService) HandleCPUBoost(c *gin.Context) {
-	defer func() {
-		if err := recover(); err != nil {
-			if e, ok := err.(error); ok {
-				c.JSON(500, fmt.Sprintf("{\"error\":\"%s\"}", e.Error()))
-			}
-		}
-	}()
 	id := c.Param("id")
 	rate, _ := strconv.ParseFloat(c.Param("rate"), 64)
 	s.mutex.Lock()
@@ -119,13 +99,6 @@ func (s *GameService) HandleCPUBoost(c *gin.Context) {
 }
 
 func (s *GameService) HandlePauseGame(c *gin.Context) {
-	defer func() {
-		if err := recover(); err != nil {
-			if e, ok := err.(error); ok {
-				c.JSON(500, fmt.Sprintf("{\"error\":\"%s\"}", e.Error()))
-			}
-		}
-	}()
 	id := c.Param("id")
 	s.mutex.Lock()
 	session := s.sessions[id]
@@ -134,13 +107,6 @@ func (s *GameService) HandlePauseGame(c *gin.Context) {
 }
 
 func (s *GameService) HandleResumeGame(c *gin.Context) {
-	defer func() {
-		if err := recover(); err != nil {
-			if e, ok := err.(error); ok {
-				c.JSON(500, fmt.Sprintf("{\"error\":\"%s\"}", e.Error()))
-			}
-		}
-	}()
 	id := c.Param("id")
 	s.mutex.Lock()
 	session := s.sessions[id]
@@ -149,14 +115,6 @@ func (s *GameService) HandleResumeGame(c *gin.Context) {
 }
 
 func (s *GameService) HandleReverseOne(c *gin.Context) {
-	defer func() {
-		if err := recover(); err != nil {
-			if e, ok := err.(error); ok {
-				log.Println("reverse once error ", err)
-				c.JSON(500, fmt.Sprintf("{\"error\":\"%s\"}", e.Error()))
-			}
-		}
-	}()
 	id := c.Param("id")
 	s.mutex.Lock()
 	session := s.sessions[id]
