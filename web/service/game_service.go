@@ -1,4 +1,4 @@
-package web
+package service
 
 import (
 	"context"
@@ -44,6 +44,13 @@ type ControlMessage struct {
 	KeyCode string `json:"KeyCode"`
 	Action  int    `json:"Action"`
 }
+func NewGameService(conf config.Config) *GameService {
+	return &GameService{
+		mutex:    &sync.Mutex{},
+		sessions: make(map[string]*GameSession),
+		conf:     conf,
+	}
+}
 
 func (s *GameService) HandleGamePage(c *gin.Context) {
 	defer func() {
@@ -55,7 +62,7 @@ func (s *GameService) HandleGamePage(c *gin.Context) {
 	}()
 	id := instanceId()
 	gameName := c.Param("name")
-	session := makeGameSession(id, gameName, gameService.conf)
+	session := makeGameSession(id, gameName, s.conf)
 	s.mutex.Lock()
 	s.sessions[id] = session
 	s.mutex.Unlock()
