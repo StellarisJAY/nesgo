@@ -1,9 +1,12 @@
 package service
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/stellarisJAY/nesgo/web/model/room"
+	"gorm.io/gorm"
 	"math/rand"
+	"net/http"
 	"strconv"
 	"strings"
 )
@@ -40,8 +43,8 @@ func (rs *RoomService) CreateRoom(c *gin.Context) {
 	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
 	var form CreateRoomForm
 	if err := c.ShouldBindJSON(&form); err != nil {
-		c.JSON(401, JSONResp{
-			Status:  401,
+		c.JSON(http.StatusBadRequest, JSONResp{
+			Status:  http.StatusBadRequest,
 			Message: "bad request form",
 		})
 		return
@@ -49,7 +52,7 @@ func (rs *RoomService) CreateRoom(c *gin.Context) {
 	_, err := room.GetRoomByNameAndOwner(form.Name, userId)
 	if err == nil {
 		c.JSON(200, JSONResp{
-			Status:  401,
+			Status:  http.StatusBadRequest,
 			Message: "room name already inuse",
 		})
 		return
@@ -60,6 +63,13 @@ func (rs *RoomService) CreateRoom(c *gin.Context) {
 		InviteCode: generateInviteCode(),
 	}
 	if err := room.CreateRoom(&r); err != nil {
+		panic(err)
+	}
+	if err := room.AddMember(&room.Member{
+		RoomId:     r.Id,
+		UserId:     userId,
+		MemberType: room.MemberTypeOwner,
+	}); err != nil {
 		panic(err)
 	}
 	c.JSON(200, CreateRoomResp{
@@ -89,11 +99,53 @@ func (rs *RoomService) ListOwningRooms(c *gin.Context) {
 }
 
 func (rs *RoomService) JoinRoom(c *gin.Context) {
-
+	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+	roomId := c.Param("roomId")
+	inviteCode := c.Query("inviteCode")
+	if roomId == "" || inviteCode == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request: invalid roomId or inviteCode"})
+		return
+	}
+	id, err := strconv.ParseInt(roomId, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request: invalid roomId"})
+		return
+	}
+	r, err := room.GetRoomById(id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(200, JSONResp{
+				Status:  404,
+				Message: "room not found",
+			})
+			return
+		}
+		panic(err)
+	}
+	if r.InviteCode == inviteCode {
+		err := room.AddMember(&room.Member{
+			RoomId:     id,
+			UserId:     userId,
+			MemberType: room.MemberTypeWatcher,
+		})
+		if err != nil {
+			panic(err)
+		}
+		c.JSON(200, JSONResp{
+			Status:  200,
+			Message: "Success",
+		})
+	} else {
+		c.JSON(200, JSONResp{
+			Status:  500,
+			Message: "wrong invite code",
+		})
+		return
+	}
 }
 
 func (rs *RoomService) ListRoomMembers(c *gin.Context) {
-	
+
 }
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"

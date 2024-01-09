@@ -35,5 +35,6 @@ func setupRouter(config config.Config) *gin.Engine {
 
 	authorized.POST("/room", roomService.CreateRoom)
 	authorized.GET("/room/list", roomService.ListOwningRooms)
+	authorized.POST("/room/:roomId/join", roomService.JoinRoom)
 	return r
 }
