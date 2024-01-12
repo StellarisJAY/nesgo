@@ -35,16 +35,6 @@ type GameSession struct {
 	cancel    context.CancelFunc
 }
 
-const (
-	ActionButtonDown int = iota
-	ActionButtonUp
-)
-
-type ControlMessage struct {
-	KeyCode string `json:"KeyCode"`
-	Action  int    `json:"Action"`
-}
-
 func NewGameService(conf config.Config) *GameService {
 	return &GameService{
 		mutex:    &sync.Mutex{},

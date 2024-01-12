@@ -86,6 +86,22 @@ function getRoomInfo() {
         })
 }
 
+onkeydown = function (event) {
+    const code = event.code
+    if (code === "KeyA" || code === "KeyD" || code === "KeyW" || code === "KeyS" ||
+        code === "Space" || code === "Enter" || code === "KeyJ") {
+        roomProperties.ws.send(JSON.stringify({"KeyCode": code, "Action": 0}))
+    }
+}
+
+onkeyup = function (event) {
+    const code = event.code
+    if (code === "KeyA" || code === "KeyD" || code === "KeyW" || code === "KeyS" ||
+        code === "Space" || code === "Enter" || code === "KeyJ") {
+        roomProperties.ws.send(JSON.stringify({"KeyCode": code, "Action": 1}))
+    }
+}
+
 function drawCompressedFrame(frameData) {
     const view = new DataView(frameData)
     let imageData = ctx.getImageData(0, 0, width * gameConfigs.scale, height * gameConfigs.scale)

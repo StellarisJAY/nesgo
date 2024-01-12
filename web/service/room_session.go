@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/gorilla/websocket"
+	"github.com/stellarisJAY/nesgo/bus"
 	"github.com/stellarisJAY/nesgo/config"
 	"github.com/stellarisJAY/nesgo/emulator"
 	"github.com/stellarisJAY/nesgo/ppu"
@@ -23,10 +25,26 @@ type RoomSession struct {
 	closeChan      chan struct{}
 	writeChan      chan []byte // 模拟器输出channel
 	closedConnChan chan *RoomConnection
-	controlChan    chan *ControlMessage // 模拟器输入channel
+	controlChan    chan *MessageWrapper // 模拟器输入channel
 	game           string
 	e              *emulator.Emulator
 	emulatorCancel context.CancelFunc
+}
+
+const (
+	ActionButtonDown int = iota
+	ActionButtonUp
+)
+
+type ControlMessage struct {
+	KeyCode string `json:"KeyCode"`
+	Action  int    `json:"Action"`
+}
+
+type MessageWrapper struct {
+	ControlMessage
+	fromAddr string
+	from     *room.Member
 }
 
 func newRoomSession(roomId int64, game string) *RoomSession {
@@ -37,7 +55,7 @@ func newRoomSession(roomId int64, game string) *RoomSession {
 		connections:    make(map[string]*RoomConnection),
 		newConnChan:    make(chan *RoomConnection, 16),
 		closedConnChan: make(chan *RoomConnection, 16),
-		controlChan:    make(chan *ControlMessage, 128),
+		controlChan:    make(chan *MessageWrapper, 128),
 		closeChan:      make(chan struct{}),
 		writeChan:      make(chan []byte, 32),
 	}
@@ -72,8 +90,33 @@ func (rs *RoomSession) ControlLoop() {
 			if len(rs.connections) == 0 {
 				rs.e.Pause()
 			}
-		case <-rs.controlChan:
-			// todo handle input messages
+		case msg := <-rs.controlChan:
+			// ignore message from watcher
+			if msg.from.MemberType == room.MemberTypeWatcher {
+				continue
+			}
+			// ignore message from dead connections
+			if _, ok := rs.connections[msg.fromAddr]; !ok {
+				continue
+			}
+			input := msg.ControlMessage
+			switch input.KeyCode {
+			case "KeyA":
+				rs.e.SetJoyPadButtonPressed(bus.Left, input.Action == ActionButtonDown)
+			case "KeyD":
+				rs.e.SetJoyPadButtonPressed(bus.Right, input.Action == ActionButtonDown)
+			case "KeyW":
+				rs.e.SetJoyPadButtonPressed(bus.Up, input.Action == ActionButtonDown)
+			case "KeyS":
+				rs.e.SetJoyPadButtonPressed(bus.Down, input.Action == ActionButtonDown)
+			case "Space":
+				rs.e.SetJoyPadButtonPressed(bus.ButtonA, input.Action == ActionButtonDown)
+			case "KeyJ":
+				rs.e.SetJoyPadButtonPressed(bus.ButtonB, input.Action == ActionButtonDown)
+			case "Enter":
+				rs.e.SetJoyPadButtonPressed(bus.Start, input.Action == ActionButtonDown)
+			default:
+			}
 		case data := <-rs.writeChan:
 			for addr, c := range rs.connections {
 				err := c.conn.WriteMessage(websocket.BinaryMessage, data)
@@ -87,7 +130,7 @@ func (rs *RoomSession) ControlLoop() {
 			if len(rs.connections) == 1 {
 				rs.e.Resume()
 			}
-			go conn.HandleRead(rs.OnConnectionClose)
+			go conn.HandleRead(rs.OnConnectionClose, rs.controlChan)
 		}
 	}
 }
@@ -96,9 +139,9 @@ func (rs *RoomSession) OnConnectionClose(c *RoomConnection) {
 	rs.closedConnChan <- c
 }
 
-func (rc *RoomConnection) HandleRead(closeCallback func(*RoomConnection)) {
+func (rc *RoomConnection) HandleRead(closeCallback func(*RoomConnection), controlChan chan *MessageWrapper) {
 	for {
-		msgType, _, err := rc.conn.ReadMessage()
+		msgType, payload, err := rc.conn.ReadMessage()
 		if err != nil {
 			log.Println("ws conn read error", err)
 			closeCallback(rc)
@@ -108,6 +151,17 @@ func (rc *RoomConnection) HandleRead(closeCallback func(*RoomConnection)) {
 		switch msgType {
 		case websocket.BinaryMessage:
 		case websocket.TextMessage:
+			var msg ControlMessage
+			err := json.Unmarshal(payload, &msg)
+			if err != nil {
+				log.Println("unmarshal control msg error:", err)
+				continue
+			}
+			controlChan <- &MessageWrapper{
+				ControlMessage: msg,
+				fromAddr:       rc.conn.RemoteAddr().String(),
+				from:           rc.m,
+			}
 		}
 	}
 }
