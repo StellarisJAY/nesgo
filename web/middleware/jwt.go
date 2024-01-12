@@ -40,6 +40,14 @@ func init() {
 	secret = []byte(config.GetConfig().JwtSecret)
 }
 
+func ParseQueryToken(c *gin.Context) {
+	value := c.Query("auth")
+	if value != "" && c.Request.Header.Get("Authorization") == "" {
+		c.Request.Header.Set("Authorization", value)
+	}
+	c.Next()
+}
+
 func JWTAuth(c *gin.Context) {
 	tokenString := c.Request.Header.Get("Authorization")
 	if tokenString == "" {
