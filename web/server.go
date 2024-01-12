@@ -12,11 +12,11 @@ type HttpServer struct {
 	e    *emulator.Emulator
 }
 
-func NewServer(config config.Config) *HttpServer {
-	router := setupRouter(config)
+func NewServer() *HttpServer {
+	router := setupRouter()
 	return &HttpServer{
 		r:    router,
-		addr: config.ServerAddr,
+		addr: config.GetEmulatorConfig().ServerAddr,
 	}
 }
 

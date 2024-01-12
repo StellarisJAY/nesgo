@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	conf := config.ParseConfig()
+	conf := config.GetEmulatorConfig()
 	var program []byte
 	if p, err := emulator.ReadGameFile(conf.Game); err != nil {
 		panic(err)
