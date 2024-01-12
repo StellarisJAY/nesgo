@@ -18,6 +18,13 @@ type Member struct {
 	MemberType byte  `gorm:"column:member_type" json:"memberType"`
 }
 
+type UserMember struct {
+	Id         int64  `gorm:"column:id" json:"id"`
+	Name       string `gorm:"column:name" json:"name"`
+	AvatarURL  string `gorm:"column:avatar_url" json:"avatarURL"`
+	MemberType byte   `gorm:"column:member_type" json:"memberType"`
+}
+
 const (
 	MemberTypeOwner byte = iota
 	MemberTypeGamer
@@ -92,4 +99,17 @@ func GetMember(roomId, userId int64) (*Member, error) {
 		return nil, err
 	}
 	return &member, nil
+}
+
+func GetMemberFull(roomId, userId int64) (*UserMember, error) {
+	var um UserMember
+	if err := db.GetDB().
+		Select("id,name,avatar_url,member_type").
+		Table("users").
+		InnerJoins("users.id on members.user_id").
+		Where("user_id=? AND room_id=?", userId, roomId).
+		First(&um).Error; err != nil {
+		return nil, err
+	}
+	return &um, nil
 }

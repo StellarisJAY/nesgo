@@ -372,6 +372,34 @@ func (rs *RoomService) GetMemberType(c *gin.Context) {
 	}
 }
 
+func (rs *RoomService) GetRoomMemberSelf(c *gin.Context) {
+	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
+	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, JSONResp{
+			Status:  400,
+			Message: "invalid room id",
+		})
+		return
+	}
+	m, err := room.GetMemberFull(roomId, userId)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(200, JSONResp{
+				Status:  403,
+				Message: "not a member of this room",
+			})
+			return
+		}
+		panic(err)
+	}
+	c.JSON(200, JSONResp{
+		Status:  200,
+		Message: "ok",
+		Data:    m,
+	})
+}
+
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
 func generateInviteCode() string {
