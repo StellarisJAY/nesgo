@@ -1,9 +1,9 @@
 function getToken() {
-    return localStorage.getItem("access-token")
+    return sessionStorage.getItem("access-token")
 }
 
 function setToken(token) {
-    localStorage.setItem("access-token", token)
+    sessionStorage.setItem("access-token", token)
 }
 
 function getAuthorizedHeader() {
