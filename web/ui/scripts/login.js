@@ -1,13 +1,6 @@
 async function loginRequest(name, password) {
     const data = {name: name, password: password}
-    const args = {
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: {
-            "Content-Type": "application/json"
-        }
-    }
-    const resp  = await fetch("http://localhost:8080/user/login", args)
+    const resp =  await post("/user/login", JSON.stringify(data));
     if (!resp.ok) {
         throw new Error("login request error")
     }
@@ -20,6 +13,7 @@ function login() {
     loginRequest(name, password)
         .then(resp=>{
             setToken(resp.data["token"])
+            window.location.href = "/room/1"
         })
         .catch(error=>{
             console.log(error)
