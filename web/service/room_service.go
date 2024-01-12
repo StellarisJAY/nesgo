@@ -3,15 +3,20 @@ package service
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/stellarisJAY/nesgo/web/model/room"
 	"gorm.io/gorm"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 )
 
-type RoomService struct{}
+type RoomService struct {
+	m        sync.Mutex
+	sessions map[int64]*RoomSession
+}
 
 type CreateRoomForm struct {
 	Name string `json:"name" binding:"required"`
@@ -36,7 +41,10 @@ type RoomMemberVO struct {
 }
 
 func NewRoomService() *RoomService {
-	return &RoomService{}
+	return &RoomService{
+		sessions: make(map[int64]*RoomSession),
+		m:        sync.Mutex{},
+	}
 }
 
 func (rs *RoomService) CreateRoom(c *gin.Context) {
@@ -144,8 +152,224 @@ func (rs *RoomService) JoinRoom(c *gin.Context) {
 	}
 }
 
-func (rs *RoomService) ListRoomMembers(c *gin.Context) {
+func (rs *RoomService) HandleWebsocket(c *gin.Context) {
+	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
+	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, JSONResp{
+			Status:  400,
+			Message: "invalid room id",
+		})
+		return
+	}
+	var member *room.Member
+	// check membership
+	if m, ok := rs.IsRoomMember(roomId, userId); !ok {
+		c.JSON(200, JSONResp{
+			Status:  http.StatusForbidden,
+			Message: "not a member of this room",
+		})
+		return
+	} else {
+		member = m
+	}
 
+	rs.m.Lock()
+	// check if room's game session is created
+	if s, ok := rs.sessions[roomId]; !ok {
+		rs.m.Unlock()
+		c.JSON(200, JSONResp{Status: 400, Message: "emulator is not running"})
+	} else {
+		rs.m.Unlock()
+		// handle room websocket conn
+		conn, err := websocket.Upgrade(c.Writer, c.Request, http.Header{}, 1024, 1024)
+		if err != nil {
+			panic(err)
+		}
+		s.newConnChan <- &RoomConnection{
+			conn: conn,
+			m:    member,
+		}
+	}
+}
+
+func (rs *RoomService) StartGame(c *gin.Context) {
+	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
+	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, JSONResp{
+			Status:  400,
+			Message: "invalid room id",
+		})
+		return
+	}
+	member, err := room.GetMember(roomId, userId)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(http.StatusForbidden, JSONResp{
+				Status:  http.StatusForbidden,
+				Message: "not a member of this room",
+			})
+			return
+		} else {
+			panic(err)
+		}
+	}
+	if member.MemberType != room.MemberTypeOwner {
+		c.JSON(http.StatusForbidden, JSONResp{Status: http.StatusForbidden, Message: "not owner of this room"})
+		return
+	}
+
+	// create game session and start game
+	rs.m.Lock()
+	if _, ok := rs.sessions[roomId]; ok {
+		rs.m.Unlock()
+	} else {
+		// todo select game file
+		session := newRoomSession(roomId, "SuperMario.nes")
+		go session.ControlLoop()
+		session.StartGame()
+		rs.sessions[roomId] = session
+		rs.m.Unlock()
+	}
+	c.JSON(200, JSONResp{
+		Status:  200,
+		Message: "emulator is running",
+	})
+}
+
+func (rs *RoomService) RoomPage(c *gin.Context) {
+	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
+	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, JSONResp{
+			Status:  400,
+			Message: "invalid room id",
+		})
+		return
+	}
+	roomDO, err := room.GetRoomById(roomId)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(404, JSONResp{
+				Status:  404,
+				Message: "room not found",
+			})
+			return
+		} else {
+			panic(err)
+		}
+	}
+	if _, ok := rs.IsRoomMember(roomId, userId); !ok {
+		c.JSON(200, JSONResp{
+			Status:  http.StatusForbidden,
+			Message: "not a member of this room",
+		})
+		return
+	}
+
+	c.HTML(200, "room.html", roomDO)
+}
+
+func (rs *RoomService) IsRoomMember(roomId, userId int64) (*room.Member, bool) {
+	m, err := room.GetMember(roomId, userId)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, false
+		}
+		panic(err)
+	}
+	return m, true
+}
+
+func (rs *RoomService) GetRoomInfo(c *gin.Context) {
+	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, JSONResp{
+			Status:  400,
+			Message: "invalid room id",
+		})
+		return
+	}
+	roomDO, err := room.GetRoomById(roomId)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(404, JSONResp{
+				Status:  404,
+				Message: "room not found",
+			})
+			return
+		} else {
+			panic(err)
+		}
+	}
+	c.JSON(200, JSONResp{
+		Status:  200,
+		Message: "ok",
+		Data:    roomDO,
+	})
+}
+
+func (rs *RoomService) ListRoomMembers(c *gin.Context) {
+	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
+	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, JSONResp{
+			Status:  400,
+			Message: "invalid room id",
+		})
+		return
+	}
+	if _, ok := rs.IsRoomMember(roomId, userId); !ok {
+		c.JSON(200, JSONResp{
+			Status:  403,
+			Message: "not member of this room",
+		})
+		return
+	}
+
+	memberIds, err := room.ListRoomMembers(roomId)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			c.JSON(200, JSONResp{
+				Status:  200,
+				Message: "ok",
+			})
+			return
+		} else {
+			panic(err)
+		}
+	}
+	c.JSON(200, JSONResp{
+		Status:  200,
+		Message: "OK",
+		Data:    memberIds,
+	})
+}
+
+func (rs *RoomService) GetMemberType(c *gin.Context) {
+	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
+	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, JSONResp{
+			Status:  400,
+			Message: "invalid room id",
+		})
+		return
+	}
+	m, ok := rs.IsRoomMember(roomId, userId)
+	if !ok {
+		c.JSON(200, JSONResp{
+			Status:  403,
+			Message: "not a member of this room",
+		})
+	} else {
+		c.JSON(200, JSONResp{
+			Status:  200,
+			Message: "ok",
+			Data:    m.MemberType,
+		})
+	}
 }
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
