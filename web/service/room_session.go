@@ -20,15 +20,16 @@ type RoomConnection struct {
 }
 
 type RoomSession struct {
-	connections    map[string]*RoomConnection
-	newConnChan    chan *RoomConnection
-	closeChan      chan struct{}
-	writeChan      chan []byte // 模拟器输出channel
-	closedConnChan chan *RoomConnection
-	controlChan    chan *MessageWrapper // 模拟器输入channel
-	game           string
-	e              *emulator.Emulator
-	emulatorCancel context.CancelFunc
+	connections      map[string]*RoomConnection
+	newConnChan      chan *RoomConnection
+	closeChan        chan struct{}
+	writeChan        chan []byte // 模拟器输出channel
+	closedConnChan   chan *RoomConnection
+	controlChan      chan *MessageWrapper     // 模拟器输入channel
+	changeMemberChan chan MemberChangeMessage // 房间成员发生变化channel，用于修改权限和删除成员连接
+	game             string
+	e                *emulator.Emulator
+	emulatorCancel   context.CancelFunc
 }
 
 const (
@@ -47,17 +48,30 @@ type MessageWrapper struct {
 	from     *room.Member
 }
 
+type MemberChangeMessage struct {
+	action MemberControlAction
+	m      *room.Member
+}
+
+type MemberControlAction byte
+
+const (
+	DeleteMember = iota
+	ChangeMemberType
+)
+
 func newRoomSession(roomId int64, game string) *RoomSession {
 	conf := config.GetEmulatorConfig()
 	game = filepath.Join(conf.GameDirectory, game)
 	rs := &RoomSession{
-		game:           game,
-		connections:    make(map[string]*RoomConnection),
-		newConnChan:    make(chan *RoomConnection, 16),
-		closedConnChan: make(chan *RoomConnection, 16),
-		controlChan:    make(chan *MessageWrapper, 128),
-		closeChan:      make(chan struct{}),
-		writeChan:      make(chan []byte, 32),
+		game:             game,
+		connections:      make(map[string]*RoomConnection),
+		newConnChan:      make(chan *RoomConnection, 16),
+		closedConnChan:   make(chan *RoomConnection, 16),
+		controlChan:      make(chan *MessageWrapper, 128),
+		closeChan:        make(chan struct{}),
+		writeChan:        make(chan []byte, 32),
+		changeMemberChan: make(chan MemberChangeMessage, 16),
 	}
 	rs.e = emulator.NewEmulator(game, conf, rs.emulatorRenderCallback)
 	return rs
@@ -86,13 +100,31 @@ func (rs *RoomSession) ControlLoop() {
 		case conn := <-rs.closedConnChan:
 			log.Println("conn closed, addr:", conn.conn.RemoteAddr().String())
 			delete(rs.connections, conn.conn.RemoteAddr().String())
-			// 当前房间没有活跃连接，暂停模拟器
-			if len(rs.connections) == 0 {
+			// 当前房间没有活跃的控制连接，暂停模拟器
+			livingControlConnections := rs.filterConnections(func(conn *RoomConnection) bool {
+				return conn.m.MemberType == room.MemberTypeOwner || conn.m.MemberType == room.MemberTypeGamer
+			})
+			if len(livingControlConnections) == 0 {
 				rs.e.Pause()
+			}
+		case msg := <-rs.changeMemberChan:
+			conn, ok := rs.findMemberConnection(msg.m.UserId)
+			if !ok {
+				continue
+			}
+			switch msg.action {
+			case ChangeMemberType:
+				conn.m = msg.m
+			case DeleteMember:
+				delete(rs.connections, conn.conn.RemoteAddr().String())
+				if err := conn.conn.Close(); err != nil {
+					log.Println("kick member close conn error:", err)
+				}
+			default:
 			}
 		case msg := <-rs.controlChan:
 			// ignore message from watcher
-			if msg.from.MemberType == room.MemberTypeWatcher {
+			if msg.from.MemberType >= room.MemberTypeWatcher {
 				continue
 			}
 			// ignore message from dead connections
@@ -127,7 +159,10 @@ func (rs *RoomSession) ControlLoop() {
 		case conn := <-rs.newConnChan:
 			rs.connections[conn.conn.RemoteAddr().String()] = conn
 			// 新连接建立，判断是否需要启动模拟器
-			if len(rs.connections) == 1 {
+			controlConnections := rs.filterConnections(func(conn *RoomConnection) bool {
+				return conn.m.MemberType == room.MemberTypeOwner || conn.m.MemberType == room.MemberTypeGamer
+			})
+			if len(controlConnections) > 0 {
 				rs.e.Resume()
 			}
 			go conn.HandleRead(rs.OnConnectionClose, rs.controlChan)
@@ -170,4 +205,23 @@ func (rs *RoomSession) emulatorRenderCallback(p *ppu.PPU) {
 	p.Render()
 	data := p.CompressedFrameData()
 	rs.writeChan <- data
+}
+
+func (rs *RoomSession) filterConnections(filterer func(conn *RoomConnection) bool) []*RoomConnection {
+	connections := make([]*RoomConnection, 0, len(rs.connections))
+	for _, conn := range rs.connections {
+		if filterer(conn) {
+			connections = append(connections, conn)
+		}
+	}
+	return connections
+}
+
+func (rs *RoomSession) findMemberConnection(id int64) (*RoomConnection, bool) {
+	for _, conn := range rs.connections {
+		if conn.m.UserId == id {
+			return conn, true
+		}
+	}
+	return nil, false
 }
