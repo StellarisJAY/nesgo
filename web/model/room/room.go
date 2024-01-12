@@ -65,7 +65,7 @@ func GetRoomsByOwnerId(owner int64) ([]*Room, error) {
 func GetRoomById(id int64) (*Room, error) {
 	d := db.GetDB()
 	var r Room
-	err := d.Where("id=?").First(&r).Error
+	err := d.Where("id=?", id).First(&r).Error
 	return &r, err
 }
 
@@ -81,4 +81,15 @@ func ListRoomMembers(roomId int64) ([]*Member, error) {
 
 func AddMember(member *Member) error {
 	return db.GetDB().Create(&member).Error
+}
+
+func GetMember(roomId, userId int64) (*Member, error) {
+	var member Member
+	if err := db.GetDB().
+		Where("room_id=? AND user_id=?", roomId, userId).
+		First(&member).
+		Error; err != nil {
+		return nil, err
+	}
+	return &member, nil
 }
