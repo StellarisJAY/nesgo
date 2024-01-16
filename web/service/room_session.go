@@ -60,7 +60,7 @@ const (
 	ChangeMemberType
 )
 
-func newRoomSession(roomId int64, game string) *RoomSession {
+func newRoomSession(roomId int64, game string) (*RoomSession, error) {
 	conf := config.GetEmulatorConfig()
 	game = filepath.Join(conf.GameDirectory, game)
 	rs := &RoomSession{
@@ -73,8 +73,12 @@ func newRoomSession(roomId int64, game string) *RoomSession {
 		writeChan:        make(chan []byte, 32),
 		changeMemberChan: make(chan MemberChangeMessage, 16),
 	}
-	rs.e = emulator.NewEmulator(game, conf, rs.emulatorRenderCallback)
-	return rs
+	e, err := emulator.NewEmulator(game, conf, rs.emulatorRenderCallback)
+	if err != nil {
+		return nil, err
+	}
+	rs.e = e
+	return rs, nil
 }
 
 func (rs *RoomSession) StartGame() {

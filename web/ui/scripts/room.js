@@ -1,5 +1,6 @@
 let roomProperties = {
-    id: -1
+    id: -1,
+    game: "SuperMario.nes",
 }
 
 const c = document.getElementsByTagName("canvas").item(0)
@@ -50,7 +51,7 @@ function startGame() {
     if (roomProperties.id === -1) {
         return
     }
-    post("/room/"+roomProperties.id+"/start", {})
+    post("/room/"+roomProperties.id+"/start?game=" + roomProperties.game, {})
         .then(resp=>{
             return resp.json()
         })

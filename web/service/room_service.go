@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	"math/rand"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -203,6 +204,17 @@ func (rs *RoomService) StartGame(c *gin.Context) {
 		})
 		return
 	}
+	game := c.Query("game")
+	if game == "" {
+		c.JSON(http.StatusBadRequest, JSONResp{
+			Status:  http.StatusBadRequest,
+			Message: "missing game name",
+		})
+		return
+	}
+	if !strings.HasSuffix(game, ".nes") {
+		game = game + ".nes"
+	}
 	member, err := room.GetMember(roomId, userId)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -224,9 +236,21 @@ func (rs *RoomService) StartGame(c *gin.Context) {
 	rs.m.Lock()
 	if _, ok := rs.sessions[roomId]; ok {
 		rs.m.Unlock()
+		// todo existing session switch game file
 	} else {
 		// todo select game file
-		session := newRoomSession(roomId, "SuperMario.nes")
+		session, err := newRoomSession(roomId, game)
+		if err != nil {
+			if os.IsNotExist(errors.Unwrap(err)) {
+				c.JSON(http.StatusOK, JSONResp{
+					Status:  404,
+					Message: "game file not found",
+				})
+				return
+			} else {
+				panic(err)
+			}
+		}
 		go session.ControlLoop()
 		session.StartGame()
 		rs.sessions[roomId] = session
