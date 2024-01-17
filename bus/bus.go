@@ -46,7 +46,7 @@ func NewBus(cartridge cartridge.Cartridge, ppu *ppu.PPU, callback RenderCallback
 		ppu:            ppu,
 		renderCallback: callback,
 		joyPad:         joyPad,
-		cpuBoost:       1.0,
+		cpuBoost:       1.25,
 	}
 }
 
