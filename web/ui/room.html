@@ -2,17 +2,40 @@
 <html>
 <header>
     <title>NesGo</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0, user-scalable=no">
 </header>
 <body>
-<div id="game">
+<div id="roomInfo" hidden="hidden">
     <p id="roomId"></p>
     <p id="roomName"></p>
     <p id="roomInviteCode"></p>
-    <canvas id="canvas"></canvas>
 </div>
-<div>
-    <button onclick="connect()">CONNECT</button>
-    <button onclick="startGame()">START</button>
+
+<div id="emulator">
+    <canvas id="screen"></canvas>
+</div>
+<div id="left-side-controls">
+    <button class="control-button" id="button-left">&#8592;</button>
+    <button class="control-button" id="button-up">&#8593;</button>
+    <button class="control-button" id="button-right">&#8594;</button>
+    <button class="control-button" id="button-down">&#8595;</button>
+</div>
+<div id="right-side-controls">
+    <button class="control-button" id="button-a">A</button>
+    <button class="control-button" id="button-b">B</button>
+    <button class="control-button" id="button-select">select</button>
+    <button class="control-button" id="button-start">start</button>
+</div>
+<div id="toolbar">
+    <label>
+        <select id="select-game">
+            <option value="SuperMario.nes">SuperMario</option>
+            <option value="Tetris.nes">Tetris</option>
+            <option value="PacMan.nes">PacMan</option>
+        </select>
+    </label>
+    <button onclick="connect()" class="control-button toolbar-button" id="connect-button">CONNECT</button>
+    <button onclick="startGame()" class="control-button toolbar-button" id="start-game-button">START</button>
 </div>
 </body>
 </html>
@@ -20,3 +43,115 @@
 <script src="/scripts/auth.js"></script>
 <script src="/scripts/request.js"></script>
 <script src="/scripts/room.js"></script>
+
+<style>
+    #emulator {
+        margin: auto;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        position: absolute;
+        width: 80%;
+        background: red;
+    }
+    #screen {
+        margin:auto;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        position: absolute;
+        width: 50%;
+    }
+    #toolbar{
+        position: absolute;
+        left: 10%;
+        width: 80%;
+        height: 5%;
+        bottom: 0;
+    }
+    #left-side-controls{
+        position: absolute;
+        margin: auto;
+        top:0;
+        bottom: 0;
+        width: 15%;
+        left: 10%;
+        background: grey;
+    }
+    #right-side-controls {
+        position: absolute;
+        margin: auto;
+        top:0;
+        bottom: 0;
+        width: 15%;
+        left: 75%;
+        background: grey;
+    }
+    .control-button {
+        position: inherit;
+        margin: auto;
+        background-color: darkgrey;
+        width: 30%;
+        height: 10%;
+        text-align: center;
+        border-radius: 20px;
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+    }
+    .toolbar-button {
+        height: 100%;
+        width: 20%;
+    }
+    #connect-button {
+        left: 20%;
+    }
+    #start-game-button {
+        right: 20%;
+    }
+
+    #button-up {
+        left: 0;
+        right: 0;
+        top: 35%;
+    }
+    #button-down {
+        left: 0;
+        right: 0;
+        top: 55%;
+    }
+    #button-left {
+        top: 0;
+        bottom: 0;
+        left: 5%;
+    }
+    #button-right {
+        top: 0;
+        bottom: 0;
+        left: 65%;
+    }
+    #button-a {
+        top: 35%;
+        left: 5%;
+    }
+    #button-b {
+        top: 35%;
+        left: 65%;
+    }
+    #button-select {
+        top: 55%;
+        left: 5%;
+    }
+    #button-start {
+        top: 55%;
+        left: 65%;
+    }
+    #select-game {
+        position: relative;
+        margin: auto;
+        width: 20%;
+        left: 40%;
+    }
+</style>

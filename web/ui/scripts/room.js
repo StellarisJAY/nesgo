@@ -5,30 +5,44 @@ let roomProperties = {
 
 const c = document.getElementsByTagName("canvas").item(0)
 const gameId = c.id
-const maxScale = 3
+const maxScale = 2
 const minScale = 1
 const width = 256
 const height = 240
 
 let gameConfigs = {
-    boostRate: 1.0,
-    scale: 3,
+    scale: 2,
+    keyBindings: {
+        "button-a": "Space",
+        "button-b": "KeyJ",
+        "button-up": "KeyW",
+        "button-down": "KeyS",
+        "button-left": "KeyA",
+        "button-right": "KeyD",
+        "button-start": "Enter",
+    }
 }
 c.width = width * gameConfigs.scale
 c.height = height * gameConfigs.scale
 let ctx = c.getContext('2d')
+ctx.fillStyle = "rgba(0,0,0,255)"
+ctx.fillRect(0, 0, c.width, c.height)
 
 onload = function (ev) {
-    console.log(window.location.pathname)
     roomProperties.id = window.location.pathname.substring(6)
     getRoomInfo()
 }
+initScreenKeys()
+
+document.getElementById("select-game").addEventListener("change", function (ev) {
+    roomProperties.game = ev.target.value
+})
 
 function connect() {
     if (roomProperties.id === -1) {
         return
     }
-    roomProperties.ws = new WebSocket("ws://localhost:8080/ws/room/"+roomProperties.id+"?auth=" + getToken())
+    roomProperties.ws = new WebSocket(wsURL + "/ws/room/"+roomProperties.id+"?auth=" + getToken())
     roomProperties.ws.onerror = function(event) {
         console.log(event)
     }
@@ -36,15 +50,17 @@ function connect() {
         // blob to frame
         let reader = new FileReader()
         reader.onloadend = function () {
-            lastFrame = reader.result
+            const lastFrame = reader.result
             drawCompressedFrame(reader.result)
         }
         reader.readAsArrayBuffer(event.data)
     }
-}
-
-function disconnect() {
-
+    roomProperties.ws.onopen = function () {
+        document.getElementById("connect-button").disabled = true
+    }
+    roomProperties.ws.onclose = function () {
+        document.getElementById("connect-button").disabled = false
+    }
 }
 
 function startGame() {
@@ -56,7 +72,16 @@ function startGame() {
             return resp.json()
         })
         .then(data=>{
-
+            if (data.status === 200) {
+                document.getElementById("select-game").disabled = true
+                document.getElementById("start-game-button").disabled = true
+            }else if (data.status === 500) {
+                alert(data.message)
+                document.getElementById("select-game").disabled = true
+                document.getElementById("start-game-button").disabled = true
+            }else {
+                alert(data.message)
+            }
         })
         .catch(error=>{
             console.log(error)
@@ -138,4 +163,22 @@ function setScaledPixel(pixelNum, r,g,b, imageData) {
 function xyToFrameIndex(x, y) {
     let w = width * gameConfigs.scale
     return x + y * w
+}
+
+function initScreenKeys() {
+    const buttons = ["button-start", "button-select", "button-left", "button-right", "button-up", "button-down", "button-a", "button-b"]
+    for (let button of buttons) {
+        const keyCode = gameConfigs.keyBindings[button]
+        const element = document.getElementById(button);
+        element.addEventListener("mousedown", ()=>sendAction(keyCode, 0))
+        element.addEventListener("mouseup", ()=>sendAction(keyCode, 1))
+        element.addEventListener("touchstart", ()=>sendAction(keyCode, 0))
+        element.addEventListener("touchend", ()=>sendAction(keyCode, 1))
+    }
+}
+
+function sendAction(keyCode, action) {
+    if (roomProperties.ws) {
+        roomProperties.ws.send(JSON.stringify({"KeyCode": keyCode, "Action": action}))
+    }
 }
