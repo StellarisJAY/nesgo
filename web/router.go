@@ -1,6 +1,7 @@
 package web
 
 import (
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/stellarisJAY/nesgo/web/middleware"
 	"github.com/stellarisJAY/nesgo/web/service"
@@ -14,7 +15,10 @@ var (
 
 func setupRouter() *gin.Engine {
 	r := gin.Default()
-	r.Use(gin.Recovery())
+	corsConf := cors.DefaultConfig()
+	corsConf.AllowAllOrigins = true
+	corsConf.AllowHeaders = append(corsConf.AllowHeaders, "Authorization")
+	r.Use(cors.New(corsConf), gin.Recovery())
 	r.LoadHTMLGlob("web/ui/*.html")
 	r.POST("/user/register", userService.Register)
 	r.POST("/user/login", userService.Login)
