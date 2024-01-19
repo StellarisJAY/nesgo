@@ -23,9 +23,13 @@ func NewEmulator(game string, conf config.Config, callback bus.RenderCallback) (
 	if err != nil {
 		return nil, err
 	}
+	c, err := cartridge.MakeCartridge(nesData)
+	if err != nil {
+		return nil, err
+	}
 	e := &Emulator{
 		RawEmulator{
-			cartridge: cartridge.MakeCartridge(nesData),
+			cartridge: c,
 			config:    conf,
 			m:         &sync.Mutex{},
 		},

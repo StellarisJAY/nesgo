@@ -1,6 +1,9 @@
 package cartridge
 
-import "log"
+import (
+	"errors"
+	"log"
+)
 
 var NES = [4]byte{0x4E, 0x45, 0x53, 0x1A}
 
@@ -16,6 +19,9 @@ const (
 	HeaderSize      = 16
 )
 
+var ErrUnknownCartridgeFormat = errors.New("unknown cartridge format")
+var ErrUnsupportedMapper = errors.New("unsupported mapper type")
+
 type Cartridge interface {
 	Read(addr uint16) byte
 	Write(addr uint16, val byte)
@@ -25,48 +31,67 @@ type Cartridge interface {
 	WriteCHR(addr uint16, val byte)
 }
 
-func EmptyMapper0() Cartridge {
-	return &Mapper0{}
+type Info struct {
+	Name      string
+	Mapper    byte
+	Mirroring byte
 }
 
 // MakeCartridge 从iNES文件读取cartridge
-func MakeCartridge(raw []byte) Cartridge {
+func MakeCartridge(raw []byte) (Cartridge, error) {
+	c, _, err := makeCartridge(raw)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+func ParseCartridgeInfo(raw []byte) (*Info, error) {
+	_, info, err := makeCartridge(raw)
+	if err != nil {
+		return nil, err
+	}
+	return info, nil
+}
+
+func makeCartridge(raw []byte) (Cartridge, *Info, error) {
+	if len(raw) <= 8 {
+		return nil, nil, ErrUnknownCartridgeFormat
+	}
 	if raw[0] != NES[0] || raw[1] != NES[1] || raw[2] != NES[2] || raw[3] != NES[3] {
-		panic("invalid NES Header")
-		return nil
+		return nil, nil, ErrUnknownCartridgeFormat
 	}
 	// read mapperNumber
 	mapperNumber := (raw[7] & 0xf0) | (raw[6] >> 4)
-	log.Printf("mapper: %d\n", mapperNumber)
 	// check version
 	if version := (raw[7] >> 2) & 0b11; version != 0 {
-		panic("NES version 2.0 not supported")
-		return nil
+		return nil, nil, ErrUnknownCartridgeFormat
 	}
+	info := new(Info)
+	info.Mapper = mapperNumber
 	// read Mirroring from raw[6] raw[7]
-	var mirroring byte
 	if raw[6]&1 != 0 {
-		mirroring = Vertical
+		info.Mirroring = Vertical
 	} else {
-		mirroring = Horizontal
+		info.Mirroring = Horizontal
 	}
 	if raw[6]&0b1000 != 0 {
-		mirroring = FourScreen
+		info.Mirroring = FourScreen
 	}
 	// 创建mapper
-	switch mapperNumber {
+	switch info.Mapper {
 	case 0:
-		return newMapper0(raw, mirroring)
+		return newMapper0(raw, info.Mirroring), info, nil
 	case 1:
-		return NewMapper1(raw)
+		return NewMapper1(raw), info, nil
 	case 2:
-		return NewMapper002(raw, mirroring)
+		return NewMapper002(raw, info.Mirroring), info, nil
 	case 3:
-		return NewMapper003(raw, mirroring)
+		return NewMapper003(raw, info.Mirroring), info, nil
 	case 4:
-		return NewMapper004(raw, mirroring)
+		return NewMapper004(raw, info.Mirroring), info, nil
 	default:
-		panic("unsupported mapper")
+		return nil, info, ErrUnsupportedMapper
 	}
 }
 
