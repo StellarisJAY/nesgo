@@ -22,6 +22,9 @@ let gameConfigs = {
         "button-start": "Enter",
     }
 }
+
+const existingGames = {}
+
 c.width = width * gameConfigs.scale
 c.height = height * gameConfigs.scale
 let ctx = c.getContext('2d')
@@ -31,6 +34,7 @@ ctx.fillRect(0, 0, c.width, c.height)
 onload = function (ev) {
     roomProperties.id = window.location.pathname.substring(6)
     getRoomInfo()
+    listGames()
 }
 initScreenKeys()
 
@@ -182,3 +186,40 @@ function sendAction(keyCode, action) {
         roomProperties.ws.send(JSON.stringify({"KeyCode": keyCode, "Action": action}))
     }
 }
+
+function listGames() {
+    get("/games", null)
+        .then(resp=>{
+            if (resp.status === 403) {
+                window.location = "/login"
+            }
+            return resp.json()
+        }).then(res=> {
+        if (res.status !== 200) {
+            throw new Error(res.message)
+        }
+        const selector = document.getElementById("select-game");
+        for (let game of res.data) {
+            existingGames[game.name] = game
+            selector.innerHTML += "<option value=\"" + game.name + "\">" + game.name + "</option>"
+        }
+        const game = res.data[0]
+        const info = document.getElementById("game-info")
+        info.innerHTML = "<li>Game:" + game.name + "</li>"
+        info.innerHTML += "<li>Size:"+ game.size +"</li>"
+        info.innerHTML += "<li>Mirror:"+ game["mirroring"] +"</li>"
+    })
+        .catch(err => {
+            alert(err)
+        })
+}
+document.getElementById("select-game").addEventListener("change", event=>{
+    const name = document.getElementById("select-game").value
+    const game = existingGames[name]
+    if (game !== null) {
+        const info = document.getElementById("game-info")
+        info.innerHTML = "<li>Game:" + name + "</li>"
+        info.innerHTML += "<li>Size:"+ game.size +"</li>"
+        info.innerHTML += "<li>Mirror:"+ game["mirroring"] +"</li>"
+    }
+})
