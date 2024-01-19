@@ -11,6 +11,7 @@ import (
 var (
 	userService = service.NewUserService()
 	roomService = service.NewRoomService()
+	gameService = service.NewGameService()
 )
 
 func setupRouter() *gin.Engine {
@@ -43,5 +44,8 @@ func setupRouter() *gin.Engine {
 
 	authorized.POST("/room/:roomId/start", roomService.StartGame)
 	authorized.GET("/ws/room/:roomId", roomService.HandleWebsocket)
+
+	authorized.GET("/games", gameService.ListGames)
+	authorized.GET("/game/:name", gameService.GetGameInfo)
 	return r
 }
