@@ -77,8 +77,6 @@ function startGame() {
         })
         .then(data=>{
             if (data.status === 200) {
-                document.getElementById("select-game").disabled = true
-                document.getElementById("start-game-button").disabled = true
             }else if (data.status === 500) {
                 alert(data.message)
                 document.getElementById("select-game").disabled = true

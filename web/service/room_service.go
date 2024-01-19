@@ -234,14 +234,21 @@ func (rs *RoomService) StartGame(c *gin.Context) {
 
 	// create game session and start game
 	rs.m.Lock()
-	if _, ok := rs.sessions[roomId]; ok {
+	if s, ok := rs.sessions[roomId]; ok {
 		rs.m.Unlock()
-		c.JSON(http.StatusOK, JSONResp{
-			Status:  500,
-			Message: "emulator has already started",
-		})
+		if err := s.Restart(game); err != nil {
+			c.JSON(http.StatusOK, JSONResp{
+				Status:  500,
+				Message: err.Error(),
+			})
+			return
+		} else {
+			c.JSON(http.StatusOK, JSONResp{
+				Status:  200,
+				Message: "emulator restarted",
+			})
+		}
 		return
-		// todo existing session switch game file
 	} else {
 		// todo select game file
 		session, err := newRoomSession(roomId, game)

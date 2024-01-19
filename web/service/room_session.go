@@ -19,10 +19,21 @@ type RoomConnection struct {
 	m    *room.Member
 }
 
+type RoomSignal struct {
+	signalNumber byte
+	payload      []byte
+	callback     func(error)
+}
+
+const (
+	SignalClose byte = iota
+	SignalRestart
+)
+
 type RoomSession struct {
 	connections      map[string]*RoomConnection
 	newConnChan      chan *RoomConnection
-	closeChan        chan struct{}
+	closeChan        chan RoomSignal
 	writeChan        chan []byte // 模拟器输出channel
 	closedConnChan   chan *RoomConnection
 	controlChan      chan *MessageWrapper     // 模拟器输入channel
@@ -69,7 +80,7 @@ func newRoomSession(roomId int64, game string) (*RoomSession, error) {
 		newConnChan:      make(chan *RoomConnection, 16),
 		closedConnChan:   make(chan *RoomConnection, 16),
 		controlChan:      make(chan *MessageWrapper, 128),
-		closeChan:        make(chan struct{}),
+		closeChan:        make(chan RoomSignal),
 		writeChan:        make(chan []byte, 32),
 		changeMemberChan: make(chan MemberChangeMessage, 16),
 	}
@@ -89,6 +100,33 @@ func (rs *RoomSession) StartGame() {
 	rs.e.Pause()
 }
 
+func (rs *RoomSession) Restart(game string) error {
+	result := make(chan error)
+	rs.closeChan <- RoomSignal{
+		signalNumber: SignalRestart,
+		payload:      []byte(game),
+		callback: func(err error) {
+			result <- err
+		},
+	}
+	return <-result
+}
+
+func (rs *RoomSession) restart(game string) error {
+	conf := config.GetEmulatorConfig()
+	game = filepath.Join(conf.GameDirectory, game)
+	e, err := emulator.NewEmulator(game, conf, rs.emulatorRenderCallback)
+	if err != nil {
+		return err
+	}
+	rs.emulatorCancel()
+	rs.e = e
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	rs.emulatorCancel = cancelFunc
+	go rs.e.LoadAndRun(ctx, false)
+	return nil
+}
+
 func (rs *RoomSession) Close() {
 	close(rs.closeChan)
 }
@@ -96,11 +134,16 @@ func (rs *RoomSession) Close() {
 func (rs *RoomSession) ControlLoop() {
 	for {
 		select {
-		case <-rs.closeChan:
-			if rs.emulatorCancel != nil {
-				rs.emulatorCancel()
+		case signal := <-rs.closeChan:
+			if signal.signalNumber == SignalClose {
+				if rs.emulatorCancel != nil {
+					rs.emulatorCancel()
+				}
+				return
+			} else if signal.signalNumber == SignalRestart {
+				err := rs.restart(string(signal.payload))
+				signal.callback(err)
 			}
-			return
 		case conn := <-rs.closedConnChan:
 			log.Println("conn closed, addr:", conn.conn.RemoteAddr().String())
 			delete(rs.connections, conn.conn.RemoteAddr().String())
