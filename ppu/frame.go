@@ -1,5 +1,11 @@
 package ppu
 
+import (
+	"image"
+	"image/color"
+	"slices"
+)
+
 type Frame struct {
 	data           []byte
 	compressBuffer []byte
@@ -23,6 +29,16 @@ func (f *Frame) setPixel(x, y uint32, color Color) {
 		f.data[first] = color.R
 		f.data[first+1] = color.G
 		f.data[first+2] = color.B
+	}
+}
+
+func (f *Frame) getPixel(x, y uint32) color.Color {
+	first := y*3*WIDTH + x*3
+	return color.RGBA{
+		R: f.data[first],
+		G: f.data[first+1],
+		B: f.data[first+2],
+		A: 255,
 	}
 }
 
@@ -71,6 +87,24 @@ func decompressFrame(data []byte) []byte {
 	return frame
 }
 
+func (f *Frame) Clone() *Frame {
+	return &Frame{
+		data: slices.Clone(f.data),
+	}
+}
+
 func (f *Frame) Data() []byte {
 	return f.data
+}
+
+func (f *Frame) ColorModel() color.Model {
+	return color.RGBAModel
+}
+
+func (f *Frame) Bounds() image.Rectangle {
+	return image.Rect(0, 0, WIDTH, HEIGHT)
+}
+
+func (f *Frame) At(x, y int) color.Color {
+	return f.getPixel(uint32(x), uint32(y))
 }

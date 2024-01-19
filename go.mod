@@ -3,6 +3,7 @@ module github.com/stellarisJAY/nesgo
 go 1.21
 
 require (
+	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/golang-jwt/jwt/v4 v4.5.0

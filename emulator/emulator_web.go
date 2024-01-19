@@ -18,10 +18,10 @@ type Emulator struct {
 	RawEmulator
 }
 
-func NewEmulator(game string, conf config.Config, callback bus.RenderCallback) *Emulator {
+func NewEmulator(game string, conf config.Config, callback bus.RenderCallback) (*Emulator, error) {
 	nesData, err := ReadGameFile(game)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	e := &Emulator{
 		RawEmulator{
@@ -35,7 +35,7 @@ func NewEmulator(game string, conf config.Config, callback bus.RenderCallback) *
 	e.bus = bus.NewBus(e.cartridge, e.ppu, callback, e.joyPad)
 	e.processor = cpu.NewProcessor(e.bus)
 	e.init()
-	return e
+	return e, nil
 }
 
 func (e *Emulator) LoadAndRun(ctx context.Context, enableTrace bool) {

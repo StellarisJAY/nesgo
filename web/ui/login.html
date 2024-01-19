@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>login</title>
+</head>
+<body>
+    <div id="login-card">
+        <div id="fake-screen">
+            <div class="form-item" id="form-username">
+                <label class="input-label" for="username">
+                    Username:
+                </label>
+                <input class="text-input" type="text" id="username">
+            </div>
+            <div class="form-item" id="form-passwd">
+                <label class="input-label" for="password">
+                    Password:
+                </label>
+                <input class="text-input"  type="password" id="password">
+            </div>
+        </div>
+
+        <button class="button" onclick="login()" id="login-button">Login</button>
+    </div>
+</body>
+</html>
+<script src="scripts/auth.js"></script>
+<script src="scripts/request.js"></script>
+<script src="scripts/login.js"></script>
+
+<style>
+    body {
+        background-color: #792f2b;
+    }
+    #login-card {
+        position: absolute;
+        background-color: #d5cabd;
+        margin:auto;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 50%;
+        height: 80%;
+        border-radius: 10px;
+    }
+    #login-button {
+        bottom: 10%;
+        text-align: center;
+        position: inherit;
+        margin: auto;
+        width: 80%;
+        left: 0;
+        right: 0;
+        height: 10%;
+    }
+    .button {
+        display: inline-block;
+        padding: 10px 20px;
+        font-size: 24px;
+        cursor: pointer;
+        text-align: center;
+        text-decoration: none;
+        outline: none;
+        color: #fff;
+        background-color: #f44336;
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 9px #666;
+    }
+    .button:hover {background-color: #f44336}
+    .button:active {
+        background-color: #f44336;
+        box-shadow: 0 5px #666;
+        transform: translateY(4px);
+    }
+    #fake-screen {
+        background-color: black;
+        width: 80%;
+        height: 60%;
+        position: inherit;
+        left: 0;
+        right: 0;
+        margin: auto;
+        top: 10%;
+        border-radius: 10px;
+    }
+
+    .text-input:-webkit-autofill {
+        -webkit-text-fill-color: #ffffff;
+        -webkit-box-shadow: inset 0 0 0 2000px #000000;
+    }
+
+    .text-input:focus {
+        border: none;
+    }
+    .text-input {
+        color: white;
+        border: none;
+        background-color: black;
+        width: 80%;
+        height: 100%;
+    }
+    .input-label {
+        color: white;
+    }
+    .form-item {
+        position: inherit;
+        width: 90%;
+        height: 10%;
+        margin: auto;
+        left: 5%;
+    }
+    #form-username {
+        top: 10%;
+    }
+    #form-passwd {
+        top: 30%
+    }
+</style>

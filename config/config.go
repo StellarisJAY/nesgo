@@ -17,7 +17,9 @@ type Config struct {
 	SnapshotSerializer string
 }
 
-func ParseConfig() (conf Config) {
+var conf Config
+
+func init() {
 	flag.StringVar(&conf.Game, "game", "games/super.nes", "Game file path")
 	flag.BoolVar(&conf.EnableTrace, "trace", false, "enable debug tracing")
 	flag.BoolVar(&conf.Disassemble, "disassemble", false, "Disassemble program")
@@ -28,5 +30,8 @@ func ParseConfig() (conf Config) {
 	flag.StringVar(&conf.SaveDirectory, "save-dir", "", "Game save directory")
 	flag.StringVar(&conf.SnapshotSerializer, "serializer", "gob", "Game save serializer")
 	flag.Parse()
-	return
+}
+
+func GetEmulatorConfig() Config {
+	return conf
 }

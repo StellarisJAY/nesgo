@@ -80,8 +80,10 @@ func (u *UserService) Login(c *gin.Context) {
 		if _, err := client.Set("user_"+strconv.FormatInt(usr.Id, 10), data, time.Hour*24).Result(); err != nil {
 			panic(err)
 		}
-		c.JSON(200, gin.H{
-			"token": token,
+		c.JSON(200, JSONResp{
+			Status:  200,
+			Message: "login success",
+			Data:    gin.H{"token": token},
 		})
 		return
 	}
