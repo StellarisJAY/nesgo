@@ -47,5 +47,7 @@ func setupRouter() *gin.Engine {
 
 	authorized.GET("/games", gameService.ListGames)
 	authorized.GET("/game/:name", gameService.GetGameInfo)
+
+	authorized.GET("/room/:roomId/rtc", roomService.ConnectRTCRoomSession)
 	return r
 }
