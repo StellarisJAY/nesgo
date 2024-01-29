@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
@@ -17,6 +18,8 @@ import (
 type RoomService struct {
 	m        sync.Mutex
 	sessions map[int64]*RoomSession
+
+	rtcSessions map[int64]*RTCRoomSession
 }
 
 type CreateRoomForm struct {
@@ -43,8 +46,9 @@ type RoomMemberVO struct {
 
 func NewRoomService() *RoomService {
 	return &RoomService{
-		sessions: make(map[int64]*RoomSession),
-		m:        sync.Mutex{},
+		sessions:    make(map[int64]*RoomSession),
+		m:           sync.Mutex{},
+		rtcSessions: make(map[int64]*RTCRoomSession),
 	}
 }
 
@@ -435,6 +439,59 @@ func (rs *RoomService) GetRoomMemberSelf(c *gin.Context) {
 		Message: "ok",
 		Data:    m,
 	})
+}
+
+func (rs *RoomService) ConnectRTCRoomSession(c *gin.Context) {
+	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
+	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, JSONResp{
+			Status:  400,
+			Message: "invalid room id",
+		})
+		return
+	}
+	var member *room.Member
+	// check membership
+	if m, ok := rs.IsRoomMember(roomId, userId); !ok {
+		c.JSON(200, JSONResp{
+			Status:  http.StatusForbidden,
+			Message: "not a member of this room",
+		})
+		return
+	} else {
+		member = m
+	}
+
+	rs.m.Lock()
+	var session *RTCRoomSession
+	// check if room's game session is created
+	if s, ok := rs.rtcSessions[roomId]; !ok {
+		newSession, err := NewRTCRoomSession("SuperMario.nes")
+		if err != nil {
+			panic(err)
+		}
+		rs.rtcSessions[roomId] = newSession
+		ctx, cancelFunc := context.WithCancel(context.Background())
+		newSession.cancel = cancelFunc
+		go newSession.ControlLoop(ctx)
+		session = newSession
+	} else {
+		session = s
+	}
+	rs.m.Unlock()
+	// handle room websocket conn
+	conn, err := websocket.Upgrade(c.Writer, c.Request, http.Header{}, 1024, 1024)
+	if err != nil {
+		panic(err)
+	}
+	session.signalChan <- Signal{
+		Type: SignalNewConnection,
+		Data: &WebsocketConn{
+			Member: member,
+			Conn:   conn,
+		},
+	}
 }
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
