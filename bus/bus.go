@@ -28,6 +28,7 @@ type Bus struct {
 	joyPad         *JoyPad
 
 	lastRenderCycles uint64
+	lastRenderTime   time.Time
 	cpuBoost         float64
 }
 
@@ -46,7 +47,7 @@ func NewBus(cartridge cartridge.Cartridge, ppu *ppu.PPU, callback RenderCallback
 		ppu:            ppu,
 		renderCallback: callback,
 		joyPad:         joyPad,
-		cpuBoost:       1.25,
+		cpuBoost:       1.0,
 	}
 }
 
@@ -74,12 +75,17 @@ func (b *Bus) Tick(cycles uint64) {
 	// ppu的cycles是CPU的三倍
 	b.ppu.Tick(cycles * 3)
 	if !before && b.ppu.PeekInterrupt() {
+		start := time.Now()
 		b.renderCallback(b.ppu)
+		renderTime := time.Now().Sub(start)
+		processorTime := start.Sub(b.lastRenderTime)
 		// 两次渲染之间的cpu cycles除以CPU频率等于帧之间的间隔时间, nanoseconds
 		freq := uint64(CPUFrequency * b.cpuBoost)
 		frameTime := (b.cycles - b.lastRenderCycles) * 1000_000_000 / freq
-		time.Sleep(time.Duration(frameTime))
+		sleepTime := time.Duration(frameTime - uint64(renderTime.Nanoseconds()) - uint64(processorTime.Nanoseconds()))
+		time.Sleep(sleepTime)
 		b.lastRenderCycles = b.cycles
+		b.lastRenderTime = time.Now()
 	}
 }
 
