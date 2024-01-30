@@ -14,7 +14,8 @@ const MessageGameButtonPressed = 3
 const MessageGameButtonReleased = 4
 
 function log(msg) {
-    document.getElementById("log").innerText += msg + "<br>"
+    const val = document.getElementById("log").value
+    document.getElementById("log").value = val + "\n" +msg
 }
 
 function connect() {
@@ -33,10 +34,30 @@ function connect() {
                 }))
             }
         }
+
+        pc.onconnectionstatechange = ev=>{
+            log("peer conn state: " + pc.connectionState)
+            switch (pc.connectionState) {
+                case "connected":
+                    document.getElementById("connect-button").disabled = true
+                    break
+                case "disconnected":
+                    pc.close()
+                    break
+                default:
+                    break
+            }
+        }
+
+        pc.oniceconnectionstatechange = ev=>{
+            log("ice conn state: " + pc.iceConnectionState)
+        }
+
         pc.ontrack = ev=>{
-            console.log(ev)
+            log("track id:" + ev.streams[0].id)
             document.getElementById("video").srcObject = ev.streams[0]
             document.getElementById("video").autoplay = true
+            document.getElementById("video").controls = true
         }
         rtcSession.pc = pc
     }
