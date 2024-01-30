@@ -269,7 +269,7 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 			roomConnection.connected.Store(true)
 		case webrtc.PeerConnectionStateDisconnected:
 			roomConnection.connected.Store(false)
-			// todo Close Room Connection
+			roomConnection.Close()
 		default:
 		}
 	})
@@ -287,12 +287,24 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 	r.members[wsConn.Member.UserId] = wsConn.Member
 	r.connections[wsConn.Member.UserId] = roomConnection
 	r.m.Unlock()
-	go roomConnection.Handle(context.WithoutCancel(ctx), r.wsMessageChan)
+	go func() {
+		roomConnection.Handle(context.WithoutCancel(ctx), r.wsMessageChan)
+		r.signalChan <- Signal{
+			Type: SignalWebsocketClose,
+			Data: roomConnection.wsConn,
+		}
+	}()
 }
 
 func (r *RTCRoomSession) onWebsocketConnClose(wsConn *WebsocketConn) {
+	r.m.Lock()
 	delete(r.connections, wsConn.Member.UserId)
 	delete(r.members, wsConn.Member.UserId)
+	// 已经没有活跃连接，暂停模拟器线程
+	if len(r.connections) == 0 {
+		r.e.Pause()
+	}
+	r.m.Unlock()
 }
 
 func (rc *RTCRoomConnection) Handle(ctx context.Context, msgChan chan MsgWithConnectionInfo) {
