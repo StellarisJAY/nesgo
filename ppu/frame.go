@@ -31,6 +31,10 @@ func (f *Frame) setPixel(x, y uint32, c Color) {
 		f.data[first] = c.R
 		f.data[first+1] = c.G
 		f.data[first+2] = c.B
+	}
+	yOff := f.ycbcr.YOffset(int(x), int(y))
+	cOff := f.ycbcr.COffset(int(x), int(y))
+	if yOff < len(f.ycbcr.Y) && cOff < len(f.ycbcr.Cb) && cOff < len(f.ycbcr.Cr) {
 		Y, cb, cr := color.RGBToYCbCr(c.R, c.G, c.B)
 		f.ycbcr.Y[f.ycbcr.YOffset(int(x), int(y))] = Y
 		f.ycbcr.Cb[f.ycbcr.COffset(int(x), int(y))] = cb
