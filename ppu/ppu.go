@@ -273,6 +273,10 @@ func (p *PPU) FrameData() []byte {
 	return p.frame.data
 }
 
+func (p *PPU) Frame() *Frame {
+	return p.frame
+}
+
 func (p *PPU) CompressedFrameData() []byte {
 	return p.frame.compressedFrameData()
 }

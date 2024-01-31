@@ -9,6 +9,7 @@ import (
 type Frame struct {
 	data           []byte
 	compressBuffer []byte
+	ycbcr          *image.YCbCr
 }
 
 const (
@@ -20,15 +21,24 @@ func NewFrame() *Frame {
 	return &Frame{
 		make([]byte, WIDTH*HEIGHT*3),
 		make([]byte, 0, 62208),
+		image.NewYCbCr(image.Rect(0, 0, WIDTH, HEIGHT), image.YCbCrSubsampleRatio420),
 	}
 }
 
-func (f *Frame) setPixel(x, y uint32, color Color) {
+func (f *Frame) setPixel(x, y uint32, c Color) {
 	first := y*3*WIDTH + x*3
 	if first+2 < uint32(len(f.data)) {
-		f.data[first] = color.R
-		f.data[first+1] = color.G
-		f.data[first+2] = color.B
+		f.data[first] = c.R
+		f.data[first+1] = c.G
+		f.data[first+2] = c.B
+	}
+	yOff := f.ycbcr.YOffset(int(x), int(y))
+	cOff := f.ycbcr.COffset(int(x), int(y))
+	if yOff < len(f.ycbcr.Y) && cOff < len(f.ycbcr.Cb) && cOff < len(f.ycbcr.Cr) {
+		Y, cb, cr := color.RGBToYCbCr(c.R, c.G, c.B)
+		f.ycbcr.Y[f.ycbcr.YOffset(int(x), int(y))] = Y
+		f.ycbcr.Cb[f.ycbcr.COffset(int(x), int(y))] = cb
+		f.ycbcr.Cr[f.ycbcr.COffset(int(x), int(y))] = cr
 	}
 }
 
@@ -107,4 +117,8 @@ func (f *Frame) Bounds() image.Rectangle {
 
 func (f *Frame) At(x, y int) color.Color {
 	return f.getPixel(uint32(x), uint32(y))
+}
+
+func (f *Frame) YCbCr() *image.YCbCr {
+	return f.ycbcr
 }

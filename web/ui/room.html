@@ -13,6 +13,8 @@
             <li><span>Room Name: <text id="roomName"></text></span></li>
             <li><span>Invite Code: <text id="roomInviteCode"></text></span></li>
         </ul>
+        <ul id="game-info">
+        </ul>
     </div>
     <div id="left-side-controls">
         <button class="control-button" id="button-left">&#8592;</button>
@@ -33,9 +35,6 @@
         <div id="game-selector">
             <label for="select-game">Game:</label>
             <select id="select-game">
-                <option value="SuperMario.nes">SuperMario</option>
-                <option value="Tetris.nes">Tetris</option>
-                <option value="PacMan.nes">PacMan</option>
             </select>
         </div>
         <button onclick="connect()" class="control-button toolbar-button" id="connect-button">CONNECT</button>

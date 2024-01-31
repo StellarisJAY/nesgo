@@ -31,9 +31,13 @@ type Emulator struct {
 }
 
 func NewEmulator(nesData []byte, conf config.Config) *Emulator {
+	c, err := cartridge.MakeCartridge(nesData)
+	if err != nil {
+		panic(err)
+	}
 	e := &Emulator{
 		RawEmulator: RawEmulator{
-			cartridge: cartridge.MakeCartridge(nesData),
+			cartridge: c,
 			config:    conf,
 			m:         &sync.Mutex{},
 		},
