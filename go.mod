@@ -4,7 +4,6 @@ go 1.21
 
 require (
 	github.com/gen2brain/x264-go v0.3.0
-	github.com/gen2brain/x264-go/x264c v0.0.0-20221204084822-82ee2951dea2
 	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-redis/redis v6.15.9+incompatible
@@ -24,6 +23,7 @@ require (
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
+	github.com/gen2brain/x264-go/x264c v0.0.0-20221204084822-82ee2951dea2 // indirect
 	github.com/gen2brain/x264-go/yuv v0.0.0-20221204084822-82ee2951dea2 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
