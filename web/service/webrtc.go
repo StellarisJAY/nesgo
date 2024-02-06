@@ -1,11 +1,9 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gen2brain/x264-go"
 	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media"
@@ -13,6 +11,7 @@ import (
 	"github.com/stellarisJAY/nesgo/config"
 	"github.com/stellarisJAY/nesgo/emulator"
 	"github.com/stellarisJAY/nesgo/ppu"
+	"github.com/stellarisJAY/nesgo/web/codec"
 	"github.com/stellarisJAY/nesgo/web/model/room"
 	"github.com/stellarisJAY/nesgo/web/network"
 	"log"
@@ -45,8 +44,7 @@ type RTCRoomConnection struct {
 	wsConn       *WebsocketConn
 	rtcConn      *webrtc.PeerConnection
 	track        *webrtc.TrackLocalStaticSample
-	videoEncoder *x264.Encoder // 每个连接独占一个视频编码器 和 buffer
-	videoBuffer  *bytes.Buffer
+	videoEncoder codec.IEncoder // 每个连接独占一个视频编码器 和 buffer
 
 	connected *atomic.Bool
 }
@@ -64,11 +62,9 @@ type RTCRoomSession struct {
 	signalChan  chan Signal
 	cancel      context.CancelFunc
 
-	videoEncoder *x264.Encoder
-	videoBuffer  *bytes.Buffer
-	encoderOpts  *x264.Options
-
 	wsMessageChan chan MsgWithConnectionInfo
+
+	emulatorCancel context.CancelFunc
 }
 
 type Signal struct {
@@ -76,9 +72,15 @@ type Signal struct {
 	Data any
 }
 
+type restartEmulatorRequest struct {
+	game     string
+	respChan chan error
+}
+
 const (
 	SignalNewConnection byte = iota
 	SignalWebsocketClose
+	SignalRestartEmulator
 )
 
 var rtcFactory *network.WebRTCFactory
@@ -96,29 +98,12 @@ func init() {
 }
 
 func NewRTCRoomSession(game string) (*RTCRoomSession, error) {
-	buffer := bytes.NewBuffer([]byte{})
-	opts := &x264.Options{
-		Width:     ppu.WIDTH,
-		Height:    ppu.HEIGHT,
-		Tune:      "zerolatency",
-		Preset:    "ultrafast",
-		FrameRate: 60,
-		Profile:   "baseline",
-		LogLevel:  x264.LogError,
-	}
-	encoder, err := x264.NewEncoder(buffer, opts)
-	if err != nil {
-		return nil, err
-	}
 	rs := &RTCRoomSession{
 		m:             &sync.Mutex{},
 		members:       make(map[int64]*room.Member),
 		connections:   make(map[int64]*RTCRoomConnection),
 		signalChan:    make(chan Signal),
-		videoBuffer:   buffer,
-		videoEncoder:  encoder,
 		wsMessageChan: make(chan MsgWithConnectionInfo),
-		encoderOpts:   opts,
 	}
 	game = filepath.Join(config.GetEmulatorConfig().GameDirectory, game)
 	e, err := emulator.NewEmulator(game, config.GetEmulatorConfig(), rs.renderCallback)
@@ -126,8 +111,10 @@ func NewRTCRoomSession(game string) (*RTCRoomSession, error) {
 		return nil, err
 	}
 	rs.e = e
+	ctx, cancelFunc := context.WithCancel(context.Background())
 	// 创建模拟器线程，暂停模拟器等待第一个连接唤醒
-	go rs.e.LoadAndRun(context.Background(), false)
+	go rs.e.LoadAndRun(ctx, false)
+	rs.emulatorCancel = cancelFunc
 	rs.e.Pause()
 	return rs, nil
 }
@@ -146,6 +133,14 @@ func (r *RTCRoomSession) ControlLoop(ctx context.Context) {
 			case SignalWebsocketClose:
 				if conn, ok := signal.Data.(*WebsocketConn); ok {
 					r.onWebsocketConnClose(conn)
+				}
+			case SignalRestartEmulator:
+				if req, ok := signal.Data.(*restartEmulatorRequest); ok {
+					if err := r.restart(req.game); err != nil {
+						req.respChan <- err
+					} else {
+						close(req.respChan)
+					}
 				}
 			}
 		case msg := <-r.wsMessageChan:
@@ -176,15 +171,42 @@ func (r *RTCRoomSession) ControlLoop(ctx context.Context) {
 	}
 }
 
+func (r *RTCRoomSession) Restart(game string) error {
+	respChan := make(chan error)
+	r.signalChan <- Signal{
+		Type: SignalRestartEmulator,
+		Data: &restartEmulatorRequest{
+			game:     game,
+			respChan: respChan,
+		},
+	}
+	return <-respChan
+}
+
+func (r *RTCRoomSession) restart(game string) error {
+	game = filepath.Join(config.GetEmulatorConfig().GameDirectory, game)
+	e, err := emulator.NewEmulator(game, config.GetEmulatorConfig(), r.renderCallback)
+	if err != nil {
+		return err
+	}
+	r.emulatorCancel()
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	r.emulatorCancel = cancelFunc
+	go e.LoadAndRun(ctx, false)
+	if len(r.connections) == 0 {
+		e.Pause()
+	}
+	return nil
+}
+
 func (r *RTCRoomSession) renderCallback(p *ppu.PPU) {
 	p.Render()
-	frame := &x264.YCbCr{YCbCr: p.Frame().YCbCr()}
 	for _, conn := range r.connections {
 		// peer conn没有建立连接不编码视频，否则会导致I帧没有发送到客户端
 		if !conn.connected.Load() {
 			continue
 		}
-		if err := conn.videoEncoder.Encode(frame); err != nil {
+		if err := conn.videoEncoder.Encode(p.Frame()); err != nil {
 			log.Println("encoder error:", err)
 			continue
 		}
@@ -192,7 +214,7 @@ func (r *RTCRoomSession) renderCallback(p *ppu.PPU) {
 			log.Println("flush encoder error:", err)
 			continue
 		}
-		data := conn.videoBuffer.Bytes()
+		data := conn.videoEncoder.FlushBuffer()
 		if err := conn.track.WriteSample(media.Sample{
 			Data:     data,
 			Duration: 2 * time.Millisecond, // todo 根据帧率设置Duration
@@ -200,7 +222,6 @@ func (r *RTCRoomSession) renderCallback(p *ppu.PPU) {
 			log.Println("write video sample error:", err)
 			return
 		}
-		conn.videoBuffer.Reset()
 	}
 }
 
@@ -217,11 +238,10 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 		return
 	}
 	roomConnection := &RTCRoomConnection{
-		MemberId:    wsConn.Member.UserId,
-		wsConn:      wsConn,
-		rtcConn:     peer,
-		videoBuffer: bytes.NewBuffer([]byte{}),
-		connected:   &atomic.Bool{},
+		MemberId:  wsConn.Member.UserId,
+		wsConn:    wsConn,
+		rtcConn:   peer,
+		connected: &atomic.Bool{},
 	}
 
 	defer func() {
@@ -278,7 +298,7 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 		log.Println("ice conn state:", state)
 	})
 
-	encoder, err := x264.NewEncoder(roomConnection.videoBuffer, r.encoderOpts)
+	encoder, err := codec.NewEncoder("h264")
 	if err != nil {
 		panic(fmt.Errorf("unable to create encoder, error: %w", err))
 	}
