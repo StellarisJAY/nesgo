@@ -3,8 +3,28 @@ let rtcSession = {
 
 let roomId
 
-onload = ev=>{
-    roomId = window.location.pathname.substring(6)
+let configs = {
+    controlButtonMapping: {
+        "button-up": "Up",
+        "button-down": "Down",
+        "button-left": "Left",
+        "button-right": "Right",
+        "button-a": "A",
+        "button-b": "B",
+        "button-select": "Select",
+        "button-start": "Start",
+    },
+    keyboardMapping: {
+        "KeyA": "Left",
+        "KeyD": "Right",
+        "KeyW": "Up",
+        "KeyS": "Down",
+        "KeyJ": "B",
+        "Space": "A",
+        "Enter": "Start",
+        "Tab": "Select",
+    },
+    existingGames: {},
 }
 
 const MessageSDPOffer = 0
@@ -13,13 +33,15 @@ const MessageICECandidate = 2
 const MessageGameButtonPressed = 3
 const MessageGameButtonReleased = 4
 
-function log(msg) {
-    const val = document.getElementById("log").value
-    document.getElementById("log").value = val + "\n" +msg
+onload = ev=>{
+    roomId = window.location.pathname.substring(6)
+    listGames()
 }
 
 function connect() {
-    const ws = new WebSocket(wsURL+"/room/"+roomId+"/rtc?auth=" + getToken())
+    const selectedGame = document.getElementById("select-game").value;
+    console.log(selectedGame)
+    const ws = new WebSocket(wsURL+"/room/"+roomId+"/rtc?auth=" + getToken() + "&game="+selectedGame)
     ws.onopen = ev=> {
         const pc = new RTCPeerConnection({
             iceServers: [
@@ -36,7 +58,7 @@ function connect() {
         }
 
         pc.onconnectionstatechange = ev=>{
-            log("peer conn state: " + pc.connectionState)
+            console.log("peer conn state: " + pc.connectionState)
             switch (pc.connectionState) {
                 case "connected":
                     document.getElementById("connect-button").disabled = true
@@ -50,14 +72,13 @@ function connect() {
         }
 
         pc.oniceconnectionstatechange = ev=>{
-            log("ice conn state: " + pc.iceConnectionState)
+            console.log("ice conn state: " + pc.iceConnectionState)
         }
 
         pc.ontrack = ev=>{
-            log("track id:" + ev.streams[0].id)
+            console.log("track id:" + ev.streams[0].id)
             document.getElementById("video").srcObject = ev.streams[0]
             document.getElementById("video").autoplay = true
-            document.getElementById("video").controls = true
         }
         rtcSession.pc = pc
     }
@@ -94,29 +115,84 @@ function connect() {
                 })
         }
     }
+    rtcSession.ws = ws
+}
+
+function restartEmulator() {
+    const selectedGame = document.getElementById("select-game").value
+    post("/room/"+roomId+"/restart?game=" + selectedGame, {})
+        .then(resp=>{
+            return resp.json()
+        })
+        .then(data=>{
+            if (data.status === 200) {
+            }else if (data.status === 500) {
+                document.getElementById("select-game").disabled = true
+                document.getElementById("start-game-button").disabled = true
+            }else {
+                alert(data.message)
+            }
+        })
+        .catch(error=>{
+            console.log(error)
+        })
+}
+
+function sendAction(code, pressed) {
+    rtcSession.ws.send(JSON.stringify({
+        "type": pressed,
+        "data": btoa(code),
+    }))
 }
 
 function onConnected(ws) {
     window.onkeydown = ev=> {
-        const code = ev.code
-        if (code === "KeyA" || code === "KeyD" || code === "KeyW" || code === "KeyS" ||
-            code === "Space" || code === "Enter" || code === "KeyJ") {
-            ws.send(JSON.stringify({
-                "type": MessageGameButtonPressed,
-                "data": btoa(code),
-            }))
-            roomProperties.ws.send(JSON.stringify({"KeyCode": code, "Action": 0}))
+        const button = configs.keyboardMapping[ev.code];
+        if (button) {
+           sendAction(button, MessageGameButtonPressed)
         }
     }
 
     window.onkeyup = ev=> {
-        const code = ev.code
-        if (code === "KeyA" || code === "KeyD" || code === "KeyW" || code === "KeyS" ||
-            code === "Space" || code === "Enter" || code === "KeyJ") {
-            ws.send(JSON.stringify({
-                "type": MessageGameButtonReleased,
-                "data": btoa(code),
-            }))
+        const button = configs.keyboardMapping[ev.code];
+        if (button) {
+            sendAction(button, MessageGameButtonReleased)
         }
     }
+
+    for (const id in configs.controlButtonMapping) {
+        const button = document.getElementById(id)
+        const code = configs.controlButtonMapping[id]
+        button.addEventListener("mousedown", ()=>sendAction(code, MessageGameButtonPressed))
+        button.addEventListener("mouseup", ()=>sendAction(code, MessageGameButtonReleased))
+        button.addEventListener("touchstart", ()=>sendAction(code, MessageGameButtonPressed))
+        button.addEventListener("touchend", ()=>sendAction(code, MessageGameButtonReleased))
+    }
+
+    document.getElementById("restart-button").disabled = false
+}
+
+function listGames() {
+    get("/games", null)
+        .then(resp=>{
+            if (resp.status === 403) {
+                window.location = "/login"
+            }
+            return resp.json()
+        }).then(res=> {
+        if (res.status !== 200) {
+            throw new Error(res.message)
+        }
+        const selector = document.getElementById("select-game");
+        for (let game of res.data) {
+            configs.existingGames[game.name] = game
+            selector.innerHTML += "<option value=\"" + game.name + "\">" + game.name + "</option>"
+        }
+
+        selector.addEventListener("change", ()=>{
+        })
+    })
+        .catch(err => {
+            console.log(err)
+        })
 }

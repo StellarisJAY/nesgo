@@ -150,20 +150,22 @@ func (r *RTCRoomSession) ControlLoop(ctx context.Context) {
 			if msg.Type == MessageGameButtonReleased || msg.Type == MessageGameButtonPressed {
 				pressed := msg.Type == MessageGameButtonPressed
 				switch string(msg.Data) {
-				case "KeyA":
+				case "Left":
 					r.e.SetJoyPadButtonPressed(bus.Left, pressed)
-				case "KeyD":
+				case "Right":
 					r.e.SetJoyPadButtonPressed(bus.Right, pressed)
-				case "KeyW":
+				case "Up":
 					r.e.SetJoyPadButtonPressed(bus.Up, pressed)
-				case "KeyS":
+				case "Down":
 					r.e.SetJoyPadButtonPressed(bus.Down, pressed)
-				case "Space":
+				case "A":
 					r.e.SetJoyPadButtonPressed(bus.ButtonA, pressed)
-				case "KeyJ":
+				case "B":
 					r.e.SetJoyPadButtonPressed(bus.ButtonB, pressed)
-				case "Enter":
+				case "Start":
 					r.e.SetJoyPadButtonPressed(bus.Start, pressed)
+				case "Select":
+					r.e.SetJoyPadButtonPressed(bus.Select, pressed)
 				default:
 				}
 			}
@@ -196,6 +198,7 @@ func (r *RTCRoomSession) restart(game string) error {
 	if len(r.connections) == 0 {
 		e.Pause()
 	}
+	r.e = e
 	return nil
 }
 
