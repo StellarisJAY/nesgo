@@ -27,7 +27,7 @@ func setupRouter() *gin.Engine {
 		c.HTML(200, "login.html", gin.H{})
 	})
 	r.GET("/room/:roomId", func(c *gin.Context) {
-		c.HTML(200, "room.html", gin.H{})
+		c.HTML(200, "video.html", gin.H{})
 	})
 
 	// javascript files
@@ -49,5 +49,6 @@ func setupRouter() *gin.Engine {
 	authorized.GET("/game/:name", gameService.GetGameInfo)
 
 	authorized.GET("/room/:roomId/rtc", roomService.ConnectRTCRoomSession)
+	authorized.POST("/room/:roomId/restart", roomService.Restart)
 	return r
 }
