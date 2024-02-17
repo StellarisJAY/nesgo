@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/stellarisJAY/nesgo/web/model/room"
+	"github.com/stellarisJAY/nesgo/web/model/user"
 	"gorm.io/gorm"
 	"math/rand"
 	"net/http"
@@ -28,15 +29,24 @@ type CreateRoomForm struct {
 
 type CreateRoomResp struct {
 	JSONResp
-	RoomId     int64  `json:"roomId"`
-	InviteCode string `json:"inviteCode"`
+	RoomId   int64  `json:"roomId"`
+	Password string `json:"password"`
 }
 
 type RoomVO struct {
-	Id         int64  `json:"id"`
-	Name       string `json:"name"`
-	Owner      int64  `json:"owner"`
-	InviteCode string `json:"inviteCode"`
+	Id       int64  `json:"id"`
+	Name     string `json:"name"`
+	Owner    int64  `json:"owner"`
+	Password string `json:"password"`
+}
+
+type ListJoinedRoomVO struct {
+	Id          int64  `json:"id"`
+	Name        string `json:"name"`
+	OwnerName   string `json:"owner"`
+	Private     bool   `json:"private"`
+	MemberType  byte   `json:"memberType"`
+	MemberCount int    `json:"memberCount"`
 }
 
 type RoomMemberVO struct {
@@ -71,9 +81,9 @@ func (rs *RoomService) CreateRoom(c *gin.Context) {
 		return
 	}
 	r := room.Room{
-		Owner:      userId,
-		Name:       form.Name,
-		InviteCode: generateInviteCode(),
+		Owner:    userId,
+		Name:     form.Name,
+		Password: generatePassword(),
 	}
 	if err := room.CreateRoom(&r); err != nil {
 		panic(err)
@@ -86,8 +96,8 @@ func (rs *RoomService) CreateRoom(c *gin.Context) {
 		panic(err)
 	}
 	c.JSON(200, CreateRoomResp{
-		RoomId:     r.Id,
-		InviteCode: r.InviteCode,
+		RoomId:   r.Id,
+		Password: r.Password,
 	})
 }
 
@@ -100,10 +110,10 @@ func (rs *RoomService) ListOwningRooms(c *gin.Context) {
 	roomsVO := make([]RoomVO, 0, len(rooms))
 	for _, r := range rooms {
 		roomsVO = append(roomsVO, RoomVO{
-			Id:         r.Id,
-			Name:       r.Name,
-			Owner:      r.Owner,
-			InviteCode: r.InviteCode,
+			Id:       r.Id,
+			Name:     r.Name,
+			Owner:    r.Owner,
+			Password: r.Password,
 		})
 	}
 	c.JSON(200, JSONResp{
@@ -111,11 +121,53 @@ func (rs *RoomService) ListOwningRooms(c *gin.Context) {
 	})
 }
 
+func (rs *RoomService) ListJoinedRooms(c *gin.Context) {
+	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+	rooms, err := room.GetJoinedRooms(userId)
+	if err != nil {
+		panic(err)
+	}
+	userNames := make(map[int64]string)
+	joinedRoomVOs := make([]*ListJoinedRoomVO, 0, len(rooms))
+	for _, r := range rooms {
+		joinedRoomVO := &ListJoinedRoomVO{
+			Name:       r.Name,
+			Id:         r.Id,
+			Private:    r.Password != "",
+			MemberType: r.MemberType,
+		}
+		if name, ok := userNames[r.Owner]; ok {
+			joinedRoomVO.OwnerName = name
+		} else {
+			if u, err := user.GetUserById(r.Owner); err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					continue
+				}
+				panic(err)
+			} else {
+				joinedRoomVO.OwnerName = u.Name
+				userNames[r.Owner] = u.Name
+			}
+		}
+		count, err := room.GetMemberCount(r.Id)
+		if err != nil {
+			panic(err)
+		}
+		joinedRoomVO.MemberCount = count
+		joinedRoomVOs = append(joinedRoomVOs, joinedRoomVO)
+	}
+	c.JSON(200, JSONResp{
+		Status:  200,
+		Message: "ok",
+		Data:    joinedRoomVOs,
+	})
+}
+
 func (rs *RoomService) JoinRoom(c *gin.Context) {
 	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
 	roomId := c.Param("roomId")
-	inviteCode := c.Query("inviteCode")
-	if roomId == "" || inviteCode == "" {
+	password := c.Query("password")
+	if roomId == "" || password == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request: invalid roomId or inviteCode"})
 		return
 	}
@@ -135,7 +187,7 @@ func (rs *RoomService) JoinRoom(c *gin.Context) {
 		}
 		panic(err)
 	}
-	if r.InviteCode == inviteCode {
+	if r.Password == password {
 		err := room.AddMember(&room.Member{
 			RoomId:     id,
 			UserId:     userId,
@@ -564,10 +616,10 @@ func (rs *RoomService) Restart(c *gin.Context) {
 	}
 }
 
-const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-func generateInviteCode() string {
-	codeLen := 8
+func generatePassword() string {
+	codeLen := 4
 	sb := strings.Builder{}
 	for i := 0; i < codeLen; i++ {
 		sb.WriteByte(charset[rand.Intn(len(charset))])

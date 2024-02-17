@@ -29,6 +29,9 @@ func setupRouter() *gin.Engine {
 	r.GET("/room/:roomId", func(c *gin.Context) {
 		c.HTML(200, "video.html", gin.H{})
 	})
+	r.GET("/home", func(c *gin.Context) {
+		c.HTML(200, "home.html", gin.H{})
+	})
 
 	// javascript files
 	r.StaticFS("/assets", http.Dir("web/ui/assets"))
@@ -37,7 +40,8 @@ func setupRouter() *gin.Engine {
 	authorized := r.Group("/", middleware.ParseQueryToken, middleware.JWTAuth)
 
 	authorized.POST("/room", roomService.CreateRoom)
-	authorized.GET("/room/list", roomService.ListOwningRooms)
+	authorized.GET("/room/list/owning", roomService.ListOwningRooms)
+	authorized.GET("/room/list/joined", roomService.ListJoinedRooms)
 	authorized.POST("/room/:roomId/join", roomService.JoinRoom)
 	authorized.GET("/room/:roomId/members", roomService.ListRoomMembers)
 	authorized.GET("/room/:roomId/info", roomService.GetRoomInfo)

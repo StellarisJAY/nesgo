@@ -6,10 +6,10 @@ import (
 )
 
 type Room struct {
-	Id         int64  `gorm:"column:id;primary key;AUTO_INCREMENT" json:"id"`
-	Owner      int64  `gorm:"column:owner" json:"owner"`
-	Name       string `gorm:"column:name" json:"name"`
-	InviteCode string `gorm:"column:invite_code" json:"inviteCode"`
+	Id       int64  `gorm:"column:id;primary key;AUTO_INCREMENT" json:"id"`
+	Owner    int64  `gorm:"column:owner" json:"owner"`
+	Name     string `gorm:"column:name" json:"name"`
+	Password string `gorm:"column:password" json:"password"`
 }
 
 type Member struct {
@@ -22,6 +22,14 @@ type UserMember struct {
 	Id         int64  `gorm:"column:id" json:"id"`
 	Name       string `gorm:"column:name" json:"name"`
 	AvatarURL  string `gorm:"column:avatar_url" json:"avatarURL"`
+	MemberType byte   `gorm:"column:member_type" json:"memberType"`
+}
+
+type JoinedRoom struct {
+	Id         int64  `gorm:"column:id;primary key;AUTO_INCREMENT" json:"id"`
+	Owner      int64  `gorm:"column:owner" json:"owner"`
+	Name       string `gorm:"column:name" json:"name"`
+	Password   string `gorm:"column:password" json:"password"`
 	MemberType byte   `gorm:"column:member_type" json:"memberType"`
 }
 
@@ -112,4 +120,31 @@ func GetMemberFull(roomId, userId int64) (*UserMember, error) {
 		return nil, err
 	}
 	return &um, nil
+}
+
+func GetJoinedRooms(userId int64) ([]*JoinedRoom, error) {
+	var joinedRooms []*JoinedRoom
+	if err := db.GetDB().
+		Select("id, owner, name, member_type").
+		Table("rooms").
+		Joins("inner join members on rooms.id=members.room_id").
+		Where("members.user_id=?", userId).
+		Find(&joinedRooms).
+		Error; err != nil {
+		return nil, err
+	}
+	return joinedRooms, nil
+}
+
+func GetMemberCount(roomId int64) (int, error) {
+	var count int64 = 0
+	if err := db.GetDB().
+		Model(&Member{}).
+		Where("room_id=?", roomId).
+		Count(&count).
+		Error; err != nil {
+		return 0, err
+	} else {
+		return int(count), nil
+	}
 }
