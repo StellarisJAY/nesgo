@@ -129,18 +129,6 @@ function connect() {
 function restartEmulator() {
     const selectedGame = document.getElementById("select-game").value
     post("/room/"+roomId+"/restart?game=" + selectedGame, {})
-        .then(resp=>{
-            return resp.json()
-        })
-        .then(data=>{
-            if (data.status === 200) {
-            }else if (data.status === 500) {
-                document.getElementById("select-game").disabled = true
-                document.getElementById("start-game-button").disabled = true
-            }else {
-                alert(data.message)
-            }
-        })
         .catch(error=>{
             console.log(error)
         })
@@ -184,17 +172,9 @@ function onConnected() {
 
 function listGames() {
     get("/games", null)
-        .then(resp=>{
-            if (resp.status === 403) {
-                window.location = "/login"
-            }
-            return resp.json()
-        }).then(res=> {
-        if (res.status !== 200) {
-            throw new Error(res.message)
-        }
+        .then(data=>{
         const selector = document.getElementById("select-game");
-        for (let game of res.data) {
+        for (let game of data) {
             configs.existingGames[game.name] = game
             selector.innerHTML += "<option value=\"" + game.name + "\">" + game.name + "</option>"
         }
@@ -212,19 +192,6 @@ function setControlButtonsDisabled(disabled) {
 
 function getRoomMemberSelf() {
     get("/room/"+roomId+"/member", null)
-        .then(resp=>{
-            if (resp.status === 403) {
-                window.location = "/login"
-                return
-            }
-            return resp.json()
-        })
-        .then(resp=>{
-            if (resp.status !== 200) {
-                throw new Error(resp.message)
-            }
-            return resp.data
-        })
         .then(data=>{
             rtcSession.member = data
             console.log(data)

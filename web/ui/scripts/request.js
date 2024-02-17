@@ -10,7 +10,21 @@ async function request(path, method, data) {
     if (getToken()) {
         args.headers["Authorization"] = getToken()
     }
-    return await fetch(baseURL + path, args)
+    return fetch(baseURL + path, args)
+        .then(resp=>{
+            if (resp.status === 403) {
+                window.location = "/login"
+                return
+            }
+            return resp.json()
+        })
+        .then(resp=>{
+            if (resp.status === 200) {
+                return resp.data
+            }else {
+                throw new Error(resp.message)
+            }
+        })
 }
 
 function post(path, data) {
