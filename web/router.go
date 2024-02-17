@@ -41,6 +41,7 @@ func setupRouter() *gin.Engine {
 	authorized.POST("/room/:roomId/join", roomService.JoinRoom)
 	authorized.GET("/room/:roomId/members", roomService.ListRoomMembers)
 	authorized.GET("/room/:roomId/info", roomService.GetRoomInfo)
+	authorized.GET("/room/:roomId/member", roomService.GetRoomMemberSelf)
 
 	authorized.POST("/room/:roomId/start", roomService.StartGame)
 	authorized.GET("/ws/room/:roomId", roomService.HandleWebsocket)

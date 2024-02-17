@@ -33,14 +33,22 @@ const MessageICECandidate = 2
 const MessageGameButtonPressed = 3
 const MessageGameButtonReleased = 4
 
+const MemberTypeOwner = 0
+const MemberTypeGamer = 1
+const MemberTypeWatcher = 2
+
 onload = ev=>{
     roomId = window.location.pathname.substring(6)
+    // 连接之前禁用控制按钮
+    setControlButtonsDisabled(true)
+    getRoomMemberSelf()
     listGames()
 }
 
 function connect() {
+    const connectButton = document.getElementById("connect-button")
+    connectButton.disabled = true
     const selectedGame = document.getElementById("select-game").value;
-    console.log(selectedGame)
     const ws = new WebSocket(wsURL+"/room/"+roomId+"/rtc?auth=" + getToken() + "&game="+selectedGame)
     ws.onopen = ev=> {
         const pc = new RTCPeerConnection({
@@ -61,10 +69,10 @@ function connect() {
             console.log("peer conn state: " + pc.connectionState)
             switch (pc.connectionState) {
                 case "connected":
-                    document.getElementById("connect-button").disabled = true
                     break
                 case "disconnected":
                     pc.close()
+                    connectButton.disabled = false
                     break
                 default:
                     break
@@ -109,7 +117,7 @@ function connect() {
                     }))
                     pc.addTransceiver("video")
                 })
-                .then(_=>onConnected(ws))
+                .then(_=>onConnected())
                 .catch(err=>{
                     console.log(err)
                 })
@@ -145,23 +153,25 @@ function sendAction(code, pressed) {
     }))
 }
 
-function onConnected(ws) {
-    window.onkeydown = ev=> {
-        const button = configs.keyboardMapping[ev.code];
-        if (button) {
-           sendAction(button, MessageGameButtonPressed)
+function onConnected() {
+    if (rtcSession.member["memberType"] !== MemberTypeWatcher) {
+        window.onkeydown = ev=> {
+            const button = configs.keyboardMapping[ev.code];
+            if (button) {
+                sendAction(button, MessageGameButtonPressed)
+            }
+        }
+
+        window.onkeyup = ev=> {
+            const button = configs.keyboardMapping[ev.code];
+            if (button) {
+                sendAction(button, MessageGameButtonReleased)
+            }
         }
     }
-
-    window.onkeyup = ev=> {
-        const button = configs.keyboardMapping[ev.code];
-        if (button) {
-            sendAction(button, MessageGameButtonReleased)
-        }
-    }
-
     for (const id in configs.controlButtonMapping) {
         const button = document.getElementById(id)
+        button.disabled = rtcSession.member["memberType"] === MemberTypeWatcher
         const code = configs.controlButtonMapping[id]
         button.addEventListener("mousedown", ()=>sendAction(code, MessageGameButtonPressed))
         button.addEventListener("mouseup", ()=>sendAction(code, MessageGameButtonReleased))
@@ -188,11 +198,38 @@ function listGames() {
             configs.existingGames[game.name] = game
             selector.innerHTML += "<option value=\"" + game.name + "\">" + game.name + "</option>"
         }
-
-        selector.addEventListener("change", ()=>{
-        })
     })
         .catch(err => {
+            console.log(err)
+        })
+}
+
+function setControlButtonsDisabled(disabled) {
+    for (const id in configs.controlButtonMapping) {
+        document.getElementById(id).disabled = disabled
+    }
+}
+
+function getRoomMemberSelf() {
+    get("/room/"+roomId+"/member", null)
+        .then(resp=>{
+            if (resp.status === 403) {
+                window.location = "/login"
+                return
+            }
+            return resp.json()
+        })
+        .then(resp=>{
+            if (resp.status !== 200) {
+                throw new Error(resp.message)
+            }
+            return resp.data
+        })
+        .then(data=>{
+            rtcSession.member = data
+            console.log(data)
+        })
+        .catch(err=>{
             console.log(err)
         })
 }

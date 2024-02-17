@@ -106,7 +106,7 @@ func GetMemberFull(roomId, userId int64) (*UserMember, error) {
 	if err := db.GetDB().
 		Select("id,name,avatar_url,member_type").
 		Table("users").
-		InnerJoins("users.id on members.user_id").
+		Joins("inner join members on users.id = members.user_id").
 		Where("user_id=? AND room_id=?", userId, roomId).
 		First(&um).Error; err != nil {
 		return nil, err

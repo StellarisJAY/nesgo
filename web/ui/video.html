@@ -27,8 +27,8 @@
             <select id="select-game">
             </select>
         </div>
-        <button onclick="connect()" class="control-button toolbar-button" id="connect-button">CONNECT</button>
-        <button onclick="restartEmulator()" class="control-button toolbar-button" id="restart-button" disabled>RESTART</button>
+        <button onclick="connect()" class="control-button" id="connect-button">CONNECT</button>
+        <button onclick="restartEmulator()" class="control-button" id="restart-button" disabled>RESTART</button>
     </div>
 </div>
 </body>
@@ -39,13 +39,6 @@
 <script src="/scripts/video.js"></script>
 
 <style>
-    #log {
-        left: 0;
-        right: 0;
-        position: absolute;
-        width: 20%;
-        height: 100%;
-    }
     #video {
         position: absolute;
         left: 20%;
@@ -82,7 +75,7 @@
         width: 40%;
         border-radius: 20px;
     }
-    #screen {
+    #video {
         margin: auto;
         position: inherit;
         top: 0;
@@ -123,6 +116,10 @@
         user-select: none;
         -webkit-user-select: none;
         -moz-user-select: none;
+    }
+    .control-button:disabled {
+        background-color: #666666;
+        color: grey;
     }
     #button-up {
         left: 0;
@@ -168,14 +165,6 @@
         top: 0;
     }
 
-    .toolbar-button {
-        width: 30%;
-        height: 30%;
-    }
-    #start-game-button {
-        left: 5%;
-        top: 5%;
-    }
     #connect-button {
         left: 5%;
         top: 40%;
@@ -193,16 +182,6 @@
         height: 100%;
     }
 
-    #roomInfo {
-        position: inherit;
-        width: 20%;
-        height: 30%;
-        left: 20px;
-        top: 20px;
-        background-color: #c8c887;
-        box-shadow: 2px 2px 10px darkgrey;
-        font-size: 1%;
-    }
     . {
         user-select: none;
         -webkit-user-select: none;
