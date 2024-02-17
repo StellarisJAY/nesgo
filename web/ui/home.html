@@ -1,10 +1,88 @@
 <!DOCTYPE html>
 <html>
-<header>
+<head>
     <title>NesGo</title>
-</header>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/css/bootstrap.min.css" rel="stylesheet">
+</head>
 <body>
+<div class="card" id="main-card">
+    <div class="card-body">
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="joined-rooms-tab" data-bs-toggle="tab" data-bs-target="#joined-rooms-pane" type="button" role="tab" aria-selected="true">Joined Rooms</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="list-rooms-tab" data-bs-toggle="tab" data-bs-target="#list-rooms-pane" type="button" role="tab" aria-selected="false">Rooms</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-pane" type="button" role="tab"  aria-selected="false">Profile</button>
+            </li>
+        </ul>
+        <div class="tab-content" id="myTabContent">
+            <div class="tab-pane fade show active" id="joined-rooms-pane" role="tabpanel" aria-labelledby="joined-rooms-tab" tabindex="0">
+                <table class="table" id="joined-rooms-table">
+                    <thead>
+                        <tr>
+                            <th>Private</th>
+                            <th>Name</th>
+                            <th>MemberType</th>
+                            <th>Owner</th>
+                            <th>#</th>
+                        </tr>
+                    </thead>
+                    <tbody id="joined-rooms-rows">
+                    </tbody>
+                </table>
+            </div>
+            <div class="tab-pane fade" id="list-rooms-pane" role="tabpanel" aria-labelledby="list-rooms-tab" tabindex="0">2</div>
+            <div class="tab-pane fade" id="profile-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">3</div>
+        </div>
+    </div>
+</div>
 
+
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#create-room-modal">
+    New Room
+</button>
+
+<!--create room modal-->
+<div class="modal fade" id="create-room-modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5">Create Room</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+               <div>
+                   <label for="create-room-name" class="form-label">Name</label>
+                   <input class="form-control" type="text" id="create-room-name">
+               </div>
+                <div class="form-check form-switch">
+                    <label for="create-room-password" class="form-check-label">Need Password</label>
+                    <input class="form-check-input" type="checkbox" role="switch" id="create-room-password">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary">Create</button>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 </html>
-<script src="scripts/auth.js"></script>
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/js/bootstrap.bundle.min.js"></script>
+<script src="/scripts/auth.js"></script>
+<script src="/scripts/request.js"></script>
+<script src="/scripts/home.js"></script>
+
+<style>
+    #main-card {
+        width: 80%;
+        height: 100%;
+        margin: auto;
+        left: 0;
+        right: 0;
+    }
+</style>
