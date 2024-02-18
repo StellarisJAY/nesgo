@@ -1,7 +1,10 @@
 package room
 
 import (
+	"fmt"
+	"github.com/stellarisJAY/nesgo/web/model"
 	"github.com/stellarisJAY/nesgo/web/model/db"
+	"github.com/stellarisJAY/nesgo/web/util"
 	"log"
 )
 
@@ -66,22 +69,21 @@ func GetRoomByNameAndOwner(name string, owner int64) (*Room, error) {
 	return &r, nil
 }
 
-func GetRoomsByOwnerId(owner int64) ([]*Room, error) {
-	d := db.GetDB()
-	var rooms []*Room
-	if err := d.Where("owner=?", owner).
-		Find(&rooms).
-		Error; err != nil {
-		return nil, err
-	}
-	return rooms, nil
-}
-
 func GetRoomById(id int64) (*Room, error) {
-	d := db.GetDB()
-	var r Room
-	err := d.Where("id=?", id).First(&r).Error
-	return &r, err
+	if r, err := model.CacheGet(CacheKeyForRoom(id), func(_ string) (*Room, error) {
+		var r Room
+		if err := db.GetDB().
+			Where("id=?", id).
+			First(&r).
+			Error; err != nil {
+			return nil, err
+		}
+		return &r, nil
+	}); err != nil {
+		return nil, err
+	} else {
+		return r, nil
+	}
 }
 
 func ListRoomMembers(roomId int64) ([]*Member, error) {
@@ -122,18 +124,31 @@ func GetMemberFull(roomId, userId int64) (*UserMember, error) {
 	return &um, nil
 }
 
-func GetJoinedRooms(userId int64) ([]*JoinedRoom, error) {
+func GetJoinedRooms(userId int64, page, pageSize int) ([]*JoinedRoom, error) {
 	var joinedRooms []*JoinedRoom
 	if err := db.GetDB().
-		Select("id, owner, name, member_type").
+		Select("id, owner, name, member_type, password").
 		Table("rooms").
 		Joins("inner join members on rooms.id=members.room_id").
 		Where("members.user_id=?", userId).
+		Scopes(util.Page(page, pageSize)).
 		Find(&joinedRooms).
 		Error; err != nil {
 		return nil, err
 	}
 	return joinedRooms, nil
+}
+
+func ListAllRooms(page, pageSize int) ([]*Room, error) {
+	var rooms []*Room
+	if err := db.GetDB().
+		Model(&Room{}).
+		Scopes(util.Page(page, pageSize)).
+		Find(&rooms).
+		Error; err != nil {
+		return nil, err
+	}
+	return rooms, nil
 }
 
 func GetMemberCount(roomId int64) (int, error) {
@@ -147,4 +162,8 @@ func GetMemberCount(roomId int64) (int, error) {
 	} else {
 		return int(count), nil
 	}
+}
+
+func CacheKeyForRoom(roomId int64) string {
+	return fmt.Sprintf("nesgo_room_%d", roomId)
 }
