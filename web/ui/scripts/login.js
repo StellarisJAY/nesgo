@@ -10,3 +10,7 @@ function login() {
             console.log(error)
         })
 }
+
+function register() {
+    window.location = "/register"
+}
