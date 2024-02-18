@@ -94,10 +94,13 @@ function connect() {
     ws.onclose = ev => {
         window.onkeydown = _=>{}
         window.onkeyup = _ => {}
+        alert("websocket connection closed")
+        document.getElementById("connect-button").disabled = false
     }
 
     ws.onerror = ev => {
-
+        console.log(ev)
+        ws.close()
     }
 
     ws.onmessage = ev => {
@@ -194,9 +197,13 @@ function getRoomMemberSelf() {
     get("/room/"+roomId+"/member", null)
         .then(data=>{
             rtcSession.member = data
-            console.log(data)
         })
-        .catch(err=>{
-            console.log(err)
+        .catch(resp=>{
+            if (resp.status === 403) {
+                alert(resp.message)
+            }else {
+                console.log(resp.message)
+            }
+            window.location = "/home"
         })
 }
