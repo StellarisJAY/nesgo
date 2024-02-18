@@ -18,8 +18,13 @@
                 <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-pane" type="button" role="tab"  aria-selected="false">Profile</button>
             </li>
         </ul>
-        <div class="tab-content" id="myTabContent">
+        <div class="tab-content">
+            <!--joined rooms-->
             <div class="tab-pane fade show active" id="joined-rooms-pane" role="tabpanel" aria-labelledby="joined-rooms-tab" tabindex="0">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#create-room-modal">
+                    New Room
+                </button>
+                <button type="button" class="btn btn-primary" id="refresh-joined-rooms-btn">Refresh</button>
                 <table class="table" id="joined-rooms-table">
                     <thead>
                         <tr>
@@ -34,19 +39,38 @@
                     </tbody>
                 </table>
             </div>
-            <div class="tab-pane fade" id="list-rooms-pane" role="tabpanel" aria-labelledby="list-rooms-tab" tabindex="0">2</div>
+            <!--list all rooms-->
+            <div class="tab-pane fade" id="list-rooms-pane" role="tabpanel" aria-labelledby="list-rooms-tab" tabindex="0">
+                <button type="button" class="btn btn-primary" id="refresh-all-rooms-btn">Refresh</button>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Private</th>
+                            <th>Name</th>
+                            <th>Owner</th>
+                            <th>#</th>
+                        </tr>
+                    </thead>
+                    <tbody id="list-rooms-rows"></tbody>
+                </table>
+                <nav aria-label="Page navigation">
+                    <ul class="pagination" id="page-items">
+                        <li class="page-item"><a class="page-link">Previous</a></li>
+                        <li class="page-item"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                        <li class="page-item"><a class="page-link">Next</a></li>
+                    </ul>
+                </nav>
+            </div>
+            <!--profile-->
             <div class="tab-pane fade" id="profile-pane" role="tabpanel" aria-labelledby="profile-tab" tabindex="0">3</div>
         </div>
     </div>
 </div>
 
-
-<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#create-room-modal">
-    New Room
-</button>
-
 <!--create room modal-->
-<div class="modal fade" id="create-room-modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" id="create-room-modal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
@@ -59,13 +83,33 @@
                    <input class="form-control" type="text" id="create-room-name">
                </div>
                 <div class="form-check form-switch">
-                    <label for="create-room-password" class="form-check-label">Need Password</label>
-                    <input class="form-check-input" type="checkbox" role="switch" id="create-room-password">
+                    <label for="create-room-private" class="form-check-label">Private</label>
+                    <input class="form-check-input" type="checkbox" role="switch" id="create-room-private">
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary">Create</button>
+                <button type="button" class="btn btn-primary" onclick="createRoom()">Create</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--join room enter password modal-->
+<div class="modal fade" id="join-room-password-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5">Join Room</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="password" id="join-room-password" class="input-group-text">
+                <label for="join-room-password">Password</label>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="join-room-modal-button">Join</button>
             </div>
         </div>
     </div>
