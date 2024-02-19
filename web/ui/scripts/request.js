@@ -1,6 +1,3 @@
-const baseURL = "http://192.168.0.107:8080"
-const wsURL = "ws://192.168.0.107:8080/ws"
-const api = baseURL + "/api"
 async function request(path, method, data) {
     let args = {
         method: method,
@@ -10,7 +7,7 @@ async function request(path, method, data) {
     if (getToken()) {
         args.headers["Authorization"] = getToken()
     }
-    return fetch(api + path, args)
+    return fetch(apiServer + path, args)
         .then(resp=>{
             if (resp.status === 403) {
                 window.location = "/login"

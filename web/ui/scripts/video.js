@@ -49,12 +49,14 @@ function connect() {
     const connectButton = document.getElementById("connect-button")
     connectButton.disabled = true
     const selectedGame = document.getElementById("select-game").value;
-    const ws = new WebSocket(wsURL+"/room/"+roomId+"/rtc?auth=" + getToken() + "&game="+selectedGame)
+    const ws = new WebSocket(websocketAddr+"/room/"+roomId+"/rtc?auth=" + getToken() + "&game="+selectedGame)
     ws.onopen = ev=> {
         const pc = new RTCPeerConnection({
             iceServers: [
-                {urls: 'stun:stun.l.google.com:19302'}
-            ]
+                {urls: stunServer},
+                {urls: turnServer, username: turnUser, credential: turnCredential}
+            ],
+            iceTransportPolicy: "relay",
         })
         pc.onicecandidate = ev => {
             if (ev.candidate !== null) {
@@ -62,6 +64,9 @@ function connect() {
                     "type": MessageICECandidate,
                     "data": btoa(JSON.stringify(ev.candidate))
                 }))
+                pc.addIceCandidate(ev.candidate).then(_ => console.log("ice candidate: ", ev.candidate))
+            }else {
+                console.log(ev)
             }
         }
 
@@ -87,6 +92,7 @@ function connect() {
             console.log("track id:" + ev.streams[0].id)
             document.getElementById("video").srcObject = ev.streams[0]
             document.getElementById("video").autoplay = true
+            document.getElementById("video").controls = true
         }
         rtcSession.pc = pc
     }
