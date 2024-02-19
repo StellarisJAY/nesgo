@@ -65,6 +65,9 @@ func setupRouter() *gin.Engine {
 			authorized.GET("/game/:name", gameService.GetGameInfo)
 
 			authorized.POST("/room/:roomId/restart", roomService.Restart)
+
+			authorized.POST("/room/:roomId/quickSave", roomService.QuickSave)
+			authorized.POST("/room/:roomId/quickLoad", roomService.QuickLoad)
 		}
 	}
 
