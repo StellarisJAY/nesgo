@@ -5,8 +5,10 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/stellarisJAY/nesgo/web/config"
 	"github.com/stellarisJAY/nesgo/web/model/room"
 	"github.com/stellarisJAY/nesgo/web/model/user"
+	"github.com/stellarisJAY/nesgo/web/util/fs"
 	"gorm.io/gorm"
 	"log"
 	"math/rand"
@@ -17,10 +19,10 @@ import (
 )
 
 type RoomService struct {
-	m        sync.Mutex
-	sessions map[int64]*RoomSession
-
+	m           sync.Mutex
+	sessions    map[int64]*RoomSession
 	rtcSessions map[int64]*RTCRoomSession
+	fileStorage fs.FileStorage
 }
 
 type CreateRoomForm struct {
@@ -59,10 +61,15 @@ type RoomMemberVO struct {
 }
 
 func NewRoomService() *RoomService {
+	storage, err := fs.NewFileStorage(config.GetConfig().FileStorageType)
+	if err != nil {
+		panic(err)
+	}
 	return &RoomService{
 		sessions:    make(map[int64]*RoomSession),
 		m:           sync.Mutex{},
 		rtcSessions: make(map[int64]*RTCRoomSession),
+		fileStorage: storage,
 	}
 }
 

@@ -19,20 +19,29 @@ type Save struct {
 	Snapshot   []byte // 该存档的模拟器快照
 }
 
-func (e *RawEmulator) Save() error {
-	s := e.createSnapshot()
-	data, err := GetSnapshotSerializer(e.config.SnapshotSerializer).Serialize(s)
+func (e *RawEmulator) SaveToFile() error {
+	timestamp := time.Now()
+	saveData, err := e.GetSaveData()
 	if err != nil {
-		return fmt.Errorf("serializer error: %s", err)
+		return err
 	}
-	save := createSave(e.config.Game, e.config.SnapshotSerializer, data)
-	saveData, _ := json.Marshal(save)
-	path := filepath.Join(e.config.SaveDirectory, getSaveFileName(filepath.Base(e.config.Game), s.Timestamp))
+	path := filepath.Join(e.config.SaveDirectory, getSaveFileName(filepath.Base(e.config.Game), timestamp))
 	if err := os.WriteFile(path, saveData, 0644); err != nil {
 		return fmt.Errorf("write save file error %s", err)
 	}
 	log.Println("game saved at:", path)
 	return nil
+}
+
+func (e *RawEmulator) GetSaveData() ([]byte, error) {
+	s := e.createSnapshot()
+	data, err := GetSnapshotSerializer(e.config.SnapshotSerializer).Serialize(s)
+	if err != nil {
+		return nil, fmt.Errorf("serializer error: %s", err)
+	}
+	save := createSave(e.config.Game, e.config.SnapshotSerializer, data)
+	saveData, _ := json.Marshal(save)
+	return saveData, nil
 }
 
 func (e *RawEmulator) Load(savedGame []byte) error {
@@ -77,5 +86,5 @@ func verifyChecksum(save Save) bool {
 }
 
 func getSaveFileName(game string, timestamp time.Time) string {
-	return fmt.Sprintf("%s%d.save", game, timestamp.UnixMilli())
+	return game + "-" + timestamp.Format(time.DateTime)
 }

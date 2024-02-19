@@ -29,6 +29,8 @@
         </div>
         <button onclick="connect()" class="control-button" id="connect-button">CONNECT</button>
         <button onclick="restartEmulator()" class="control-button" id="restart-button" disabled>RESTART</button>
+        <button onclick="quickSave()" class="control-button" id="save-button" disabled>SAVE</button>
+        <button onclick="quickLoad()" class="control-button" id="load-button" disabled>LOAD</button>
     </div>
 </div>
 </body>
@@ -169,6 +171,18 @@
     #connect-button {
         left: 5%;
         top: 40%;
+    }
+    #restart-button {
+        left: 5%;
+        top: 5%;
+    }
+    #save-button {
+        left: 40%;
+        top: 40%;
+    }
+    #load-button {
+        left: 5%;
+        top: 20%;
     }
     #game-selector {
         margin: auto;

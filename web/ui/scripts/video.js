@@ -177,6 +177,8 @@ function onConnected() {
     }
 
     document.getElementById("restart-button").disabled = false
+    document.getElementById("save-button").disabled = false
+    document.getElementById("load-button").disabled = false
 }
 
 function listGames() {
@@ -197,6 +199,8 @@ function setControlButtonsDisabled(disabled) {
     for (const id in configs.controlButtonMapping) {
         document.getElementById(id).disabled = disabled
     }
+    document.getElementById("save-button").disabled = disabled
+    document.getElementById("load-button").disabled = disabled
 }
 
 function getRoomMemberSelf() {
@@ -211,5 +215,32 @@ function getRoomMemberSelf() {
                 console.log(resp.message)
             }
             window.location = "/home"
+        })
+}
+
+function quickSave() {
+    post("/room/" + roomId + "/quickSave", null)
+        .then(_=>{
+        })
+        .catch(resp=>{
+            if (resp.status === 500) {
+                alert("Internal server error")
+                console.log(resp.message)
+                return
+            }
+            alert(resp.message)
+        })
+}
+
+function quickLoad() {
+    post("/room/" + roomId + "/quickLoad", null)
+        .then(_=>{})
+        .catch(resp=>{
+            if (resp.status === 500) {
+                alert("Internal server error")
+                console.log(resp.message)
+                return
+            }
+            alert(resp.message)
         })
 }

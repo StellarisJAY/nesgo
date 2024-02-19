@@ -65,6 +65,7 @@ type RTCRoomSession struct {
 	wsMessageChan chan MsgWithConnectionInfo
 
 	emulatorCancel context.CancelFunc
+	game           string
 }
 
 type Signal struct {
@@ -77,10 +78,22 @@ type restartEmulatorRequest struct {
 	respChan chan error
 }
 
+type saveGameRequest struct {
+	errChan  chan error
+	respChan chan []byte
+}
+
+type loadSavedGameRequest struct {
+	data     []byte
+	respChan chan error
+}
+
 const (
 	SignalNewConnection byte = iota
 	SignalWebsocketClose
 	SignalRestartEmulator
+	SignalSaveGame
+	SignalLoadSavedGame
 )
 
 var rtcFactory *network.WebRTCFactory
@@ -104,6 +117,7 @@ func NewRTCRoomSession(game string) (*RTCRoomSession, error) {
 		connections:   make(map[int64]*RTCRoomConnection),
 		signalChan:    make(chan Signal),
 		wsMessageChan: make(chan MsgWithConnectionInfo),
+		game:          game,
 	}
 	game = filepath.Join(config.GetEmulatorConfig().GameDirectory, game)
 	e, err := emulator.NewEmulator(game, config.GetEmulatorConfig(), rs.renderCallback)
@@ -135,12 +149,25 @@ func (r *RTCRoomSession) ControlLoop(ctx context.Context) {
 					r.onWebsocketConnClose(conn)
 				}
 			case SignalRestartEmulator:
-				if req, ok := signal.Data.(*restartEmulatorRequest); ok {
-					if err := r.restart(req.game); err != nil {
-						req.respChan <- err
-					} else {
-						close(req.respChan)
-					}
+				req := signal.Data.(*restartEmulatorRequest)
+				if err := r.restart(req.game); err != nil {
+					req.respChan <- err
+				} else {
+					close(req.respChan)
+				}
+			case SignalSaveGame:
+				req := signal.Data.(*saveGameRequest)
+				if data, err := r.save(); err != nil {
+					req.errChan <- err
+				} else {
+					req.respChan <- data
+				}
+			case SignalLoadSavedGame:
+				req := signal.Data.(*loadSavedGameRequest)
+				if err := r.loadSavedGame(req.data); err != nil {
+					req.respChan <- err
+				} else {
+					close(req.respChan)
 				}
 			}
 		case msg := <-r.wsMessageChan:
@@ -186,6 +213,7 @@ func (r *RTCRoomSession) Restart(game string) error {
 }
 
 func (r *RTCRoomSession) restart(game string) error {
+	r.game = game
 	game = filepath.Join(config.GetEmulatorConfig().GameDirectory, game)
 	e, err := emulator.NewEmulator(game, config.GetEmulatorConfig(), r.renderCallback)
 	if err != nil {
@@ -200,6 +228,44 @@ func (r *RTCRoomSession) restart(game string) error {
 	}
 	r.e = e
 	return nil
+}
+
+func (r *RTCRoomSession) Save(path string) ([]byte, error) {
+	respChan := make(chan []byte)
+	errChan := make(chan error)
+	r.signalChan <- Signal{
+		Type: SignalSaveGame,
+		Data: &saveGameRequest{errChan, respChan},
+	}
+	defer close(errChan)
+	defer close(respChan)
+	select {
+	case data := <-respChan:
+		return data, nil
+	case err := <-errChan:
+		return nil, err
+	}
+}
+
+func (r *RTCRoomSession) save() ([]byte, error) {
+	r.e.Pause()
+	defer r.e.Resume()
+	return r.e.GetSaveData()
+}
+
+func (r *RTCRoomSession) LoadSavedGame(data []byte) error {
+	respChan := make(chan error)
+	r.signalChan <- Signal{
+		Type: SignalLoadSavedGame,
+		Data: &loadSavedGameRequest{data, respChan},
+	}
+	return <-respChan
+}
+
+func (r *RTCRoomSession) loadSavedGame(data []byte) error {
+	r.e.Pause()
+	defer r.e.Resume()
+	return r.e.Load(data)
 }
 
 func (r *RTCRoomSession) renderCallback(p *ppu.PPU) {
