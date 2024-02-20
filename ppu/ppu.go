@@ -86,13 +86,10 @@ func (p *PPU) MakeSnapshot() Snapshot {
 		Cycles:         p.cycles,
 		ScanLines:      p.scanLines,
 		NMIInterrupt:   p.nmiInterrupt,
-		Frame:          p.frame.compressedFrameData(),
 	}
 }
 
 func (p *PPU) Reverse(s Snapshot) []byte {
-	frame := p.frame
-	frame.data = decompressFrame(s.Frame)
 	rev := PPU{
 		getChrBank:     p.getChrBank,
 		getMirroring:   p.getMirroring,
@@ -113,7 +110,7 @@ func (p *PPU) Reverse(s Snapshot) []byte {
 		frame:          p.frame,
 	}
 	*p = rev
-	return s.Frame
+	return p.FrameData()
 }
 
 func (p *PPU) incrementAddr() {
@@ -270,15 +267,11 @@ func (p *PPU) PeekInterrupt() bool {
 }
 
 func (p *PPU) FrameData() []byte {
-	return p.frame.data
+	return p.frame.Data()
 }
 
 func (p *PPU) Frame() *Frame {
 	return p.frame
-}
-
-func (p *PPU) CompressedFrameData() []byte {
-	return p.frame.compressedFrameData()
 }
 
 func (p *PPU) WriteMask(val byte) {
