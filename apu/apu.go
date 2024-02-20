@@ -2,11 +2,17 @@ package apu
 
 const (
 	frameCounterRate = 1790000 / 240
+	sampleRate       = 40000 // todo get sample rate from device
 )
 
 var (
 	pulseTable = [32]float32{}
 )
+
+var lengthTable = []byte{
+	10, 254, 20, 2, 40, 4, 80, 6, 160, 8, 60, 10, 14, 12, 26, 14,
+	12, 16, 24, 18, 48, 20, 96, 22, 192, 24, 72, 26, 16, 28, 32, 30,
+}
 
 type BasicAPU struct {
 	cycles           int
@@ -18,6 +24,12 @@ type BasicAPU struct {
 	t  *triangle
 	n  *noise
 	d  *dmc
+}
+
+func init() {
+	for i := 0; i < 31; i++ {
+		pulseTable[i] = 95.52 / (8128.0/float32(i) + 100)
+	}
 }
 
 func NewBasicAPU() *BasicAPU {
@@ -81,9 +93,12 @@ func (a *BasicAPU) Tick() {
 	oldCycles := a.cycles
 	a.cycles++
 	cycles := a.cycles
+	a.stepTimer()
 	f1, f2 := oldCycles/frameCounterRate, cycles/frameCounterRate
 	if f1 != f2 {
 		a.stepFrameCounter()
+	}
+	if oldCycles/sampleRate != cycles/sampleRate {
 	}
 }
 
@@ -147,22 +162,35 @@ func (a *BasicAPU) stepFrameCounter() {
 	}
 }
 
+func (a *BasicAPU) stepTimer() {
+	if a.cycles&1 == 0 {
+		a.p1.stepTimer()
+		a.p2.stepTimer()
+	}
+}
+
 func (a *BasicAPU) stepEnvelope() {
-	// step pulse1, pulse2, noise, triangle linear counter
+	a.p1.stepEnvelope()
+	a.p2.stepEnvelope()
 }
 
 func (a *BasicAPU) stepSweep() {
-
+	a.p1.stepSweep()
+	a.p2.stepSweep()
 }
 
 func (a *BasicAPU) stepLengthCounter() {
-
+	a.p1.stepLength()
+	a.p2.stepLength()
 }
 
 func (a *BasicAPU) sendIRQ() {
 
 }
 
-func (a *BasicAPU) Output() {
-
+func (a *BasicAPU) Output() float32 {
+	pout1 := a.p1.output()
+	pout2 := a.p2.output()
+	pulseOut := pulseTable[pout1+pout2]
+	return pulseOut
 }
