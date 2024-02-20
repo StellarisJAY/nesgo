@@ -30,6 +30,21 @@ type Emulator struct {
 	keyMap   map[sdl.Scancode]bus.JoyPadButton
 }
 
+func (e *Emulator) init() {
+	s, err := os.Stat(e.config.SaveDirectory)
+	if os.IsNotExist(err) {
+		err := os.MkdirAll(e.config.SaveDirectory, 0755)
+		if err != nil {
+			log.Println(err)
+			panic("Unable to find or create save directory")
+		}
+	} else if err != nil {
+		panic("Unable to find save directory")
+	} else if !s.IsDir() {
+		panic("Provided save directory is not a directory")
+	}
+}
+
 func NewEmulator(nesData []byte, conf config.Config) *Emulator {
 	c, err := cartridge.MakeCartridge(nesData)
 	if err != nil {
@@ -173,7 +188,7 @@ func (e *Emulator) handleEvents() {
 			}
 			// F5 快速存档
 			if event.Keysym.Scancode == sdl.SCANCODE_F5 && event.State == sdl.RELEASED {
-				if err := e.Save(); err != nil {
+				if err := e.SaveToFile(); err != nil {
 					log.Println("save game error:", err)
 				}
 				continue

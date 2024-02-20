@@ -34,21 +34,6 @@ type RawEmulator struct {
 	snapshots        []Snapshot
 }
 
-func (e *RawEmulator) init() {
-	s, err := os.Stat(e.config.SaveDirectory)
-	if os.IsNotExist(err) {
-		err := os.MkdirAll(e.config.SaveDirectory, 0744)
-		if err != nil {
-			log.Println(err)
-			panic("Unable to find or create save directory")
-		}
-	} else if err != nil {
-		panic("Unable to find save directory")
-	} else if !s.IsDir() {
-		panic("Provided save directory is not a directory")
-	}
-}
-
 func ReadGameFile(fileName string) ([]byte, error) {
 	file, err := os.Open(fileName)
 	if err != nil {

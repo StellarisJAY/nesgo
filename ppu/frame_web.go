@@ -21,7 +21,7 @@ func NewFrame() *Frame {
 	return &Frame{
 		make([]byte, WIDTH*HEIGHT*3),
 		make([]byte, 0, 62208),
-		image.NewYCbCr(image.Rect(0, 0, WIDTH, HEIGHT), image.YCbCrSubsampleRatio420),
+		image.NewYCbCr(image.Rect(0, 0, WIDTH*2, HEIGHT*2), image.YCbCrSubsampleRatio444),
 	}
 }
 
@@ -32,13 +32,18 @@ func (f *Frame) setPixel(x, y uint32, c Color) {
 		f.data[first+1] = c.G
 		f.data[first+2] = c.B
 	}
-	yOff := f.ycbcr.YOffset(int(x), int(y))
-	cOff := f.ycbcr.COffset(int(x), int(y))
-	if yOff < len(f.ycbcr.Y) && cOff < len(f.ycbcr.Cb) && cOff < len(f.ycbcr.Cr) {
-		Y, cb, cr := color.RGBToYCbCr(c.R, c.G, c.B)
-		f.ycbcr.Y[f.ycbcr.YOffset(int(x), int(y))] = Y
-		f.ycbcr.Cb[f.ycbcr.COffset(int(x), int(y))] = cb
-		f.ycbcr.Cr[f.ycbcr.COffset(int(x), int(y))] = cr
+	x, y = x*2, y*2
+	for i := 0; i < 2; i++ {
+		for j := 0; j < 2; j++ {
+			yOff := f.ycbcr.YOffset(int(x)+i, int(y)+j)
+			cOff := f.ycbcr.COffset(int(x)+i, int(y)+j)
+			if yOff < len(f.ycbcr.Y) && cOff < len(f.ycbcr.Cb) && cOff < len(f.ycbcr.Cr) {
+				Y, cb, cr := color.RGBToYCbCr(c.R, c.G, c.B)
+				f.ycbcr.Y[f.ycbcr.YOffset(int(x), int(y))] = Y
+				f.ycbcr.Cb[f.ycbcr.COffset(int(x), int(y))] = cb
+				f.ycbcr.Cr[f.ycbcr.COffset(int(x), int(y))] = cr
+			}
+		}
 	}
 }
 
