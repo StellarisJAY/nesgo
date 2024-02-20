@@ -230,7 +230,7 @@ func (r *RTCRoomSession) restart(game string) error {
 	return nil
 }
 
-func (r *RTCRoomSession) Save(path string) ([]byte, error) {
+func (r *RTCRoomSession) Save() ([]byte, error) {
 	respChan := make(chan []byte)
 	errChan := make(chan error)
 	r.signalChan <- Signal{

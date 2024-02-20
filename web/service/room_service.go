@@ -20,7 +20,6 @@ import (
 
 type RoomService struct {
 	m           sync.Mutex
-	sessions    map[int64]*RoomSession
 	rtcSessions map[int64]*RTCRoomSession
 	fileStorage fs.FileStorage
 }
@@ -66,7 +65,6 @@ func NewRoomService() *RoomService {
 		panic(err)
 	}
 	return &RoomService{
-		sessions:    make(map[int64]*RoomSession),
 		m:           sync.Mutex{},
 		rtcSessions: make(map[int64]*RTCRoomSession),
 		fileStorage: storage,
@@ -260,47 +258,6 @@ func (rs *RoomService) JoinRoom(c *gin.Context) {
 			Message: "wrong password",
 		})
 		return
-	}
-}
-
-func (rs *RoomService) HandleWebsocket(c *gin.Context) {
-	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
-	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, JSONResp{
-			Status:  400,
-			Message: "invalid room id",
-		})
-		return
-	}
-	var member *room.Member
-	// check membership
-	if m, ok := rs.IsRoomMember(roomId, userId); !ok {
-		c.JSON(200, JSONResp{
-			Status:  http.StatusForbidden,
-			Message: "not a member of this room",
-		})
-		return
-	} else {
-		member = m
-	}
-
-	rs.m.Lock()
-	// check if room's game session is created
-	if s, ok := rs.sessions[roomId]; !ok {
-		rs.m.Unlock()
-		c.JSON(200, JSONResp{Status: 400, Message: "emulator is not running"})
-	} else {
-		rs.m.Unlock()
-		// handle room websocket conn
-		conn, err := websocket.Upgrade(c.Writer, c.Request, http.Header{}, 1024, 1024)
-		if err != nil {
-			panic(err)
-		}
-		s.newConnChan <- &RoomConnection{
-			conn: conn,
-			m:    member,
-		}
 	}
 }
 

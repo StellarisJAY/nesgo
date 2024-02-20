@@ -43,7 +43,7 @@ func (rs *RoomService) QuickSave(c *gin.Context) {
 	if session, ok := rs.rtcSessions[roomId]; ok {
 		rs.m.Unlock()
 		path := getStoragePath(roomId, "", time.Now())
-		data, err := session.Save(path)
+		data, err := session.Save()
 		if err != nil {
 			panic(err)
 		}
