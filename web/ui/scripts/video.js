@@ -3,8 +3,28 @@ let rtcSession = {
 
 let roomId
 
-onload = ev=>{
-    roomId = window.location.pathname.substring(6)
+let configs = {
+    controlButtonMapping: {
+        "button-up": "Up",
+        "button-down": "Down",
+        "button-left": "Left",
+        "button-right": "Right",
+        "button-a": "A",
+        "button-b": "B",
+        "button-select": "Select",
+        "button-start": "Start",
+    },
+    keyboardMapping: {
+        "KeyA": "Left",
+        "KeyD": "Right",
+        "KeyW": "Up",
+        "KeyS": "Down",
+        "KeyJ": "B",
+        "Space": "A",
+        "Enter": "Start",
+        "Tab": "Select",
+    },
+    existingGames: {},
 }
 
 const MessageSDPOffer = 0
@@ -13,18 +33,30 @@ const MessageICECandidate = 2
 const MessageGameButtonPressed = 3
 const MessageGameButtonReleased = 4
 
-function log(msg) {
-    const val = document.getElementById("log").value
-    document.getElementById("log").value = val + "\n" +msg
+const MemberTypeOwner = 0
+const MemberTypeGamer = 1
+const MemberTypeWatcher = 2
+
+onload = ev=>{
+    roomId = window.location.pathname.substring(6)
+    // 连接之前禁用控制按钮
+    setControlButtonsDisabled(true)
+    getRoomMemberSelf()
+    listGames()
 }
 
 function connect() {
-    const ws = new WebSocket(wsURL+"/room/"+roomId+"/rtc?auth=" + getToken())
+    const connectButton = document.getElementById("connect-button")
+    connectButton.disabled = true
+    const selectedGame = document.getElementById("select-game").value;
+    const ws = new WebSocket(websocketAddr+"/room/"+roomId+"/rtc?auth=" + getToken() + "&game="+selectedGame)
     ws.onopen = ev=> {
         const pc = new RTCPeerConnection({
             iceServers: [
-                {urls: 'stun:stun.l.google.com:19302'}
-            ]
+                {urls: stunServer},
+                {urls: turnServer, username: turnUser, credential: turnCredential}
+            ],
+            iceTransportPolicy: "relay",
         })
         pc.onicecandidate = ev => {
             if (ev.candidate !== null) {
@@ -32,17 +64,20 @@ function connect() {
                     "type": MessageICECandidate,
                     "data": btoa(JSON.stringify(ev.candidate))
                 }))
+                pc.addIceCandidate(ev.candidate).then(_ => console.log("ice candidate: ", ev.candidate))
+            }else {
+                console.log(ev)
             }
         }
 
         pc.onconnectionstatechange = ev=>{
-            log("peer conn state: " + pc.connectionState)
+            console.log("peer conn state: " + pc.connectionState)
             switch (pc.connectionState) {
                 case "connected":
-                    document.getElementById("connect-button").disabled = true
                     break
                 case "disconnected":
                     pc.close()
+                    connectButton.disabled = false
                     break
                 default:
                     break
@@ -50,11 +85,11 @@ function connect() {
         }
 
         pc.oniceconnectionstatechange = ev=>{
-            log("ice conn state: " + pc.iceConnectionState)
+            console.log("ice conn state: " + pc.iceConnectionState)
         }
 
         pc.ontrack = ev=>{
-            log("track id:" + ev.streams[0].id)
+            console.log("track id:" + ev.streams[0].id)
             document.getElementById("video").srcObject = ev.streams[0]
             document.getElementById("video").autoplay = true
             document.getElementById("video").controls = true
@@ -65,10 +100,13 @@ function connect() {
     ws.onclose = ev => {
         window.onkeydown = _=>{}
         window.onkeyup = _ => {}
+        alert("websocket connection closed")
+        document.getElementById("connect-button").disabled = false
     }
 
     ws.onerror = ev => {
-
+        console.log(ev)
+        ws.close()
     }
 
     ws.onmessage = ev => {
@@ -88,35 +126,121 @@ function connect() {
                     }))
                     pc.addTransceiver("video")
                 })
-                .then(_=>onConnected(ws))
+                .then(_=>onConnected())
                 .catch(err=>{
                     console.log(err)
                 })
         }
     }
+    rtcSession.ws = ws
 }
 
-function onConnected(ws) {
-    window.onkeydown = ev=> {
-        const code = ev.code
-        if (code === "KeyA" || code === "KeyD" || code === "KeyW" || code === "KeyS" ||
-            code === "Space" || code === "Enter" || code === "KeyJ") {
-            ws.send(JSON.stringify({
-                "type": MessageGameButtonPressed,
-                "data": btoa(code),
-            }))
-            roomProperties.ws.send(JSON.stringify({"KeyCode": code, "Action": 0}))
+function restartEmulator() {
+    const selectedGame = document.getElementById("select-game").value
+    post("/room/"+roomId+"/restart?game=" + selectedGame, {})
+        .catch(error=>{
+            console.log(error)
+        })
+}
+
+function sendAction(code, pressed) {
+    rtcSession.ws.send(JSON.stringify({
+        "type": pressed,
+        "data": btoa(code),
+    }))
+}
+
+function onConnected() {
+    if (rtcSession.member["memberType"] !== MemberTypeWatcher) {
+        window.onkeydown = ev=> {
+            const button = configs.keyboardMapping[ev.code];
+            if (button) {
+                sendAction(button, MessageGameButtonPressed)
+            }
         }
+
+        window.onkeyup = ev=> {
+            const button = configs.keyboardMapping[ev.code];
+            if (button) {
+                sendAction(button, MessageGameButtonReleased)
+            }
+        }
+    }
+    for (const id in configs.controlButtonMapping) {
+        const button = document.getElementById(id)
+        button.disabled = rtcSession.member["memberType"] === MemberTypeWatcher
+        const code = configs.controlButtonMapping[id]
+        button.addEventListener("mousedown", ()=>sendAction(code, MessageGameButtonPressed))
+        button.addEventListener("mouseup", ()=>sendAction(code, MessageGameButtonReleased))
+        button.addEventListener("touchstart", ()=>sendAction(code, MessageGameButtonPressed))
+        button.addEventListener("touchend", ()=>sendAction(code, MessageGameButtonReleased))
     }
 
-    window.onkeyup = ev=> {
-        const code = ev.code
-        if (code === "KeyA" || code === "KeyD" || code === "KeyW" || code === "KeyS" ||
-            code === "Space" || code === "Enter" || code === "KeyJ") {
-            ws.send(JSON.stringify({
-                "type": MessageGameButtonReleased,
-                "data": btoa(code),
-            }))
+    document.getElementById("restart-button").disabled = false
+    document.getElementById("save-button").disabled = false
+    document.getElementById("load-button").disabled = false
+}
+
+function listGames() {
+    get("/games", null)
+        .then(data=>{
+        const selector = document.getElementById("select-game");
+        for (let game of data) {
+            configs.existingGames[game.name] = game
+            selector.innerHTML += "<option value=\"" + game.name + "\">" + game.name + "</option>"
         }
+    })
+        .catch(err => {
+            console.log(err)
+        })
+}
+
+function setControlButtonsDisabled(disabled) {
+    for (const id in configs.controlButtonMapping) {
+        document.getElementById(id).disabled = disabled
     }
+    document.getElementById("save-button").disabled = disabled
+    document.getElementById("load-button").disabled = disabled
+}
+
+function getRoomMemberSelf() {
+    get("/room/"+roomId+"/member", null)
+        .then(data=>{
+            rtcSession.member = data
+        })
+        .catch(resp=>{
+            if (resp.status === 403) {
+                alert(resp.message)
+            }else {
+                console.log(resp.message)
+            }
+            window.location = "/home"
+        })
+}
+
+function quickSave() {
+    post("/room/" + roomId + "/quickSave", null)
+        .then(_=>{
+        })
+        .catch(resp=>{
+            if (resp.status === 500) {
+                alert("Internal server error")
+                console.log(resp.message)
+                return
+            }
+            alert(resp.message)
+        })
+}
+
+function quickLoad() {
+    post("/room/" + roomId + "/quickLoad", null)
+        .then(_=>{})
+        .catch(resp=>{
+            if (resp.status === 500) {
+                alert("Internal server error")
+                console.log(resp.message)
+                return
+            }
+            alert(resp.message)
+        })
 }

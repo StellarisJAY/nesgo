@@ -41,7 +41,7 @@ func (u *UserService) Register(c *gin.Context) {
 	_, err := user.GetUserByName(form.Name)
 	if err == nil || !errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(200, JSONResp{
-			Status:  200,
+			Status:  400,
 			Message: "User Name already inuse",
 		})
 		return
@@ -53,7 +53,10 @@ func (u *UserService) Register(c *gin.Context) {
 	}); err != nil {
 		panic(err)
 	}
-	c.JSON(200, gin.H{})
+	c.JSON(200, JSONResp{
+		Status:  200,
+		Message: "ok",
+	})
 }
 
 func (u *UserService) Login(c *gin.Context) {

@@ -38,7 +38,6 @@ func NewEmulator(game string, conf config.Config, callback bus.RenderCallback) (
 	e.ppu = ppu.NewPPU(e.cartridge.GetChrBank, e.cartridge.GetMirroring, e.cartridge.WriteCHR)
 	e.bus = bus.NewBus(e.cartridge, e.ppu, callback, e.joyPad)
 	e.processor = cpu.NewProcessor(e.bus)
-	e.init()
 	return e, nil
 }
 

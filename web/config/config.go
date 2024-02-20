@@ -11,9 +11,18 @@ type Config struct {
 	DatabaseType string `yaml:"db_type"`
 	JwtSecret    string `yaml:"jwt_secret"`
 	RedisAddr    string `yaml:"redis_addr"`
+
+	FileStorageType          string `yaml:"file_storage_type"`
+	HostFileSystemStorageDir string `yaml:"host_fs_store_dir"`
 }
 
-var config Config = Config{}
+var config Config = Config{
+	DatabaseURL:              "",
+	DatabaseType:             "mysql",
+	JwtSecret:                "123456",
+	RedisAddr:                "localhost:6369",
+	HostFileSystemStorageDir: "/var/tmp/nesgo/saves",
+}
 
 func init() {
 	parseConfigs()

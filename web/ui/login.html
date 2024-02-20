@@ -21,9 +21,11 @@
         </div>
 
         <button class="button" onclick="login()" id="login-button">Login</button>
+        <button class="button" onclick="register()" id="register-button">Register</button>
     </div>
 </body>
 </html>
+<script src="scripts/const.js"></script>
 <script src="scripts/auth.js"></script>
 <script src="scripts/request.js"></script>
 <script src="scripts/login.js"></script>
@@ -49,9 +51,17 @@
         text-align: center;
         position: inherit;
         margin: auto;
-        width: 80%;
-        left: 0;
-        right: 0;
+        width: 40%;
+        left: 10%;
+        height: 10%;
+    }
+    #register-button {
+        bottom: 10%;
+        text-align: center;
+        position: inherit;
+        margin: auto;
+        width: 20%;
+        right: 10%;
         height: 10%;
     }
     .button {
