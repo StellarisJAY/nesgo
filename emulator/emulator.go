@@ -2,6 +2,7 @@ package emulator
 
 import (
 	"fmt"
+	"github.com/stellarisJAY/nesgo/apu"
 	"github.com/stellarisJAY/nesgo/bus"
 	"github.com/stellarisJAY/nesgo/cartridge"
 	"github.com/stellarisJAY/nesgo/config"
@@ -26,8 +27,8 @@ type RawEmulator struct {
 	bus       *bus.Bus
 	ppu       *ppu.PPU
 	joyPad    *bus.JoyPad
-
-	config config.Config
+	apu       *apu.BasicAPU
+	config    config.Config
 
 	lastSnapshotTime time.Time
 	m                *sync.Mutex

@@ -1,6 +1,7 @@
 package bus
 
 import (
+	"github.com/stellarisJAY/nesgo/apu"
 	"github.com/stellarisJAY/nesgo/cartridge"
 	"github.com/stellarisJAY/nesgo/ppu"
 	"time"
@@ -30,6 +31,8 @@ type Bus struct {
 	lastRenderCycles uint64
 	lastRenderTime   time.Time
 	cpuBoost         float64
+
+	apu *apu.BasicAPU
 }
 
 type Snapshot struct {
@@ -40,7 +43,7 @@ type Snapshot struct {
 }
 
 // NewBus 创建总线，并将PPU和ROM接入总线
-func NewBus(cartridge cartridge.Cartridge, ppu *ppu.PPU, callback RenderCallback, joyPad *JoyPad) *Bus {
+func NewBus(cartridge cartridge.Cartridge, ppu *ppu.PPU, callback RenderCallback, joyPad *JoyPad, apu *apu.BasicAPU) *Bus {
 	return &Bus{
 		cpuRAM:         [2048]byte{},
 		cartridge:      cartridge,
@@ -48,6 +51,7 @@ func NewBus(cartridge cartridge.Cartridge, ppu *ppu.PPU, callback RenderCallback
 		renderCallback: callback,
 		joyPad:         joyPad,
 		cpuBoost:       1.0,
+		apu:            apu,
 	}
 }
 
@@ -150,6 +154,7 @@ func (b *Bus) WriteMemUint8(addr uint16, val byte) {
 		addr = addr & 0x2007
 		b.WriteMemUint8(addr, val)
 	case (addr >= 0x4000 && addr <= 0x4013) || addr == 0x4015: // apu
+		b.apu.Write(addr, val)
 	case addr == 0x4014: // oam dma
 		buffer := make([]byte, 256)
 		base := uint16(val) << 8

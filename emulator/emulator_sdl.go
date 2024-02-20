@@ -5,6 +5,7 @@ package emulator
 import (
 	"context"
 	"fmt"
+	"github.com/stellarisJAY/nesgo/apu"
 	"github.com/stellarisJAY/nesgo/bus"
 	"github.com/stellarisJAY/nesgo/cartridge"
 	"github.com/stellarisJAY/nesgo/config"
@@ -59,7 +60,8 @@ func NewEmulator(nesData []byte, conf config.Config) *Emulator {
 	}
 	e.joyPad = bus.NewJoyPad()
 	e.ppu = ppu.NewPPU(e.cartridge.GetChrBank, e.cartridge.GetMirroring, e.cartridge.WriteCHR)
-	e.bus = bus.NewBus(e.cartridge, e.ppu, e.RendererCallback, e.joyPad)
+	e.apu = apu.NewBasicAPU()
+	e.bus = bus.NewBus(e.cartridge, e.ppu, e.RendererCallback, e.joyPad, e.apu)
 	e.processor = cpu.NewProcessor(e.bus)
 	e.keyMap = make(map[sdl.Scancode]bus.JoyPadButton)
 	scale := int32(e.config.Scale)
