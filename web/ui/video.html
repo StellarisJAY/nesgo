@@ -13,7 +13,7 @@
         <button class="control-button" id="button-down">&#8595;</button>
     </div>
     <div id="center" onselect="return false">
-        <video id="video" autoplay></video>
+        <video id="video" autoplay playsinline></video>
     </div>
     <div id="right-side-controls">
         <button class="control-button" id="button-a">A</button>
@@ -42,6 +42,12 @@
 <script src="/scripts/video.js"></script>
 
 <style>
+    *{
+        -moz-user-select: none;
+        -webkit-user-select:none;
+        -ms-user-select:none;
+        user-select:none;
+    }
     #video {
         position: absolute;
         left: 20%;
