@@ -1,12 +1,5 @@
 package apu
 
-import "fmt"
-
-const (
-	frameCounterRate = 1790000 / 240
-	sampleRate       = 5000 // todo get sample rate from device
-)
-
 var (
 	pulseTable = [32]float32{}
 	tndTable   [203]float32
@@ -27,6 +20,10 @@ type BasicAPU struct {
 	t  *triangle
 	n  *noise
 	d  *dmc
+
+	outputChan       chan float32
+	sampleRate       float64
+	frameCounterRate int
 }
 
 func init() {
@@ -46,6 +43,20 @@ func NewBasicAPU() *BasicAPU {
 		n:  &noise{shiftRegister: 1}, //On power-up, the shift register is loaded with the value 1.
 		d:  &dmc{},
 	}
+}
+
+func (a *BasicAPU) SetMemReader(reader func(addr uint16) byte) {
+	a.d.memReader = reader
+}
+
+func (a *BasicAPU) SetOutputChan(outChan chan float32) {
+	a.outputChan = outChan
+}
+
+func (a *BasicAPU) SetRates(cpuFrequency int, sampleRate float64) {
+	// cpu cycles per sample
+	a.sampleRate = float64(cpuFrequency) / sampleRate
+	a.frameCounterRate = cpuFrequency / 240
 }
 
 func (a *BasicAPU) Write(addr uint16, data byte) {
@@ -100,12 +111,16 @@ func (a *BasicAPU) Tick() {
 	a.cycles++
 	cycles := a.cycles
 	a.stepTimer()
-	f1, f2 := oldCycles/frameCounterRate, cycles/frameCounterRate
+	f1, f2 := oldCycles/a.frameCounterRate, cycles/a.frameCounterRate
 	if f1 != f2 {
 		a.stepFrameCounter()
 	}
-	if oldCycles/sampleRate != cycles/sampleRate {
-		fmt.Println(a.Output())
+	c1, c2 := int(float64(oldCycles)/a.sampleRate), int(float64(cycles)/a.sampleRate)
+	if c1 != c2 {
+		select {
+		case a.outputChan <- a.Output():
+		default:
+		}
 	}
 }
 
@@ -130,7 +145,7 @@ func (a *BasicAPU) writeFrameCounter(val byte) {
 // See: https://www.nesdev.org/wiki/APU_Frame_Counter
 func (a *BasicAPU) stepFrameCounter() {
 	if a.frameCounterMode == 4 {
-		frameVal := (a.cycles / frameCounterRate) % 4
+		frameVal := (a.cycles / a.frameCounterRate) % 4
 		switch frameVal {
 		case 0:
 			a.stepEnvelope()
@@ -149,7 +164,7 @@ func (a *BasicAPU) stepFrameCounter() {
 		return
 	}
 	if a.frameCounterMode == 5 {
-		frameVal := (a.cycles / frameCounterRate) % 5
+		frameVal := (a.cycles / a.frameCounterRate) % 5
 		switch frameVal {
 		case 0:
 			a.stepEnvelope()
@@ -178,6 +193,7 @@ func (a *BasicAPU) stepTimer() {
 	// this timer ticks at the rate of the CPU clock rather than the APU (CPU/2) clock.
 	a.t.stepTimer()
 	a.n.stepTimer()
+	a.d.stepTimer()
 }
 
 func (a *BasicAPU) stepEnvelope() {
@@ -208,9 +224,8 @@ func (a *BasicAPU) Output() float32 {
 	pout2 := a.p2.output()
 	pulseOut := pulseTable[pout1+pout2]
 	t := a.t.output()
-	// todo dmc noise
-	d := byte(0)
+	d := a.d.output()
 	n := a.n.output()
-	tndOutput := tndTable[3*t+2*n+d]
+	tndOutput := tndTable[3*t+2*d+n]
 	return pulseOut + tndOutput
 }
