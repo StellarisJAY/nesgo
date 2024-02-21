@@ -5,6 +5,8 @@ package emulator
 import (
 	"context"
 	"fmt"
+	"github.com/gordonklaus/portaudio"
+	"github.com/stellarisJAY/nesgo/apu"
 	"github.com/stellarisJAY/nesgo/bus"
 	"github.com/stellarisJAY/nesgo/cartridge"
 	"github.com/stellarisJAY/nesgo/config"
@@ -28,6 +30,22 @@ type Emulator struct {
 	renderer *sdl.Renderer
 	texture  *sdl.Texture
 	keyMap   map[sdl.Scancode]bus.JoyPadButton
+	audio    *Audio
+}
+
+func (e *Emulator) init() {
+	s, err := os.Stat(e.config.SaveDirectory)
+	if os.IsNotExist(err) {
+		err := os.MkdirAll(e.config.SaveDirectory, 0755)
+		if err != nil {
+			log.Println(err)
+			panic("Unable to find or create save directory")
+		}
+	} else if err != nil {
+		panic("Unable to find save directory")
+	} else if !s.IsDir() {
+		panic("Provided save directory is not a directory")
+	}
 }
 
 func NewEmulator(nesData []byte, conf config.Config) *Emulator {
@@ -44,9 +62,25 @@ func NewEmulator(nesData []byte, conf config.Config) *Emulator {
 	}
 	e.joyPad = bus.NewJoyPad()
 	e.ppu = ppu.NewPPU(e.cartridge.GetChrBank, e.cartridge.GetMirroring, e.cartridge.WriteCHR)
-	e.bus = bus.NewBus(e.cartridge, e.ppu, e.RendererCallback, e.joyPad)
+	e.apu = apu.NewBasicAPU()
+	e.bus = bus.NewBus(e.cartridge, e.ppu, e.RendererCallback, e.joyPad, e.apu)
 	e.processor = cpu.NewProcessor(e.bus)
 	e.keyMap = make(map[sdl.Scancode]bus.JoyPadButton)
+	if !conf.MuteApu {
+		if err := portaudio.Initialize(); err != nil {
+			panic(err)
+		}
+		e.audio = NewAudio()
+		if err := e.audio.Start(); err != nil {
+			panic(err)
+		}
+		e.apu.SetRates(bus.CPUFrequency, e.audio.sampleRate)
+		e.apu.SetMemReader(e.bus.ReadMemUint8)
+		e.apu.SetOutputChan(e.audio.sampleChan)
+	} else {
+		e.apu.Mute()
+	}
+
 	scale := int32(e.config.Scale)
 	window, renderer, err := initSDL(scale)
 	if err != nil {
@@ -173,7 +207,7 @@ func (e *Emulator) handleEvents() {
 			}
 			// F5 快速存档
 			if event.Keysym.Scancode == sdl.SCANCODE_F5 && event.State == sdl.RELEASED {
-				if err := e.Save(); err != nil {
+				if err := e.SaveToFile(); err != nil {
 					log.Println("save game error:", err)
 				}
 				continue

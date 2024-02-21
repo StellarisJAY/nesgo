@@ -15,39 +15,67 @@ var (
 )
 
 func setupRouter() *gin.Engine {
+	gin.SetMode(gin.DebugMode)
 	r := gin.Default()
 	corsConf := cors.DefaultConfig()
 	corsConf.AllowAllOrigins = true
 	corsConf.AllowHeaders = append(corsConf.AllowHeaders, "Authorization")
 	r.Use(cors.New(corsConf), gin.Recovery())
+
+	// static resources
+	{
+		r.StaticFS("/assets", http.Dir("web/ui/assets"))
+		r.StaticFS("/scripts", http.Dir("web/ui/scripts"))
+	}
+
+	// html pages
+	page := r.Group("/")
 	r.LoadHTMLGlob("web/ui/*.html")
-	r.POST("/user/register", userService.Register)
-	r.POST("/user/login", userService.Login)
-	r.GET("/login", func(c *gin.Context) {
-		c.HTML(200, "login.html", gin.H{})
-	})
-	r.GET("/room/:roomId", func(c *gin.Context) {
-		c.HTML(200, "room.html", gin.H{})
-	})
+	{
+		page.GET("/login", func(c *gin.Context) {
+			c.HTML(200, "login.html", gin.H{})
+		})
+		page.GET("/room/:roomId", func(c *gin.Context) {
+			c.HTML(200, "video.html", gin.H{})
+		})
+		page.GET("/home", func(c *gin.Context) {
+			c.HTML(200, "home.html", gin.H{})
+		})
+		page.GET("/register", func(c *gin.Context) {
+			c.HTML(200, "register.html", nil)
+		})
+	}
 
-	// javascript files
-	r.StaticFS("/assets", http.Dir("web/ui/assets"))
-	r.StaticFS("/scripts", http.Dir("web/ui/scripts"))
+	// web api
+	api := r.Group("/api")
+	{
+		api.POST("/user/register", userService.Register)
+		api.POST("/user/login", userService.Login)
+		authorized := api.Group("/", middleware.ParseQueryToken, middleware.JWTAuth)
+		{
+			authorized.POST("/room", roomService.CreateRoom)
+			authorized.GET("/room/list", roomService.ListAllRooms)
+			authorized.GET("/room/list/joined", roomService.ListJoinedRooms)
+			authorized.POST("/room/:roomId/join", roomService.JoinRoom)
+			authorized.GET("/room/:roomId/members", roomService.ListRoomMembers)
+			authorized.GET("/room/:roomId/info", roomService.GetRoomInfo)
+			authorized.GET("/room/:roomId/member", roomService.GetRoomMemberSelf)
 
-	authorized := r.Group("/", middleware.ParseQueryToken, middleware.JWTAuth)
+			authorized.GET("/games", gameService.ListGames)
+			authorized.GET("/game/:name", gameService.GetGameInfo)
 
-	authorized.POST("/room", roomService.CreateRoom)
-	authorized.GET("/room/list", roomService.ListOwningRooms)
-	authorized.POST("/room/:roomId/join", roomService.JoinRoom)
-	authorized.GET("/room/:roomId/members", roomService.ListRoomMembers)
-	authorized.GET("/room/:roomId/info", roomService.GetRoomInfo)
+			authorized.POST("/room/:roomId/restart", roomService.Restart)
 
-	authorized.POST("/room/:roomId/start", roomService.StartGame)
-	authorized.GET("/ws/room/:roomId", roomService.HandleWebsocket)
+			authorized.POST("/room/:roomId/quickSave", roomService.QuickSave)
+			authorized.POST("/room/:roomId/quickLoad", roomService.QuickLoad)
+		}
+	}
 
-	authorized.GET("/games", gameService.ListGames)
-	authorized.GET("/game/:name", gameService.GetGameInfo)
+	// websocket
+	ws := r.Group("/ws", middleware.ParseQueryToken, middleware.JWTAuth)
+	{
+		ws.GET("/room/:roomId/rtc", roomService.ConnectRTCRoomSession)
+	}
 
-	authorized.GET("/room/:roomId/rtc", roomService.ConnectRTCRoomSession)
 	return r
 }

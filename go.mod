@@ -4,7 +4,6 @@ go 1.21
 
 require (
 	github.com/gen2brain/x264-go v0.3.0
-	github.com/gen2brain/x264-go/x264c v0.0.0-20221204084822-82ee2951dea2
 	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-redis/redis v6.15.9+incompatible
@@ -23,7 +22,10 @@ require (
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/ebitengine/oto/v3 v3.1.0 // indirect
+	github.com/ebitengine/purego v0.5.2 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
+	github.com/gen2brain/x264-go/x264c v0.0.0-20221204084822-82ee2951dea2 // indirect
 	github.com/gen2brain/x264-go/yuv v0.0.0-20221204084822-82ee2951dea2 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
@@ -33,6 +35,7 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/gordonklaus/portaudio v0.0.0-20230709114228-aafa478834f5 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20231201235250-de7065d80cb9 // indirect
 	github.com/jackc/pgx/v5 v5.5.1 // indirect
@@ -75,4 +78,5 @@ require (
 	golang.org/x/sys v0.16.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
+	gopkg.in/hraban/opus.v2 v2.0.0-20230925203106-0188a62cb302 // indirect
 )

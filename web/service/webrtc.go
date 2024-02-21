@@ -1,11 +1,9 @@
 package service
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/gen2brain/x264-go"
 	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media"
@@ -13,6 +11,7 @@ import (
 	"github.com/stellarisJAY/nesgo/config"
 	"github.com/stellarisJAY/nesgo/emulator"
 	"github.com/stellarisJAY/nesgo/ppu"
+	"github.com/stellarisJAY/nesgo/web/codec"
 	"github.com/stellarisJAY/nesgo/web/model/room"
 	"github.com/stellarisJAY/nesgo/web/network"
 	"log"
@@ -45,8 +44,7 @@ type RTCRoomConnection struct {
 	wsConn       *WebsocketConn
 	rtcConn      *webrtc.PeerConnection
 	track        *webrtc.TrackLocalStaticSample
-	videoEncoder *x264.Encoder // 每个连接独占一个视频编码器 和 buffer
-	videoBuffer  *bytes.Buffer
+	videoEncoder codec.IVideoEncoder // 每个连接独占一个视频编码器 和 buffer
 
 	connected *atomic.Bool
 }
@@ -64,11 +62,10 @@ type RTCRoomSession struct {
 	signalChan  chan Signal
 	cancel      context.CancelFunc
 
-	videoEncoder *x264.Encoder
-	videoBuffer  *bytes.Buffer
-	encoderOpts  *x264.Options
-
 	wsMessageChan chan MsgWithConnectionInfo
+
+	emulatorCancel context.CancelFunc
+	game           string
 }
 
 type Signal struct {
@@ -76,9 +73,27 @@ type Signal struct {
 	Data any
 }
 
+type restartEmulatorRequest struct {
+	game     string
+	respChan chan error
+}
+
+type saveGameRequest struct {
+	errChan  chan error
+	respChan chan []byte
+}
+
+type loadSavedGameRequest struct {
+	data     []byte
+	respChan chan error
+}
+
 const (
 	SignalNewConnection byte = iota
 	SignalWebsocketClose
+	SignalRestartEmulator
+	SignalSaveGame
+	SignalLoadSavedGame
 )
 
 var rtcFactory *network.WebRTCFactory
@@ -96,29 +111,13 @@ func init() {
 }
 
 func NewRTCRoomSession(game string) (*RTCRoomSession, error) {
-	buffer := bytes.NewBuffer([]byte{})
-	opts := &x264.Options{
-		Width:     ppu.WIDTH,
-		Height:    ppu.HEIGHT,
-		Tune:      "zerolatency",
-		Preset:    "ultrafast",
-		FrameRate: 60,
-		Profile:   "baseline",
-		LogLevel:  x264.LogError,
-	}
-	encoder, err := x264.NewEncoder(buffer, opts)
-	if err != nil {
-		return nil, err
-	}
 	rs := &RTCRoomSession{
 		m:             &sync.Mutex{},
 		members:       make(map[int64]*room.Member),
 		connections:   make(map[int64]*RTCRoomConnection),
 		signalChan:    make(chan Signal),
-		videoBuffer:   buffer,
-		videoEncoder:  encoder,
 		wsMessageChan: make(chan MsgWithConnectionInfo),
-		encoderOpts:   opts,
+		game:          game,
 	}
 	game = filepath.Join(config.GetEmulatorConfig().GameDirectory, game)
 	e, err := emulator.NewEmulator(game, config.GetEmulatorConfig(), rs.renderCallback)
@@ -126,8 +125,10 @@ func NewRTCRoomSession(game string) (*RTCRoomSession, error) {
 		return nil, err
 	}
 	rs.e = e
+	ctx, cancelFunc := context.WithCancel(context.Background())
 	// 创建模拟器线程，暂停模拟器等待第一个连接唤醒
-	go rs.e.LoadAndRun(context.Background(), false)
+	go rs.e.LoadAndRun(ctx, false)
+	rs.emulatorCancel = cancelFunc
 	rs.e.Pause()
 	return rs, nil
 }
@@ -138,53 +139,151 @@ func (r *RTCRoomSession) ControlLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case signal := <-r.signalChan:
-			switch signal.Type {
-			case SignalNewConnection:
-				if conn, ok := signal.Data.(*WebsocketConn); ok {
-					r.onNewConnection(ctx, conn)
-				}
-			case SignalWebsocketClose:
-				if conn, ok := signal.Data.(*WebsocketConn); ok {
-					r.onWebsocketConnClose(conn)
-				}
-			}
+			r.handleSignal(ctx, signal)
 		case msg := <-r.wsMessageChan:
 			if msg.wsConn.Member.MemberType == room.MemberTypeWatcher {
 				continue
 			}
 			if msg.Type == MessageGameButtonReleased || msg.Type == MessageGameButtonPressed {
-				pressed := msg.Type == MessageGameButtonPressed
-				switch string(msg.Data) {
-				case "KeyA":
-					r.e.SetJoyPadButtonPressed(bus.Left, pressed)
-				case "KeyD":
-					r.e.SetJoyPadButtonPressed(bus.Right, pressed)
-				case "KeyW":
-					r.e.SetJoyPadButtonPressed(bus.Up, pressed)
-				case "KeyS":
-					r.e.SetJoyPadButtonPressed(bus.Down, pressed)
-				case "Space":
-					r.e.SetJoyPadButtonPressed(bus.ButtonA, pressed)
-				case "KeyJ":
-					r.e.SetJoyPadButtonPressed(bus.ButtonB, pressed)
-				case "Enter":
-					r.e.SetJoyPadButtonPressed(bus.Start, pressed)
-				default:
-				}
+				r.handleGameButtonMsg(msg.Message)
 			}
 		}
 	}
 }
 
+func (r *RTCRoomSession) handleSignal(ctx context.Context, signal Signal) {
+	switch signal.Type {
+	case SignalNewConnection:
+		if conn, ok := signal.Data.(*WebsocketConn); ok {
+			r.onNewConnection(ctx, conn)
+		}
+	case SignalWebsocketClose:
+		if conn, ok := signal.Data.(*WebsocketConn); ok {
+			r.onWebsocketConnClose(conn)
+		}
+	case SignalRestartEmulator:
+		req := signal.Data.(*restartEmulatorRequest)
+		if err := r.restart(req.game); err != nil {
+			req.respChan <- err
+		} else {
+			close(req.respChan)
+		}
+	case SignalSaveGame:
+		req := signal.Data.(*saveGameRequest)
+		if data, err := r.save(); err != nil {
+			req.errChan <- err
+		} else {
+			req.respChan <- data
+		}
+	case SignalLoadSavedGame:
+		req := signal.Data.(*loadSavedGameRequest)
+		if err := r.loadSavedGame(req.data); err != nil {
+			req.respChan <- err
+		} else {
+			close(req.respChan)
+		}
+	}
+}
+
+func (r *RTCRoomSession) handleGameButtonMsg(msg Message) {
+	pressed := msg.Type == MessageGameButtonPressed
+	switch string(msg.Data) {
+	case "Left":
+		r.e.SetJoyPadButtonPressed(bus.Left, pressed)
+	case "Right":
+		r.e.SetJoyPadButtonPressed(bus.Right, pressed)
+	case "Up":
+		r.e.SetJoyPadButtonPressed(bus.Up, pressed)
+	case "Down":
+		r.e.SetJoyPadButtonPressed(bus.Down, pressed)
+	case "A":
+		r.e.SetJoyPadButtonPressed(bus.ButtonA, pressed)
+	case "B":
+		r.e.SetJoyPadButtonPressed(bus.ButtonB, pressed)
+	case "Start":
+		r.e.SetJoyPadButtonPressed(bus.Start, pressed)
+	case "Select":
+		r.e.SetJoyPadButtonPressed(bus.Select, pressed)
+	default:
+	}
+}
+
+func (r *RTCRoomSession) Restart(game string) error {
+	respChan := make(chan error)
+	r.signalChan <- Signal{
+		Type: SignalRestartEmulator,
+		Data: &restartEmulatorRequest{
+			game:     game,
+			respChan: respChan,
+		},
+	}
+	return <-respChan
+}
+
+func (r *RTCRoomSession) restart(game string) error {
+	r.game = game
+	game = filepath.Join(config.GetEmulatorConfig().GameDirectory, game)
+	e, err := emulator.NewEmulator(game, config.GetEmulatorConfig(), r.renderCallback)
+	if err != nil {
+		return err
+	}
+	r.emulatorCancel()
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	r.emulatorCancel = cancelFunc
+	go e.LoadAndRun(ctx, false)
+	if len(r.connections) == 0 {
+		e.Pause()
+	}
+	r.e = e
+	return nil
+}
+
+func (r *RTCRoomSession) Save() ([]byte, error) {
+	respChan := make(chan []byte)
+	errChan := make(chan error)
+	r.signalChan <- Signal{
+		Type: SignalSaveGame,
+		Data: &saveGameRequest{errChan, respChan},
+	}
+	defer close(errChan)
+	defer close(respChan)
+	select {
+	case data := <-respChan:
+		return data, nil
+	case err := <-errChan:
+		return nil, err
+	}
+}
+
+func (r *RTCRoomSession) save() ([]byte, error) {
+	r.e.Pause()
+	defer r.e.Resume()
+	return r.e.GetSaveData()
+}
+
+func (r *RTCRoomSession) LoadSavedGame(data []byte) error {
+	respChan := make(chan error)
+	r.signalChan <- Signal{
+		Type: SignalLoadSavedGame,
+		Data: &loadSavedGameRequest{data, respChan},
+	}
+	return <-respChan
+}
+
+func (r *RTCRoomSession) loadSavedGame(data []byte) error {
+	r.e.Pause()
+	defer r.e.Resume()
+	return r.e.Load(data)
+}
+
 func (r *RTCRoomSession) renderCallback(p *ppu.PPU) {
 	p.Render()
-	frame := &x264.YCbCr{YCbCr: p.Frame().YCbCr()}
 	for _, conn := range r.connections {
 		// peer conn没有建立连接不编码视频，否则会导致I帧没有发送到客户端
 		if !conn.connected.Load() {
 			continue
 		}
-		if err := conn.videoEncoder.Encode(frame); err != nil {
+		if err := conn.videoEncoder.Encode(p.Frame()); err != nil {
 			log.Println("encoder error:", err)
 			continue
 		}
@@ -192,7 +291,7 @@ func (r *RTCRoomSession) renderCallback(p *ppu.PPU) {
 			log.Println("flush encoder error:", err)
 			continue
 		}
-		data := conn.videoBuffer.Bytes()
+		data := conn.videoEncoder.FlushBuffer()
 		if err := conn.track.WriteSample(media.Sample{
 			Data:     data,
 			Duration: 2 * time.Millisecond, // todo 根据帧率设置Duration
@@ -200,7 +299,6 @@ func (r *RTCRoomSession) renderCallback(p *ppu.PPU) {
 			log.Println("write video sample error:", err)
 			return
 		}
-		conn.videoBuffer.Reset()
 	}
 }
 
@@ -217,11 +315,10 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 		return
 	}
 	roomConnection := &RTCRoomConnection{
-		MemberId:    wsConn.Member.UserId,
-		wsConn:      wsConn,
-		rtcConn:     peer,
-		videoBuffer: bytes.NewBuffer([]byte{}),
-		connected:   &atomic.Bool{},
+		MemberId:  wsConn.Member.UserId,
+		wsConn:    wsConn,
+		rtcConn:   peer,
+		connected: &atomic.Bool{},
 	}
 
 	defer func() {
@@ -278,7 +375,7 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 		log.Println("ice conn state:", state)
 	})
 
-	encoder, err := x264.NewEncoder(roomConnection.videoBuffer, r.encoderOpts)
+	encoder, err := codec.NewVideoEncoder("h264")
 	if err != nil {
 		panic(fmt.Errorf("unable to create encoder, error: %w", err))
 	}

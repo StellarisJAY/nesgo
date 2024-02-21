@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NesGo</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="card" id="register-card">
+    <div class="card-header">
+        <h2>NESGo</h2>
+    </div>
+    <div class="card-body">
+        <label class="form-label" for="input-name">UserName</label>
+        <input class="form-control" type="text" id="input-name">
+        <label class="form-label" for="input-password">Password</label>
+        <input  class="form-control" type="password" id="input-password">
+        <label class="form-label" for="input-confirm-password">Confirm Password</label>
+        <input class="form-control" type="password" id="input-confirm-password">
+        <button class="btn btn-primary" id="register-btn" onclick="register()">Register</button>
+        <div id="login-url">
+            Have account?
+            <a href="/login">login</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/js/bootstrap.bundle.min.js"></script>
+
+<script src="/scripts/const.js"></script>
+<script src="/scripts/auth.js"></script>
+<script src="/scripts/request.js"></script>
+<script src="/scripts/register.js"></script>
+
+<style>
+    #register-card {
+        position: absolute;
+        width: 30%;
+        height: 50%;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        margin: auto;
+    }
+    #register-btn {
+        position: absolute;
+        width: 80%;
+        left: 0;
+        right: 0;
+        bottom: 10%;
+        margin: auto;
+    }
+    #login-url {
+        width: 80%;
+        left: 0;
+        right: 0;
+        bottom: 20%;
+        position: absolute;
+        margin-left: auto;
+        text-align: center;
+    }
+</style>

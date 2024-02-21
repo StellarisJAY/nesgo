@@ -1,6 +1,8 @@
 package user
 
 import (
+	"fmt"
+	"github.com/stellarisJAY/nesgo/web/model"
 	"github.com/stellarisJAY/nesgo/web/model/db"
 )
 
@@ -19,13 +21,19 @@ func init() {
 }
 
 func GetUserById(id int64) (*User, error) {
-	d := db.GetDB()
-	user := User{}
-	err := d.First(&user, id).Error
+	u, err := model.CacheGet(fmt.Sprintf("user_%d", id), func(_ string) (*User, error) {
+		d := db.GetDB()
+		user := User{}
+		err := d.First(&user, id).Error
+		if err != nil {
+			return nil, err
+		}
+		return &user, nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	return &user, nil
+	return u, nil
 }
 
 func GetUserByName(name string) (*User, error) {

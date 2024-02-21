@@ -1,15 +1,18 @@
 package room
 
 import (
+	"fmt"
+	"github.com/stellarisJAY/nesgo/web/model"
 	"github.com/stellarisJAY/nesgo/web/model/db"
+	"github.com/stellarisJAY/nesgo/web/util"
 	"log"
 )
 
 type Room struct {
-	Id         int64  `gorm:"column:id;primary key;AUTO_INCREMENT" json:"id"`
-	Owner      int64  `gorm:"column:owner" json:"owner"`
-	Name       string `gorm:"column:name" json:"name"`
-	InviteCode string `gorm:"column:invite_code" json:"inviteCode"`
+	Id       int64  `gorm:"column:id;primary key;AUTO_INCREMENT" json:"id"`
+	Owner    int64  `gorm:"column:owner" json:"owner"`
+	Name     string `gorm:"column:name" json:"name"`
+	Password string `gorm:"column:password" json:"password"`
 }
 
 type Member struct {
@@ -22,6 +25,14 @@ type UserMember struct {
 	Id         int64  `gorm:"column:id" json:"id"`
 	Name       string `gorm:"column:name" json:"name"`
 	AvatarURL  string `gorm:"column:avatar_url" json:"avatarURL"`
+	MemberType byte   `gorm:"column:member_type" json:"memberType"`
+}
+
+type JoinedRoom struct {
+	Id         int64  `gorm:"column:id;primary key;AUTO_INCREMENT" json:"id"`
+	Owner      int64  `gorm:"column:owner" json:"owner"`
+	Name       string `gorm:"column:name" json:"name"`
+	Password   string `gorm:"column:password" json:"password"`
 	MemberType byte   `gorm:"column:member_type" json:"memberType"`
 }
 
@@ -58,22 +69,21 @@ func GetRoomByNameAndOwner(name string, owner int64) (*Room, error) {
 	return &r, nil
 }
 
-func GetRoomsByOwnerId(owner int64) ([]*Room, error) {
-	d := db.GetDB()
-	var rooms []*Room
-	if err := d.Where("owner=?", owner).
-		Find(&rooms).
-		Error; err != nil {
-		return nil, err
-	}
-	return rooms, nil
-}
-
 func GetRoomById(id int64) (*Room, error) {
-	d := db.GetDB()
-	var r Room
-	err := d.Where("id=?", id).First(&r).Error
-	return &r, err
+	if r, err := model.CacheGet(CacheKeyForRoom(id), func(_ string) (*Room, error) {
+		var r Room
+		if err := db.GetDB().
+			Where("id=?", id).
+			First(&r).
+			Error; err != nil {
+			return nil, err
+		}
+		return &r, nil
+	}); err != nil {
+		return nil, err
+	} else {
+		return r, nil
+	}
 }
 
 func ListRoomMembers(roomId int64) ([]*Member, error) {
@@ -106,10 +116,54 @@ func GetMemberFull(roomId, userId int64) (*UserMember, error) {
 	if err := db.GetDB().
 		Select("id,name,avatar_url,member_type").
 		Table("users").
-		InnerJoins("users.id on members.user_id").
+		Joins("inner join members on users.id = members.user_id").
 		Where("user_id=? AND room_id=?", userId, roomId).
 		First(&um).Error; err != nil {
 		return nil, err
 	}
 	return &um, nil
+}
+
+func GetJoinedRooms(userId int64, page, pageSize int) ([]*JoinedRoom, error) {
+	var joinedRooms []*JoinedRoom
+	if err := db.GetDB().
+		Select("id, owner, name, member_type, password").
+		Table("rooms").
+		Joins("inner join members on rooms.id=members.room_id").
+		Where("members.user_id=?", userId).
+		Scopes(util.Page(page, pageSize)).
+		Find(&joinedRooms).
+		Error; err != nil {
+		return nil, err
+	}
+	return joinedRooms, nil
+}
+
+func ListAllRooms(page, pageSize int) ([]*Room, error) {
+	var rooms []*Room
+	if err := db.GetDB().
+		Model(&Room{}).
+		Scopes(util.Page(page, pageSize)).
+		Find(&rooms).
+		Error; err != nil {
+		return nil, err
+	}
+	return rooms, nil
+}
+
+func GetMemberCount(roomId int64) (int, error) {
+	var count int64 = 0
+	if err := db.GetDB().
+		Model(&Member{}).
+		Where("room_id=?", roomId).
+		Count(&count).
+		Error; err != nil {
+		return 0, err
+	} else {
+		return int(count), nil
+	}
+}
+
+func CacheKeyForRoom(roomId int64) string {
+	return fmt.Sprintf("nesgo_room_%d", roomId)
 }

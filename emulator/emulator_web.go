@@ -4,6 +4,7 @@ package emulator
 
 import (
 	"context"
+	"github.com/stellarisJAY/nesgo/apu"
 	"github.com/stellarisJAY/nesgo/bus"
 	"github.com/stellarisJAY/nesgo/cartridge"
 	"github.com/stellarisJAY/nesgo/config"
@@ -36,9 +37,12 @@ func NewEmulator(game string, conf config.Config, callback bus.RenderCallback) (
 	}
 	e.joyPad = bus.NewJoyPad()
 	e.ppu = ppu.NewPPU(e.cartridge.GetChrBank, e.cartridge.GetMirroring, e.cartridge.WriteCHR)
-	e.bus = bus.NewBus(e.cartridge, e.ppu, callback, e.joyPad)
+	e.apu = apu.NewBasicAPU()
+	e.bus = bus.NewBus(e.cartridge, e.ppu, callback, e.joyPad, e.apu)
+	e.apu.SetRates(bus.CPUFrequency, 44100)
+	// todo add sound track to video stream, mute apu temporarily
+	e.apu.Mute()
 	e.processor = cpu.NewProcessor(e.bus)
-	e.init()
 	return e, nil
 }
 

@@ -2,6 +2,7 @@ package emulator
 
 import (
 	"fmt"
+	"github.com/stellarisJAY/nesgo/apu"
 	"github.com/stellarisJAY/nesgo/bus"
 	"github.com/stellarisJAY/nesgo/cartridge"
 	"github.com/stellarisJAY/nesgo/config"
@@ -26,27 +27,12 @@ type RawEmulator struct {
 	bus       *bus.Bus
 	ppu       *ppu.PPU
 	joyPad    *bus.JoyPad
-
-	config config.Config
+	apu       *apu.BasicAPU
+	config    config.Config
 
 	lastSnapshotTime time.Time
 	m                *sync.Mutex
 	snapshots        []Snapshot
-}
-
-func (e *RawEmulator) init() {
-	s, err := os.Stat(e.config.SaveDirectory)
-	if os.IsNotExist(err) {
-		err := os.MkdirAll(e.config.SaveDirectory, 0744)
-		if err != nil {
-			log.Println(err)
-			panic("Unable to find or create save directory")
-		}
-	} else if err != nil {
-		panic("Unable to find save directory")
-	} else if !s.IsDir() {
-		panic("Provided save directory is not a directory")
-	}
 }
 
 func ReadGameFile(fileName string) ([]byte, error) {

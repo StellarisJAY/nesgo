@@ -15,6 +15,8 @@ type Config struct {
 	GameDirectory      string
 	SaveDirectory      string
 	SnapshotSerializer string
+
+	MuteApu bool
 }
 
 var conf Config
@@ -29,6 +31,7 @@ func init() {
 	flag.StringVar(&conf.GameDirectory, "dir", "", "Game directory")
 	flag.StringVar(&conf.SaveDirectory, "save-dir", "", "Game save directory")
 	flag.StringVar(&conf.SnapshotSerializer, "serializer", "gob", "Game save serializer")
+	flag.BoolVar(&conf.MuteApu, "mute", false, "Mute APU")
 	flag.Parse()
 }
 
