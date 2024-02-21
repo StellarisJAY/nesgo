@@ -91,6 +91,10 @@ func (b *Bus) Tick(cycles uint64) {
 		b.lastRenderCycles = b.cycles
 		b.lastRenderTime = time.Now()
 	}
+	// apu ticks on every cpu cycle
+	for i := 0; i < int(cycles); i++ {
+		b.apu.Tick()
+	}
 }
 
 func (b *Bus) BoostCPU(delta float64) float64 {
@@ -153,7 +157,7 @@ func (b *Bus) WriteMemUint8(addr uint16, val byte) {
 	case addr <= PPURegisterEnd: // mirror ppu registers
 		addr = addr & 0x2007
 		b.WriteMemUint8(addr, val)
-	case (addr >= 0x4000 && addr <= 0x4013) || addr == 0x4015: // apu
+	case (addr >= 0x4000 && addr <= 0x4013) || addr == 0x4015 || addr == 0x4017: // apu
 		b.apu.Write(addr, val)
 	case addr == 0x4014: // oam dma
 		buffer := make([]byte, 256)
@@ -164,8 +168,6 @@ func (b *Bus) WriteMemUint8(addr uint16, val byte) {
 		b.ppu.WriteOamDMA(buffer)
 	case addr == 0x4016: // joyPad 1
 		b.joyPad.write(val)
-	case addr == 0x4017: // joyPad 2
-		//skip joyPad 2
 	case addr >= 0x6000:
 		b.cartridge.Write(addr, val)
 	default:
