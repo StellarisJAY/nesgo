@@ -66,17 +66,20 @@ func NewEmulator(nesData []byte, conf config.Config) *Emulator {
 	e.bus = bus.NewBus(e.cartridge, e.ppu, e.RendererCallback, e.joyPad, e.apu)
 	e.processor = cpu.NewProcessor(e.bus)
 	e.keyMap = make(map[sdl.Scancode]bus.JoyPadButton)
-
-	if err := portaudio.Initialize(); err != nil {
-		panic(err)
+	if !conf.MuteApu {
+		if err := portaudio.Initialize(); err != nil {
+			panic(err)
+		}
+		e.audio = NewAudio()
+		if err := e.audio.Start(); err != nil {
+			panic(err)
+		}
+		e.apu.SetRates(bus.CPUFrequency, e.audio.sampleRate)
+		e.apu.SetMemReader(e.bus.ReadMemUint8)
+		e.apu.SetOutputChan(e.audio.sampleChan)
+	} else {
+		e.apu.Mute()
 	}
-	e.audio = NewAudio()
-	if err := e.audio.Start(); err != nil {
-		panic(err)
-	}
-	e.apu.SetRates(bus.CPUFrequency, e.audio.sampleRate)
-	e.apu.SetMemReader(e.bus.ReadMemUint8)
-	e.apu.SetOutputChan(e.audio.sampleChan)
 
 	scale := int32(e.config.Scale)
 	window, renderer, err := initSDL(scale)
