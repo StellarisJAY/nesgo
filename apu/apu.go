@@ -1,12 +1,15 @@
 package apu
 
+import "fmt"
+
 const (
 	frameCounterRate = 1790000 / 240
-	sampleRate       = 40000 // todo get sample rate from device
+	sampleRate       = 5000 // todo get sample rate from device
 )
 
 var (
 	pulseTable = [32]float32{}
+	tndTable   [203]float32
 )
 
 var lengthTable = []byte{
@@ -30,6 +33,9 @@ func init() {
 	for i := 0; i < 31; i++ {
 		pulseTable[i] = 95.52 / (8128.0/float32(i) + 100)
 	}
+	for i := 0; i < 203; i++ {
+		tndTable[i] = 163.67 / (24329.0/float32(i) + 100)
+	}
 }
 
 func NewBasicAPU() *BasicAPU {
@@ -37,7 +43,7 @@ func NewBasicAPU() *BasicAPU {
 		p1: &pulse{},
 		p2: &pulse{},
 		t:  &triangle{},
-		n:  &noise{},
+		n:  &noise{shiftRegister: 1}, //On power-up, the shift register is loaded with the value 1.
 		d:  &dmc{},
 	}
 }
@@ -85,7 +91,7 @@ func (a *BasicAPU) Write(addr uint16, data byte) {
 	case 0x4015:
 		a.writeStatus(data)
 	case 0x4017:
-
+		a.writeFrameCounter(data)
 	}
 }
 
@@ -99,6 +105,7 @@ func (a *BasicAPU) Tick() {
 		a.stepFrameCounter()
 	}
 	if oldCycles/sampleRate != cycles/sampleRate {
+		fmt.Println(a.Output())
 	}
 }
 
@@ -167,11 +174,17 @@ func (a *BasicAPU) stepTimer() {
 		a.p1.stepTimer()
 		a.p2.stepTimer()
 	}
+	// Unlike the pulse channels,
+	// this timer ticks at the rate of the CPU clock rather than the APU (CPU/2) clock.
+	a.t.stepTimer()
+	a.n.stepTimer()
 }
 
 func (a *BasicAPU) stepEnvelope() {
 	a.p1.stepEnvelope()
 	a.p2.stepEnvelope()
+	a.t.stepLinearCounter()
+	a.n.stepEnvelope()
 }
 
 func (a *BasicAPU) stepSweep() {
@@ -182,6 +195,8 @@ func (a *BasicAPU) stepSweep() {
 func (a *BasicAPU) stepLengthCounter() {
 	a.p1.stepLength()
 	a.p2.stepLength()
+	a.t.stepLength()
+	a.n.stepLength()
 }
 
 func (a *BasicAPU) sendIRQ() {
@@ -192,5 +207,10 @@ func (a *BasicAPU) Output() float32 {
 	pout1 := a.p1.output()
 	pout2 := a.p2.output()
 	pulseOut := pulseTable[pout1+pout2]
-	return pulseOut
+	t := a.t.output()
+	// todo dmc noise
+	d := byte(0)
+	n := a.n.output()
+	tndOutput := tndTable[3*t+2*n+d]
+	return pulseOut + tndOutput
 }
