@@ -52,7 +52,7 @@ func NewMapper1(raw []byte) *Mapper1 {
 		chrStart: chrStart,
 		prgROM: [2][]byte{
 			raw[prgStart : prgStart+0x4000],
-			raw[prgStart+0x4000 : prgStart+0x8000],
+			raw[chrStart-0x4000 : chrStart],
 		},
 		chrBanks: chrBanks,
 		chrRAM:   chrRAM,
@@ -167,26 +167,6 @@ func (sr *mapper1ShiftRegister) write(val byte) (byte, bool) {
 		result := (sr.val >> 1) | ((val & 1) << 4)
 		sr.clear()
 		return result, true
-	}
-}
-
-// writeCtrl 修改ctrl寄存器，会导致chr和prg bank修改
-func (m *Mapper1) writeCtrl(val byte) {
-	m.ctrlReg = val
-	// 重新计算prg banks
-	m.writePrgBankReg(m.prgBankReg)
-	// 重新计算chr banks
-	mode := m.ctrlReg & (1 << ctrlRegChrBankMode)
-	if mode != 0 {
-		bank0 := m.chrStart + uint32(m.chrBankRegs[0])*4096
-		bank1 := m.chrStart + uint32(m.chrBankRegs[1])*4096
-		m.chrBanks[0] = m.raw[bank0 : bank0+4096]
-		m.chrBanks[1] = m.raw[bank1 : bank1+4096]
-	} else {
-		// 8KiB模式，切换两个chr banks, 忽略bit0
-		offset := m.chrStart + uint32(val&0xfe)*4096
-		m.chrBanks[0] = m.raw[offset : offset+4096]
-		m.chrBanks[1] = m.raw[offset+4096 : offset+8192]
 	}
 }
 
