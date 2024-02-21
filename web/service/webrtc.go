@@ -44,7 +44,7 @@ type RTCRoomConnection struct {
 	wsConn       *WebsocketConn
 	rtcConn      *webrtc.PeerConnection
 	track        *webrtc.TrackLocalStaticSample
-	videoEncoder codec.IEncoder // 每个连接独占一个视频编码器 和 buffer
+	videoEncoder codec.IVideoEncoder // 每个连接独占一个视频编码器 和 buffer
 
 	connected *atomic.Bool
 }
@@ -139,64 +139,72 @@ func (r *RTCRoomSession) ControlLoop(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case signal := <-r.signalChan:
-			switch signal.Type {
-			case SignalNewConnection:
-				if conn, ok := signal.Data.(*WebsocketConn); ok {
-					r.onNewConnection(ctx, conn)
-				}
-			case SignalWebsocketClose:
-				if conn, ok := signal.Data.(*WebsocketConn); ok {
-					r.onWebsocketConnClose(conn)
-				}
-			case SignalRestartEmulator:
-				req := signal.Data.(*restartEmulatorRequest)
-				if err := r.restart(req.game); err != nil {
-					req.respChan <- err
-				} else {
-					close(req.respChan)
-				}
-			case SignalSaveGame:
-				req := signal.Data.(*saveGameRequest)
-				if data, err := r.save(); err != nil {
-					req.errChan <- err
-				} else {
-					req.respChan <- data
-				}
-			case SignalLoadSavedGame:
-				req := signal.Data.(*loadSavedGameRequest)
-				if err := r.loadSavedGame(req.data); err != nil {
-					req.respChan <- err
-				} else {
-					close(req.respChan)
-				}
-			}
+			r.handleSignal(ctx, signal)
 		case msg := <-r.wsMessageChan:
 			if msg.wsConn.Member.MemberType == room.MemberTypeWatcher {
 				continue
 			}
 			if msg.Type == MessageGameButtonReleased || msg.Type == MessageGameButtonPressed {
-				pressed := msg.Type == MessageGameButtonPressed
-				switch string(msg.Data) {
-				case "Left":
-					r.e.SetJoyPadButtonPressed(bus.Left, pressed)
-				case "Right":
-					r.e.SetJoyPadButtonPressed(bus.Right, pressed)
-				case "Up":
-					r.e.SetJoyPadButtonPressed(bus.Up, pressed)
-				case "Down":
-					r.e.SetJoyPadButtonPressed(bus.Down, pressed)
-				case "A":
-					r.e.SetJoyPadButtonPressed(bus.ButtonA, pressed)
-				case "B":
-					r.e.SetJoyPadButtonPressed(bus.ButtonB, pressed)
-				case "Start":
-					r.e.SetJoyPadButtonPressed(bus.Start, pressed)
-				case "Select":
-					r.e.SetJoyPadButtonPressed(bus.Select, pressed)
-				default:
-				}
+				r.handleGameButtonMsg(msg.Message)
 			}
 		}
+	}
+}
+
+func (r *RTCRoomSession) handleSignal(ctx context.Context, signal Signal) {
+	switch signal.Type {
+	case SignalNewConnection:
+		if conn, ok := signal.Data.(*WebsocketConn); ok {
+			r.onNewConnection(ctx, conn)
+		}
+	case SignalWebsocketClose:
+		if conn, ok := signal.Data.(*WebsocketConn); ok {
+			r.onWebsocketConnClose(conn)
+		}
+	case SignalRestartEmulator:
+		req := signal.Data.(*restartEmulatorRequest)
+		if err := r.restart(req.game); err != nil {
+			req.respChan <- err
+		} else {
+			close(req.respChan)
+		}
+	case SignalSaveGame:
+		req := signal.Data.(*saveGameRequest)
+		if data, err := r.save(); err != nil {
+			req.errChan <- err
+		} else {
+			req.respChan <- data
+		}
+	case SignalLoadSavedGame:
+		req := signal.Data.(*loadSavedGameRequest)
+		if err := r.loadSavedGame(req.data); err != nil {
+			req.respChan <- err
+		} else {
+			close(req.respChan)
+		}
+	}
+}
+
+func (r *RTCRoomSession) handleGameButtonMsg(msg Message) {
+	pressed := msg.Type == MessageGameButtonPressed
+	switch string(msg.Data) {
+	case "Left":
+		r.e.SetJoyPadButtonPressed(bus.Left, pressed)
+	case "Right":
+		r.e.SetJoyPadButtonPressed(bus.Right, pressed)
+	case "Up":
+		r.e.SetJoyPadButtonPressed(bus.Up, pressed)
+	case "Down":
+		r.e.SetJoyPadButtonPressed(bus.Down, pressed)
+	case "A":
+		r.e.SetJoyPadButtonPressed(bus.ButtonA, pressed)
+	case "B":
+		r.e.SetJoyPadButtonPressed(bus.ButtonB, pressed)
+	case "Start":
+		r.e.SetJoyPadButtonPressed(bus.Start, pressed)
+	case "Select":
+		r.e.SetJoyPadButtonPressed(bus.Select, pressed)
+	default:
 	}
 }
 
@@ -367,7 +375,7 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 		log.Println("ice conn state:", state)
 	})
 
-	encoder, err := codec.NewEncoder("h264")
+	encoder, err := codec.NewVideoEncoder("h264")
 	if err != nil {
 		panic(fmt.Errorf("unable to create encoder, error: %w", err))
 	}
