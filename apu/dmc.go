@@ -1,7 +1,5 @@
 package apu
 
-import "fmt"
-
 // DMC Logic:
 //
 //	Timer
@@ -75,7 +73,6 @@ func (d *dmc) restart() {
 }
 
 func (d *dmc) stepReader() {
-	fmt.Println("bytes:", d.bytesRemaining, "bits:", d.bitsRemaining, "addr:", d.addressCounter)
 	// shiftRegister already consumed all bits
 	// read a new byte and start a new shift period
 	if d.bytesRemaining > 0 && d.bitsRemaining == 0 {
