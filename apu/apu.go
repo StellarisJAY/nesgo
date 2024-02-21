@@ -11,6 +11,7 @@ var lengthTable = []byte{
 }
 
 type BasicAPU struct {
+	muted            bool
 	cycles           int
 	frameCounterMode byte
 	irqInhibitFlag   bool
@@ -57,6 +58,10 @@ func (a *BasicAPU) SetRates(cpuFrequency int, sampleRate float64) {
 	// cpu cycles per sample
 	a.sampleRate = float64(cpuFrequency) / sampleRate
 	a.frameCounterRate = cpuFrequency / 240
+}
+
+func (a *BasicAPU) Mute() {
+	a.muted = true
 }
 
 func (a *BasicAPU) Write(addr uint16, data byte) {
@@ -107,6 +112,9 @@ func (a *BasicAPU) Write(addr uint16, data byte) {
 }
 
 func (a *BasicAPU) Tick() {
+	if a.muted {
+		return
+	}
 	oldCycles := a.cycles
 	a.cycles++
 	cycles := a.cycles
