@@ -1,5 +1,12 @@
 package apu
 
+// Noise logic:
+//
+//	Timer --> Shift Register   Length Counter
+//	               |                |
+//	               v                v
+//
+// Envelope -------> Gate ----------> Gate --> (to mixer)
 type noise struct {
 	enabled           bool
 	lengthCounterHalt bool

@@ -1,5 +1,16 @@
 package apu
 
+// Pulse logic:
+//
+//	                 Sweep -----> Timer
+//	                   |            |
+//	                   |            |
+//	                   |            v
+//	                   |        Sequencer   Length Counter
+//	                   |            |             |
+//	                   |            |             |
+//	                   v            v             v
+//	Envelope -------> Gate -----> Gate -------> Gate --->(to mixer)
 type pulse struct {
 	enabled           bool
 	lengthCounterHalt bool

@@ -1,5 +1,12 @@
 package apu
 
+// triangle logic:
+// Linear Counter   Length Counter
+//
+//	|                |
+//	v                v
+//
+// Timer ---> Gate ----------> Gate ---> Sequencer ---> (to mixer)
 type triangle struct {
 	enabled           bool
 	linearCounterLoad byte
