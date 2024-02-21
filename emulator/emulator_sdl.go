@@ -5,6 +5,7 @@ package emulator
 import (
 	"context"
 	"fmt"
+	"github.com/gordonklaus/portaudio"
 	"github.com/stellarisJAY/nesgo/apu"
 	"github.com/stellarisJAY/nesgo/bus"
 	"github.com/stellarisJAY/nesgo/cartridge"
@@ -29,6 +30,7 @@ type Emulator struct {
 	renderer *sdl.Renderer
 	texture  *sdl.Texture
 	keyMap   map[sdl.Scancode]bus.JoyPadButton
+	audio    *Audio
 }
 
 func (e *Emulator) init() {
@@ -64,6 +66,18 @@ func NewEmulator(nesData []byte, conf config.Config) *Emulator {
 	e.bus = bus.NewBus(e.cartridge, e.ppu, e.RendererCallback, e.joyPad, e.apu)
 	e.processor = cpu.NewProcessor(e.bus)
 	e.keyMap = make(map[sdl.Scancode]bus.JoyPadButton)
+
+	if err := portaudio.Initialize(); err != nil {
+		panic(err)
+	}
+	e.audio = NewAudio()
+	if err := e.audio.Start(); err != nil {
+		panic(err)
+	}
+	e.apu.SetRates(bus.CPUFrequency, e.audio.sampleRate)
+	e.apu.SetMemReader(e.bus.ReadMemUint8)
+	e.apu.SetOutputChan(e.audio.sampleChan)
+
 	scale := int32(e.config.Scale)
 	window, renderer, err := initSDL(scale)
 	if err != nil {
