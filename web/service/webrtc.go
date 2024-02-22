@@ -43,10 +43,10 @@ type RTCRoomConnection struct {
 	MemberId     int64
 	wsConn       *WebsocketConn
 	rtcConn      *webrtc.PeerConnection
-	track        *webrtc.TrackLocalStaticSample
+	videoTrack   *webrtc.TrackLocalStaticSample
+	audioTrack   *webrtc.TrackLocalStaticSample
 	videoEncoder codec.IVideoEncoder // 每个连接独占一个视频编码器 和 buffer
-
-	connected *atomic.Bool
+	connected    *atomic.Bool
 }
 
 type WebsocketConn struct {
@@ -64,8 +64,11 @@ type RTCRoomSession struct {
 
 	wsMessageChan chan MsgWithConnectionInfo
 
-	emulatorCancel context.CancelFunc
-	game           string
+	emulatorCancel  context.CancelFunc
+	game            string
+	audioSampleRate int
+	audioEncoder    codec.IAudioEncoder
+	audioSampleChan chan float32
 }
 
 type Signal struct {
@@ -111,20 +114,29 @@ func init() {
 }
 
 func NewRTCRoomSession(game string) (*RTCRoomSession, error) {
+	const sampleRate = 48000
 	rs := &RTCRoomSession{
-		m:             &sync.Mutex{},
-		members:       make(map[int64]*room.Member),
-		connections:   make(map[int64]*RTCRoomConnection),
-		signalChan:    make(chan Signal),
-		wsMessageChan: make(chan MsgWithConnectionInfo),
-		game:          game,
+		m:               &sync.Mutex{},
+		members:         make(map[int64]*room.Member),
+		connections:     make(map[int64]*RTCRoomConnection),
+		signalChan:      make(chan Signal),
+		wsMessageChan:   make(chan MsgWithConnectionInfo),
+		game:            game,
+		audioSampleRate: sampleRate,
 	}
 	game = filepath.Join(config.GetEmulatorConfig().GameDirectory, game)
-	e, err := emulator.NewEmulator(game, config.GetEmulatorConfig(), rs.renderCallback)
+	sampleChan := make(chan float32, sampleRate)
+	e, err := emulator.NewEmulator(game, config.GetEmulatorConfig(), rs.renderCallback, sampleChan, sampleRate)
 	if err != nil {
 		return nil, err
 	}
 	rs.e = e
+	rs.audioSampleChan = sampleChan
+	audioEncoder, err := codec.NewAudioEncoder(sampleRate)
+	if err != nil {
+		return nil, err
+	}
+	rs.audioEncoder = audioEncoder
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	// 创建模拟器线程，暂停模拟器等待第一个连接唤醒
 	go rs.e.LoadAndRun(ctx, false)
@@ -223,7 +235,17 @@ func (r *RTCRoomSession) Restart(game string) error {
 func (r *RTCRoomSession) restart(game string) error {
 	r.game = game
 	game = filepath.Join(config.GetEmulatorConfig().GameDirectory, game)
-	e, err := emulator.NewEmulator(game, config.GetEmulatorConfig(), r.renderCallback)
+
+LOOP:
+	for {
+		select {
+		case <-r.audioSampleChan:
+		default:
+			break LOOP
+		}
+	}
+
+	e, err := emulator.NewEmulator(game, config.GetEmulatorConfig(), r.renderCallback, r.audioSampleChan, r.audioSampleRate)
 	if err != nil {
 		return err
 	}
@@ -292,7 +314,7 @@ func (r *RTCRoomSession) renderCallback(p *ppu.PPU) {
 			continue
 		}
 		data := conn.videoEncoder.FlushBuffer()
-		if err := conn.track.WriteSample(media.Sample{
+		if err := conn.videoTrack.WriteSample(media.Sample{
 			Data:     data,
 			Duration: 2 * time.Millisecond, // todo 根据帧率设置Duration
 		}); err != nil {
@@ -329,13 +351,18 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 		}
 	}()
 
-	track, _ := rtcFactory.VideoTrack("h264")
+	videoTrack, _ := rtcFactory.VideoTrack("h264")
 	// add video track to peer connection
-	if _, err := peer.AddTrack(track); err != nil {
+	if _, err := peer.AddTrack(videoTrack); err != nil {
 		panic(fmt.Errorf("unable to add video track to peer, error: %w", err))
 	}
-	roomConnection.track = track
-	// todo add audio track
+	roomConnection.videoTrack = videoTrack
+
+	audioTrack, _ := rtcFactory.AudioTrack("opus")
+	if _, err := peer.AddTrack(audioTrack); err != nil {
+		panic(fmt.Errorf("unable to add audio track to peer, error: %w", err))
+	}
+	roomConnection.audioTrack = audioTrack
 	// create sdp offer and set local description
 	sdp, err := peer.CreateOffer(nil)
 	if err != nil {
@@ -402,6 +429,42 @@ func (r *RTCRoomSession) onWebsocketConnClose(wsConn *WebsocketConn) {
 		r.e.Pause()
 	}
 	r.m.Unlock()
+}
+
+func (r *RTCRoomSession) audioSampleListener(ctx context.Context) {
+	buffer := make([]float32, 0, r.audioSampleRate*5/1000)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case s := <-r.audioSampleChan:
+			buffer = append(buffer, s)
+			if len(buffer) == cap(buffer) {
+				r.sendAudioSamples(buffer)
+				buffer = buffer[:0]
+			}
+		}
+	}
+}
+
+func (r *RTCRoomSession) sendAudioSamples(samples []float32) {
+	frame, err := r.audioEncoder.Encode(samples)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	for _, conn := range r.connections {
+		if !conn.connected.Load() {
+			continue
+		}
+		if err := conn.audioTrack.WriteSample(media.Sample{
+			Data:      frame,
+			Timestamp: time.Now(),
+			Duration:  5 * time.Millisecond,
+		}); err != nil {
+			log.Println("send audio frame to:", conn.wsConn.Conn.RemoteAddr(), "error:", err)
+		}
+	}
 }
 
 func (rc *RTCRoomConnection) Handle(ctx context.Context, msgChan chan MsgWithConnectionInfo) {

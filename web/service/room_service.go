@@ -476,6 +476,7 @@ func (rs *RoomService) ConnectRTCRoomSession(c *gin.Context) {
 		ctx, cancelFunc := context.WithCancel(context.Background())
 		newSession.cancel = cancelFunc
 		go newSession.ControlLoop(ctx)
+		go newSession.audioSampleListener(ctx)
 		session = newSession
 	} else {
 		session = s
