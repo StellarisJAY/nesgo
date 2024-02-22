@@ -164,6 +164,13 @@ func GetMemberCount(roomId int64) (int, error) {
 	}
 }
 
+func DeleteMember(roomId, memberId int64) error {
+	return db.GetDB().
+		Where("room_id=? AND user_id=?", roomId, memberId).
+		Delete(&Member{}).
+		Error
+}
+
 func CacheKeyForRoom(roomId int64) string {
 	return fmt.Sprintf("nesgo_room_%d", roomId)
 }
