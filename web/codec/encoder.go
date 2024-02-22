@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/stellarisJAY/nesgo/ppu"
 	"github.com/stellarisJAY/nesgo/web/codec/h264"
+	"github.com/stellarisJAY/nesgo/web/codec/opus"
 )
 
 type IVideoEncoder interface {
@@ -23,4 +24,8 @@ func NewVideoEncoder(codec string) (IVideoEncoder, error) {
 type IAudioEncoder interface {
 	// Encode PCM to opus packet, Emulator outputs float32 PCM
 	Encode(pcm []float32) ([]byte, error)
+}
+
+func NewAudioEncoder(sampleRate int) (IAudioEncoder, error) {
+	return opus.NewEncoder(sampleRate)
 }
