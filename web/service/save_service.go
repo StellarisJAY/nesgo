@@ -5,40 +5,15 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/stellarisJAY/nesgo/web/model/db"
-	"github.com/stellarisJAY/nesgo/web/model/room"
 	"github.com/stellarisJAY/nesgo/web/model/save"
 	"gorm.io/gorm"
-	"net/http"
 	"path/filepath"
 	"strconv"
 	"time"
 )
 
 func (rs *RoomService) QuickSave(c *gin.Context) {
-	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
-	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, JSONResp{
-			Status:  400,
-			Message: "invalid room id",
-		})
-		return
-	}
-	// check membership
-	if m, ok := rs.IsRoomMember(roomId, userId); !ok {
-		c.JSON(200, JSONResp{
-			Status:  http.StatusForbidden,
-			Message: "not a member of this room",
-		})
-		return
-	} else if m.MemberType != room.MemberTypeOwner {
-		c.JSON(200, JSONResp{
-			Status:  http.StatusForbidden,
-			Message: "not a owner of this room",
-		})
-		return
-	}
-
+	roomId := c.GetInt64("roomId")
 	rs.m.Lock()
 	if session, ok := rs.rtcSessions[roomId]; ok {
 		rs.m.Unlock()
@@ -81,30 +56,7 @@ func (rs *RoomService) QuickSave(c *gin.Context) {
 }
 
 func (rs *RoomService) QuickLoad(c *gin.Context) {
-	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
-	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, JSONResp{
-			Status:  400,
-			Message: "invalid room id",
-		})
-		return
-	}
-	// check membership
-	if m, ok := rs.IsRoomMember(roomId, userId); !ok {
-		c.JSON(200, JSONResp{
-			Status:  http.StatusForbidden,
-			Message: "not a member of this room",
-		})
-		return
-	} else if m.MemberType != room.MemberTypeOwner {
-		c.JSON(200, JSONResp{
-			Status:  http.StatusForbidden,
-			Message: "not a owner of this room",
-		})
-		return
-	}
-
+	roomId := c.GetInt64("roomId")
 	lastSave, err := save.GetLastSave(roomId)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		c.JSON(200, JSONResp{Status: 404, Message: "No save found"})

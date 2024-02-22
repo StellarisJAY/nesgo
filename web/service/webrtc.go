@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media"
 	"github.com/stellarisJAY/nesgo/bus"
@@ -14,45 +14,13 @@ import (
 	"github.com/stellarisJAY/nesgo/web/codec"
 	"github.com/stellarisJAY/nesgo/web/model/room"
 	"github.com/stellarisJAY/nesgo/web/network"
+	"github.com/stellarisJAY/nesgo/web/util/future"
 	"log"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"time"
 )
-
-type MsgWithConnectionInfo struct {
-	Message
-	RTCRoomConnection
-}
-
-type Message struct {
-	Type byte   `json:"type"`
-	Data []byte `json:"data"`
-}
-
-const (
-	MessageSDPOffer byte = iota
-	MessageSDPAnswer
-	MessageICECandidate
-	MessageGameButtonPressed
-	MessageGameButtonReleased
-)
-
-type RTCRoomConnection struct {
-	MemberId     int64
-	wsConn       *WebsocketConn
-	rtcConn      *webrtc.PeerConnection
-	videoTrack   *webrtc.TrackLocalStaticSample
-	audioTrack   *webrtc.TrackLocalStaticSample
-	videoEncoder codec.IVideoEncoder // 每个连接独占一个视频编码器 和 buffer
-	connected    *atomic.Bool
-}
-
-type WebsocketConn struct {
-	Member *room.Member
-	Conn   *websocket.Conn
-}
 
 type RTCRoomSession struct {
 	m           *sync.Mutex
@@ -69,6 +37,9 @@ type RTCRoomSession struct {
 	audioSampleRate int
 	audioEncoder    codec.IAudioEncoder
 	audioSampleChan chan float32
+
+	controller1 int64
+	controller2 int64
 }
 
 type Signal struct {
@@ -91,12 +62,19 @@ type loadSavedGameRequest struct {
 	respChan chan error
 }
 
+type transferControlRequest struct {
+	memberId  int64
+	controlId int
+	future    *future.Future[struct{}]
+}
+
 const (
 	SignalNewConnection byte = iota
 	SignalWebsocketClose
 	SignalRestartEmulator
 	SignalSaveGame
 	SignalLoadSavedGame
+	SignalTransferControl
 )
 
 var rtcFactory *network.WebRTCFactory
@@ -157,7 +135,7 @@ func (r *RTCRoomSession) ControlLoop(ctx context.Context) {
 				continue
 			}
 			if msg.Type == MessageGameButtonReleased || msg.Type == MessageGameButtonPressed {
-				r.handleGameButtonMsg(msg.Message)
+				r.handleGameButtonMsg(msg)
 			}
 		}
 	}
@@ -194,28 +172,43 @@ func (r *RTCRoomSession) handleSignal(ctx context.Context, signal Signal) {
 		} else {
 			close(req.respChan)
 		}
+	case SignalTransferControl:
+		req := signal.Data.(*transferControlRequest)
+		if err := r.transferControl(req.memberId, req.controlId); err != nil {
+			req.future.Fail(err)
+		} else {
+			req.future.Success(&struct{}{})
+		}
 	}
 }
 
-func (r *RTCRoomSession) handleGameButtonMsg(msg Message) {
+func (r *RTCRoomSession) handleGameButtonMsg(msg MsgWithConnectionInfo) {
+	var controlId int
+	if msg.MemberId == r.controller1 {
+		controlId = 1
+	} else if msg.MemberId == r.controller2 {
+		controlId = 2
+	} else {
+		return
+	}
 	pressed := msg.Type == MessageGameButtonPressed
 	switch string(msg.Data) {
 	case "Left":
-		r.e.SetJoyPadButtonPressed(bus.Left, pressed)
+		r.e.SetJoyPadButtonPressed(controlId, bus.Left, pressed)
 	case "Right":
-		r.e.SetJoyPadButtonPressed(bus.Right, pressed)
+		r.e.SetJoyPadButtonPressed(controlId, bus.Right, pressed)
 	case "Up":
-		r.e.SetJoyPadButtonPressed(bus.Up, pressed)
+		r.e.SetJoyPadButtonPressed(controlId, bus.Up, pressed)
 	case "Down":
-		r.e.SetJoyPadButtonPressed(bus.Down, pressed)
+		r.e.SetJoyPadButtonPressed(controlId, bus.Down, pressed)
 	case "A":
-		r.e.SetJoyPadButtonPressed(bus.ButtonA, pressed)
+		r.e.SetJoyPadButtonPressed(controlId, bus.ButtonA, pressed)
 	case "B":
-		r.e.SetJoyPadButtonPressed(bus.ButtonB, pressed)
+		r.e.SetJoyPadButtonPressed(controlId, bus.ButtonB, pressed)
 	case "Start":
-		r.e.SetJoyPadButtonPressed(bus.Start, pressed)
+		r.e.SetJoyPadButtonPressed(controlId, bus.Start, pressed)
 	case "Select":
-		r.e.SetJoyPadButtonPressed(bus.Select, pressed)
+		r.e.SetJoyPadButtonPressed(controlId, bus.Select, pressed)
 	default:
 	}
 }
@@ -296,6 +289,41 @@ func (r *RTCRoomSession) loadSavedGame(data []byte) error {
 	r.e.Pause()
 	defer r.e.Resume()
 	return r.e.Load(data)
+}
+
+func (r *RTCRoomSession) TransferControl(memberId int64, controlId int) error {
+	req := transferControlRequest{
+		memberId:  memberId,
+		controlId: controlId,
+		future:    future.NewFuture[struct{}](),
+	}
+	r.signalChan <- Signal{
+		Type: SignalTransferControl,
+		Data: req,
+	}
+	_, err := req.future.Result()
+	if err == nil {
+		r.wsBroadcast(MessageControlTransferred, &ControlTransferredNotification{
+			Control1: r.controller1,
+			Control2: r.controller2,
+		})
+	}
+	return err
+}
+
+func (r *RTCRoomSession) transferControl(memberId int64, controlId int) error {
+	r.m.Lock()
+	defer r.m.Unlock()
+	if r.members[memberId].MemberType == room.MemberTypeWatcher {
+		return errors.New("watcher can't not gain control")
+	} else {
+		if controlId == 1 {
+			r.controller1 = memberId
+		} else if controlId == 2 {
+			r.controller2 = memberId
+		}
+		return nil
+	}
 }
 
 func (r *RTCRoomSession) renderCallback(p *ppu.PPU) {
@@ -467,64 +495,15 @@ func (r *RTCRoomSession) sendAudioSamples(samples []float32) {
 	}
 }
 
-func (rc *RTCRoomConnection) Handle(ctx context.Context, msgChan chan MsgWithConnectionInfo) {
-	wsConn := rc.wsConn.Conn
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-		}
-		msgType, payload, err := wsConn.ReadMessage()
-		if err != nil {
-			log.Println("ws read error:", err)
-			return
-		}
-		switch msgType {
-		case websocket.TextMessage:
-			msg := Message{}
-			if err := json.Unmarshal(payload, &msg); err != nil {
-				log.Println("invalid message error:", err)
-				continue
-			}
-			rc.HandleMessage(msg, msgChan)
-		case websocket.BinaryMessage:
-		}
+func (r *RTCRoomSession) wsBroadcast(msgType byte, data any) {
+	bytes, _ := json.Marshal(data)
+	msg := Message{
+		Type: msgType,
+		Data: bytes,
 	}
-}
-
-func (rc *RTCRoomConnection) sendMessage(msg Message) error {
-	payload, _ := json.Marshal(msg)
-	return rc.wsConn.Conn.WriteMessage(websocket.TextMessage, payload)
-}
-
-func (rc *RTCRoomConnection) Close() {
-	_ = rc.wsConn.Conn.Close()
-	_ = rc.rtcConn.Close()
-}
-
-func (rc *RTCRoomConnection) HandleMessage(msg Message, msgChan chan MsgWithConnectionInfo) {
-	switch msg.Type {
-	case MessageSDPAnswer:
-		sdp := webrtc.SessionDescription{}
-		_ = json.Unmarshal(msg.Data, &sdp)
-		if err := rc.rtcConn.SetRemoteDescription(sdp); err != nil {
-			log.Println("unable to set remote description, error:", err)
-			rc.Close()
+	for _, conn := range r.connections {
+		if err := conn.sendMessage(msg); err != nil {
+			log.Println("broadcast to", conn.wsConn.Conn.RemoteAddr(), "error:", err)
 		}
-	case MessageICECandidate:
-		candidate := webrtc.ICECandidateInit{}
-		_ = json.Unmarshal(msg.Data, &candidate)
-		log.Println("candidate:", candidate)
-		if err := rc.rtcConn.AddICECandidate(candidate); err != nil {
-			log.Println("unable to add ICE candidate, error:", err)
-			rc.Close()
-		}
-	case MessageGameButtonPressed, MessageGameButtonReleased:
-		msgChan <- MsgWithConnectionInfo{
-			Message:           msg,
-			RTCRoomConnection: *rc,
-		}
-	default:
 	}
 }

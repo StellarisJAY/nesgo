@@ -1,10 +1,8 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
 	"github.com/stellarisJAY/nesgo/web/config"
 	"github.com/stellarisJAY/nesgo/web/model/room"
 	"github.com/stellarisJAY/nesgo/web/model/user"
@@ -52,11 +50,6 @@ type RoomListVO struct {
 	OwnerName   string `json:"owner"`
 	Private     bool   `json:"private"`
 	MemberCount int    `json:"memberCount"`
-}
-
-type RoomMemberVO struct {
-	Id         int64 `json:"id"`
-	MemberType byte  `json:"memberType"`
 }
 
 func NewRoomService() *RoomService {
@@ -294,17 +287,6 @@ func (rs *RoomService) RoomPage(c *gin.Context) {
 	c.HTML(200, "room.html", roomDO)
 }
 
-func (rs *RoomService) IsRoomMember(roomId, userId int64) (*room.Member, bool) {
-	m, err := room.GetMember(roomId, userId)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, false
-		}
-		panic(err)
-	}
-	return m, true
-}
-
 func (rs *RoomService) GetRoomInfo(c *gin.Context) {
 	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
 	if err != nil {
@@ -331,220 +313,6 @@ func (rs *RoomService) GetRoomInfo(c *gin.Context) {
 		Message: "ok",
 		Data:    roomDO,
 	})
-}
-
-func (rs *RoomService) ListRoomMembers(c *gin.Context) {
-	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
-	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, JSONResp{
-			Status:  400,
-			Message: "invalid room id",
-		})
-		return
-	}
-	if _, ok := rs.IsRoomMember(roomId, userId); !ok {
-		c.JSON(200, JSONResp{
-			Status:  403,
-			Message: "not member of this room",
-		})
-		return
-	}
-
-	memberIds, err := room.ListRoomMembers(roomId)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(200, JSONResp{
-				Status:  200,
-				Message: "ok",
-			})
-			return
-		} else {
-			panic(err)
-		}
-	}
-	c.JSON(200, JSONResp{
-		Status:  200,
-		Message: "OK",
-		Data:    memberIds,
-	})
-}
-
-func (rs *RoomService) GetMemberType(c *gin.Context) {
-	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
-	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, JSONResp{
-			Status:  400,
-			Message: "invalid room id",
-		})
-		return
-	}
-	m, ok := rs.IsRoomMember(roomId, userId)
-	if !ok {
-		c.JSON(200, JSONResp{
-			Status:  403,
-			Message: "not a member of this room",
-		})
-	} else {
-		c.JSON(200, JSONResp{
-			Status:  200,
-			Message: "ok",
-			Data:    m.MemberType,
-		})
-	}
-}
-
-func (rs *RoomService) GetRoomMemberSelf(c *gin.Context) {
-	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
-	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, JSONResp{
-			Status:  400,
-			Message: "invalid room id",
-		})
-		return
-	}
-	m, err := room.GetMemberFull(roomId, userId)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(200, JSONResp{
-				Status:  403,
-				Message: "not a member of this room",
-			})
-			return
-		}
-		panic(err)
-	}
-	c.JSON(200, JSONResp{
-		Status:  200,
-		Message: "ok",
-		Data:    m,
-	})
-}
-
-func (rs *RoomService) ConnectRTCRoomSession(c *gin.Context) {
-	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
-	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, JSONResp{
-			Status:  400,
-			Message: "invalid room id",
-		})
-		return
-	}
-	var member *room.Member
-	// check membership
-	if m, ok := rs.IsRoomMember(roomId, userId); !ok {
-		c.JSON(200, JSONResp{
-			Status:  http.StatusForbidden,
-			Message: "not a member of this room",
-		})
-		return
-	} else {
-		member = m
-	}
-
-	rs.m.Lock()
-	var session *RTCRoomSession
-	// check if room's game session is created
-	if s, ok := rs.rtcSessions[roomId]; !ok {
-		// Only owner can create session
-		if member.MemberType != room.MemberTypeOwner {
-			rs.m.Unlock()
-			c.JSON(200, JSONResp{
-				Status:  http.StatusForbidden,
-				Message: "only owner can start game session",
-			})
-			return
-		}
-
-		game := c.Query("game")
-		if game == "" {
-			rs.m.Unlock()
-			c.JSON(200, JSONResp{
-				Status:  http.StatusBadRequest,
-				Message: "invalid game name",
-			})
-			return
-		}
-		newSession, err := NewRTCRoomSession(game)
-		if err != nil {
-			panic(err)
-		}
-		rs.rtcSessions[roomId] = newSession
-		ctx, cancelFunc := context.WithCancel(context.Background())
-		newSession.cancel = cancelFunc
-		go newSession.ControlLoop(ctx)
-		go newSession.audioSampleListener(ctx)
-		session = newSession
-	} else {
-		session = s
-	}
-	rs.m.Unlock()
-	// handle room websocket conn
-	conn, err := websocket.Upgrade(c.Writer, c.Request, http.Header{}, 1024, 1024)
-	if err != nil {
-		panic(err)
-	}
-	session.signalChan <- Signal{
-		Type: SignalNewConnection,
-		Data: &WebsocketConn{
-			Member: member,
-			Conn:   conn,
-		},
-	}
-}
-
-func (rs *RoomService) Restart(c *gin.Context) {
-	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
-	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, JSONResp{
-			Status:  400,
-			Message: "invalid room id",
-		})
-		return
-	}
-	// check membership
-	if m, ok := rs.IsRoomMember(roomId, userId); !ok {
-		c.JSON(200, JSONResp{
-			Status:  http.StatusForbidden,
-			Message: "not a member of this room",
-		})
-		return
-	} else if m.MemberType != room.MemberTypeOwner {
-		c.JSON(200, JSONResp{
-			Status:  http.StatusForbidden,
-			Message: "only owner can restart emulator",
-		})
-		return
-	}
-
-	rs.m.Lock()
-	if session, ok := rs.rtcSessions[roomId]; !ok {
-		rs.m.Unlock()
-		c.JSON(200, JSONResp{
-			Status:  http.StatusNotFound,
-			Message: "game session not found",
-		})
-		return
-	} else {
-		rs.m.Unlock()
-		if game := c.Query("game"); game == "" {
-			c.JSON(200, JSONResp{
-				Status:  http.StatusBadRequest,
-				Message: "invalid game name",
-			})
-			return
-		} else {
-			err := session.restart(game)
-			if err != nil {
-				panic(err)
-			}
-			c.JSON(200, JSONResp{Status: http.StatusOK, Message: "success"})
-		}
-	}
 }
 
 const charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
