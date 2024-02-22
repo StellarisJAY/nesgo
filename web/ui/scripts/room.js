@@ -37,12 +37,13 @@ const MemberTypeOwner = 0
 const MemberTypeGamer = 1
 const MemberTypeWatcher = 2
 
+let roomMembers = {}
+
 onload = ev=>{
     roomId = window.location.pathname.substring(6)
     // 连接之前禁用控制按钮
     setControlButtonsDisabled(true)
     getRoomMemberSelf()
-    listGames()
 }
 
 function connect() {
@@ -207,6 +208,8 @@ function getRoomMemberSelf() {
     get("/room/"+roomId+"/member", null)
         .then(data=>{
             rtcSession.member = data
+            listRoomMembers()
+            listGames()
         })
         .catch(resp=>{
             if (resp.status === 403) {
@@ -242,5 +245,64 @@ function quickLoad() {
                 return
             }
             alert(resp.message)
+        })
+}
+
+function listRoomMembers() {
+    get("/room/"+roomId+"/members", null)
+        .then(data=> {
+            data.forEach(m=>{
+                roomMembers[m["id"]] = m
+            })
+            renderMembersTable()
+        })
+        .catch(resp=>{
+            console.log(resp)
+        })
+}
+
+function showRoomMembersModal() {
+    const modal = new bootstrap.Modal(document.getElementById("room-members-modal"), {
+        keyboard: false
+    })
+    modal.show()
+}
+
+function renderMembersTable() {
+    const rows = document.getElementById("member-rows")
+    rows.innerHTML = ""
+    for (let k in roomMembers) {
+        const member = roomMembers[k];
+        const row = document.createElement("tr")
+        row.innerHTML += "<td>" + member["name"] + "</td>"
+        row.innerHTML += "<td>" + memberTypes[member["memberType"]] + "</td>"
+        const kickButton = document.createElement("button")
+        kickButton.innerText = "Kick"
+        kickButton.type = "button"
+        kickButton.className = "btn btn-primary kick-button"
+        kickButton.style.height = "80%"
+        kickButton.disabled = rtcSession.member["memberType"] !== 0
+        if (rtcSession.member["memberType"] === 0) {
+            kickButton.onclick = _=>kick(member["id"])
+        }
+        row.appendChild(kickButton)
+        rows.appendChild(row)
+    }
+}
+
+function kick(memberId) {
+    post("/room/"+roomId+"/member/kick", JSON.stringify({
+        "memberId": memberId,
+        "kick": true
+    }))
+        .then(data=>{
+            delete roomMembers[memberId]
+            renderMembersTable()
+        })
+        .catch(resp=>{
+            if (resp.status!==500) {
+                alert(resp.message)
+            }
+            console.log(resp.message)
         })
 }
