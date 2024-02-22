@@ -26,7 +26,8 @@ type RawEmulator struct {
 	cartridge cartridge.Cartridge
 	bus       *bus.Bus
 	ppu       *ppu.PPU
-	joyPad    *bus.JoyPad
+	joyPad1   *bus.JoyPad
+	joyPad2   *bus.JoyPad
 	apu       *apu.BasicAPU
 	config    config.Config
 
@@ -52,8 +53,12 @@ func (e *RawEmulator) Disassemble() {
 	e.processor.Disassemble(trace.PrintDisassemble)
 }
 
-func (e *RawEmulator) SetJoyPadButtonPressed(button bus.JoyPadButton, pressed bool) {
-	e.joyPad.SetButtonPressed(button, pressed)
+func (e *RawEmulator) SetJoyPadButtonPressed(id int, button bus.JoyPadButton, pressed bool) {
+	if id == 1 {
+		e.joyPad1.SetButtonPressed(button, pressed)
+	} else {
+		e.joyPad2.SetButtonPressed(button, pressed)
+	}
 }
 
 func (e *RawEmulator) Pause() {
