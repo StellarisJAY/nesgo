@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stellarisJAY/nesgo/web/model/room"
 	"net/http"
-	"strconv"
 )
 
 func (rs *RoomService) Restart(c *gin.Context) {
@@ -37,16 +36,13 @@ func (rs *RoomService) Restart(c *gin.Context) {
 
 func (rs *RoomService) TransferControl(c *gin.Context) {
 	roomId := c.GetInt64("roomId")
-	target, err := strconv.ParseInt(c.Query("target"), 10, 64)
-	controlId, _ := strconv.Atoi(c.Query("control"))
+	var req AlterRoomMemberRequest
+	err := c.ShouldBindJSON(&req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, JSONResp{
-			Status:  400,
-			Message: "invalid target user id",
-		})
+		c.JSON(http.StatusBadRequest, JSONResp{Status: 400, Message: err.Error()})
 		return
 	}
-	targetMember, ok := rs.IsRoomMember(roomId, target)
+	targetMember, ok := rs.IsRoomMember(roomId, req.MemberId)
 	if !ok || targetMember.MemberType == room.MemberTypeWatcher {
 		c.JSON(200, JSONResp{
 			Status:  http.StatusForbidden,
@@ -61,11 +57,11 @@ func (rs *RoomService) TransferControl(c *gin.Context) {
 	if !ok {
 		c.JSON(200, JSONResp{
 			Status:  http.StatusNotFound,
-			Message: "room session not found",
+			Message: "room session not created",
 		})
 		return
 	}
-	if err := session.TransferControl(target, controlId); err != nil {
+	if err := session.TransferControl(req.MemberId, req.SetController1, req.SetController2); err != nil {
 		c.JSON(200, JSONResp{Status: 400, Message: err.Error()})
 	} else {
 		c.JSON(200, JSONResp{Status: 200, Message: "ok"})

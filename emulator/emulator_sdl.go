@@ -60,10 +60,11 @@ func NewEmulator(nesData []byte, conf config.Config) *Emulator {
 			m:         &sync.Mutex{},
 		},
 	}
-	e.joyPad = bus.NewJoyPad()
+	e.joyPad1 = bus.NewJoyPad()
+	e.joyPad2 = bus.NewJoyPad()
 	e.ppu = ppu.NewPPU(e.cartridge.GetChrBank, e.cartridge.GetMirroring, e.cartridge.WriteCHR)
 	e.apu = apu.NewBasicAPU()
-	e.bus = bus.NewBus(e.cartridge, e.ppu, e.RendererCallback, e.joyPad, e.apu)
+	e.bus = bus.NewBus(e.cartridge, e.ppu, e.RendererCallback, e.joyPad1, e.joyPad2, e.apu)
 	e.processor = cpu.NewProcessor(e.bus)
 	e.keyMap = make(map[sdl.Scancode]bus.JoyPadButton)
 	if !conf.MuteApu {
@@ -226,11 +227,11 @@ func (e *Emulator) handleEvents() {
 			switch event.State {
 			case sdl.PRESSED:
 				if button, ok := e.keyMap[event.Keysym.Scancode]; ok {
-					e.joyPad.SetButtonPressed(button, true)
+					e.joyPad1.SetButtonPressed(button, true)
 				}
 			case sdl.RELEASED:
 				if button, ok := e.keyMap[event.Keysym.Scancode]; ok {
-					e.joyPad.SetButtonPressed(button, false)
+					e.joyPad1.SetButtonPressed(button, false)
 				}
 			}
 		default:

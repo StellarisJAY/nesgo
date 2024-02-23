@@ -36,9 +36,10 @@ func NewEmulator(game string, conf config.Config, callback bus.RenderCallback, a
 		},
 	}
 	e.joyPad1 = bus.NewJoyPad()
+	e.joyPad2 = bus.NewJoyPad()
 	e.ppu = ppu.NewPPU(e.cartridge.GetChrBank, e.cartridge.GetMirroring, e.cartridge.WriteCHR)
 	e.apu = apu.NewBasicAPU()
-	e.bus = bus.NewBus(e.cartridge, e.ppu, callback, e.joyPad1, e.apu)
+	e.bus = bus.NewBus(e.cartridge, e.ppu, callback, e.joyPad1, e.joyPad2, e.apu)
 	e.apu.SetRates(bus.CPUFrequency, float64(apuSampleRate))
 	e.apu.SetOutputChan(audioSampleChan)
 	e.apu.SetMemReader(e.bus.ReadMemUint8)

@@ -249,12 +249,12 @@ function quickLoad() {
 }
 
 function listRoomMembers() {
-    get("/room/"+roomId+"/members", null)
+    return get("/room/"+roomId+"/members", null)
         .then(data=> {
+            roomMembers = {}
             data.forEach(m=>{
                 roomMembers[m["id"]] = m
             })
-            renderMembersTable()
         })
         .catch(resp=>{
             console.log(resp)
@@ -265,17 +265,52 @@ function showRoomMembersModal() {
     const modal = new bootstrap.Modal(document.getElementById("room-members-modal"), {
         keyboard: false
     })
-    modal.show()
+    listRoomMembers()
+        .then(_=>renderMembersTable())
+        .then(_=>modal.show())
 }
 
 function renderMembersTable() {
     const rows = document.getElementById("member-rows")
     rows.innerHTML = ""
+    const isOwner = rtcSession.member["memberType"] === 0
     for (let k in roomMembers) {
         const member = roomMembers[k];
         const row = document.createElement("tr")
         row.innerHTML += "<td>" + member["name"] + "</td>"
-        row.innerHTML += "<td>" + memberTypes[member["memberType"]] + "</td>"
+        const td1 = document.createElement("td")
+        const td2 = document.createElement("td")
+        const td3 = document.createElement("td")
+        const td4 = document.createElement("td")
+
+        const p1 = document.createElement("input")
+        const p2 = document.createElement("input")
+        const gamer = document.createElement("input")
+        const watcher = document.createElement("input")
+        p1.type="checkbox"
+        p2.type = "checkbox"
+        gamer.type = "checkbox"
+        watcher.type = "checkbox"
+        p1.disabled=!isOwner
+        p2.disabled=!isOwner
+        gamer.disabled = !isOwner
+        watcher.disabled = !isOwner
+        p1.checked = member["player1"]
+        p2.checked = member["player2"]
+        gamer.checked = member["memberType"]  === MemberTypeGamer
+        watcher.checked = member["memberType"] === MemberTypeWatcher
+        if (isOwner) {
+            p1.onchange = _ => transferControl(member["id"], true, false)
+            p2.onchange = _=>transferControl(member["id"], false, true)
+            gamer.onchange = _=>alterMemberType(member["id"], MemberTypeGamer)
+            watcher.onchange = _=>alterMemberType(member["id"], MemberTypeWatcher)
+        }
+        console.log(member)
+        td1.appendChild(p1)
+        td2.appendChild(p2)
+        td3.appendChild(gamer)
+        td4.appendChild(watcher)
+        row.append(td1, td2, td3, td4)
         const kickButton = document.createElement("button")
         kickButton.innerText = "Kick"
         kickButton.type = "button"
@@ -301,6 +336,46 @@ function kick(memberId) {
         })
         .catch(resp=>{
             if (resp.status!==500) {
+                alert(resp.message)
+            }
+            console.log(resp.message)
+        })
+}
+
+function transferControl(memberId, control1, control2) {
+    if (roomMembers[memberId]["memberType"] === MemberTypeWatcher) {
+        alert("can not give control to watcher")
+        return
+    }
+    post("/room/"+roomId+"/control/transfer", JSON.stringify({
+        "memberId": memberId,
+        "setController1": control1,
+        "setController2": control2,
+    }))
+        .then(data=>{
+            return listRoomMembers()
+        })
+        .then(_=>renderMembersTable())
+        .catch(resp=>{
+            if (resp.status !== 500) {
+                alert(resp.message)
+            }
+            console.log(resp.message)
+        })
+}
+
+function alterMemberType(memberId, memberType) {
+    if (roomMembers[memberId]["memberType"] === memberType) {
+        return
+    }
+    post("/room/" + roomId + "/memberType", JSON.stringify({
+        "memberId": memberId,
+        "memberType": memberType,
+    }))
+        .then(_=>{return listRoomMembers()})
+        .then(_=>renderMembersTable())
+        .catch(resp=>{
+            if (resp.status !== 500) {
                 alert(resp.message)
             }
             console.log(resp.message)

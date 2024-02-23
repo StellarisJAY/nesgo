@@ -70,6 +70,7 @@ func setupRouter() *gin.Engine {
 			roomOwnerApis.POST("/room/:roomId/quickLoad", roomService.QuickLoad)
 			roomOwnerApis.POST("/room/:roomId/control/transfer", roomService.TransferControl)
 			roomOwnerApis.POST("/room/:roomId/member/kick", roomService.KickMember)
+			roomOwnerApis.POST("/room/:roomId/memberType", roomService.AlterMemberType)
 		}
 		// only room member can access these apis:
 		roomMemberApis := authorized.Group("/", roomService.MemberAccessible())
