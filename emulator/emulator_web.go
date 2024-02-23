@@ -19,7 +19,7 @@ type Emulator struct {
 	RawEmulator
 }
 
-func NewEmulator(game string, conf config.Config, callback bus.RenderCallback) (*Emulator, error) {
+func NewEmulator(game string, conf config.Config, callback bus.RenderCallback, audioSampleChan chan float32, apuSampleRate int) (*Emulator, error) {
 	nesData, err := ReadGameFile(game)
 	if err != nil {
 		return nil, err
@@ -35,13 +35,14 @@ func NewEmulator(game string, conf config.Config, callback bus.RenderCallback) (
 			m:         &sync.Mutex{},
 		},
 	}
-	e.joyPad = bus.NewJoyPad()
+	e.joyPad1 = bus.NewJoyPad()
+	e.joyPad2 = bus.NewJoyPad()
 	e.ppu = ppu.NewPPU(e.cartridge.GetChrBank, e.cartridge.GetMirroring, e.cartridge.WriteCHR)
 	e.apu = apu.NewBasicAPU()
-	e.bus = bus.NewBus(e.cartridge, e.ppu, callback, e.joyPad, e.apu)
-	e.apu.SetRates(bus.CPUFrequency, 44100)
-	// todo add sound track to video stream, mute apu temporarily
-	e.apu.Mute()
+	e.bus = bus.NewBus(e.cartridge, e.ppu, callback, e.joyPad1, e.joyPad2, e.apu)
+	e.apu.SetRates(bus.CPUFrequency, float64(apuSampleRate))
+	e.apu.SetOutputChan(audioSampleChan)
+	e.apu.SetMemReader(e.bus.ReadMemUint8)
 	e.processor = cpu.NewProcessor(e.bus)
 	return e, nil
 }

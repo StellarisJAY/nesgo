@@ -8,3 +8,6 @@ const stunServer = "stun:192.168.0.107:3478"
 const turnServer = "turn:192.168.0.107:3478"
 const turnUser = "xxjay"
 const turnCredential = "123456"
+
+
+const memberTypes = ["Owner", "Gamer", "Watcher"]

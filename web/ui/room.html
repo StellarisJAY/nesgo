@@ -2,6 +2,7 @@
 <html>
 <header>
     <title>webrtc</title>
+    <link href="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/css/bootstrap.min.css" rel="stylesheet">
 </header>
 <body>
 
@@ -31,15 +32,45 @@
         <button onclick="restartEmulator()" class="control-button" id="restart-button" disabled>RESTART</button>
         <button onclick="quickSave()" class="control-button" id="save-button" disabled>SAVE</button>
         <button onclick="quickLoad()" class="control-button" id="load-button" disabled>LOAD</button>
+        <button onclick="showRoomMembersModal()" class="control-button" id="show-members-button">Room Members</button>
+    </div>
+</div>
+
+<!-- Room Members Modal -->
+<div class="modal fade modal-lg" id="room-members-modal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h1 class="modal-title fs-5">Room Members</h1>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table" id="members-table">
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>P1</th>
+                        <th>P2</th>
+                        <th>Gamer</th>
+                        <th>Watcher</th>
+                        <th>#</th>
+                    </tr>
+                    </thead>
+                    <tbody id="member-rows">
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 </div>
 </body>
 </html>
 
+<script src="https://cdn.bootcdn.net/ajax/libs/twitter-bootstrap/5.3.1/js/bootstrap.bundle.min.js"></script>
 <script src="/scripts/const.js"></script>
 <script src="/scripts/auth.js"></script>
 <script src="/scripts/request.js"></script>
-<script src="/scripts/video.js"></script>
+<script src="/scripts/room.js"></script>
 
 <style>
     *{
@@ -190,6 +221,11 @@
         left: 5%;
         top: 20%;
     }
+
+    #show-members-button{
+
+    }
+
     #game-selector {
         margin: auto;
         position: inherit;

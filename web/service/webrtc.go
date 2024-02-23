@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media"
 	"github.com/stellarisJAY/nesgo/bus"
@@ -14,48 +14,14 @@ import (
 	"github.com/stellarisJAY/nesgo/web/codec"
 	"github.com/stellarisJAY/nesgo/web/model/room"
 	"github.com/stellarisJAY/nesgo/web/network"
+	"github.com/stellarisJAY/nesgo/web/util/future"
 	"log"
 	"path/filepath"
-	"sync"
 	"sync/atomic"
 	"time"
 )
 
-type MsgWithConnectionInfo struct {
-	Message
-	RTCRoomConnection
-}
-
-type Message struct {
-	Type byte   `json:"type"`
-	Data []byte `json:"data"`
-}
-
-const (
-	MessageSDPOffer byte = iota
-	MessageSDPAnswer
-	MessageICECandidate
-	MessageGameButtonPressed
-	MessageGameButtonReleased
-)
-
-type RTCRoomConnection struct {
-	MemberId     int64
-	wsConn       *WebsocketConn
-	rtcConn      *webrtc.PeerConnection
-	track        *webrtc.TrackLocalStaticSample
-	videoEncoder codec.IVideoEncoder // 每个连接独占一个视频编码器 和 buffer
-
-	connected *atomic.Bool
-}
-
-type WebsocketConn struct {
-	Member *room.Member
-	Conn   *websocket.Conn
-}
-
 type RTCRoomSession struct {
-	m           *sync.Mutex
 	members     map[int64]*room.Member
 	connections map[int64]*RTCRoomConnection
 	e           *emulator.Emulator
@@ -64,8 +30,14 @@ type RTCRoomSession struct {
 
 	wsMessageChan chan MsgWithConnectionInfo
 
-	emulatorCancel context.CancelFunc
-	game           string
+	emulatorCancel  context.CancelFunc
+	game            string
+	audioSampleRate int
+	audioEncoder    codec.IAudioEncoder
+	audioSampleChan chan float32
+
+	controller1 int64
+	controller2 int64
 }
 
 type Signal struct {
@@ -88,12 +60,21 @@ type loadSavedGameRequest struct {
 	respChan chan error
 }
 
+type transferControlRequest struct {
+	memberId int64
+	control1 bool
+	control2 bool
+	future   *future.Future[struct{}]
+}
+
 const (
 	SignalNewConnection byte = iota
 	SignalWebsocketClose
+	SignalPeerConnected
 	SignalRestartEmulator
 	SignalSaveGame
 	SignalLoadSavedGame
+	SignalTransferControl
 )
 
 var rtcFactory *network.WebRTCFactory
@@ -111,20 +92,28 @@ func init() {
 }
 
 func NewRTCRoomSession(game string) (*RTCRoomSession, error) {
+	const sampleRate = 48000
 	rs := &RTCRoomSession{
-		m:             &sync.Mutex{},
-		members:       make(map[int64]*room.Member),
-		connections:   make(map[int64]*RTCRoomConnection),
-		signalChan:    make(chan Signal),
-		wsMessageChan: make(chan MsgWithConnectionInfo),
-		game:          game,
+		members:         make(map[int64]*room.Member),
+		connections:     make(map[int64]*RTCRoomConnection),
+		signalChan:      make(chan Signal),
+		wsMessageChan:   make(chan MsgWithConnectionInfo),
+		game:            game,
+		audioSampleRate: sampleRate,
 	}
 	game = filepath.Join(config.GetEmulatorConfig().GameDirectory, game)
-	e, err := emulator.NewEmulator(game, config.GetEmulatorConfig(), rs.renderCallback)
+	sampleChan := make(chan float32, sampleRate)
+	e, err := emulator.NewEmulator(game, config.GetEmulatorConfig(), rs.renderCallback, sampleChan, sampleRate)
 	if err != nil {
 		return nil, err
 	}
 	rs.e = e
+	rs.audioSampleChan = sampleChan
+	audioEncoder, err := codec.NewAudioEncoder(sampleRate)
+	if err != nil {
+		return nil, err
+	}
+	rs.audioEncoder = audioEncoder
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	// 创建模拟器线程，暂停模拟器等待第一个连接唤醒
 	go rs.e.LoadAndRun(ctx, false)
@@ -145,7 +134,7 @@ func (r *RTCRoomSession) ControlLoop(ctx context.Context) {
 				continue
 			}
 			if msg.Type == MessageGameButtonReleased || msg.Type == MessageGameButtonPressed {
-				r.handleGameButtonMsg(msg.Message)
+				r.handleGameButtonMsg(msg)
 			}
 		}
 	}
@@ -161,6 +150,16 @@ func (r *RTCRoomSession) handleSignal(ctx context.Context, signal Signal) {
 		if conn, ok := signal.Data.(*WebsocketConn); ok {
 			r.onWebsocketConnClose(conn)
 		}
+	case SignalPeerConnected:
+		conn, _ := signal.Data.(*RTCRoomConnection)
+		// 检查当前连接数量，第一个建立的连接启动模拟器
+		controllers := r.filterMembers(func(m room.Member) bool {
+			return m.MemberType != room.MemberTypeWatcher
+		})
+		if len(controllers) == 1 {
+			r.e.Resume()
+		}
+		conn.connected.Store(true)
 	case SignalRestartEmulator:
 		req := signal.Data.(*restartEmulatorRequest)
 		if err := r.restart(req.game); err != nil {
@@ -182,28 +181,43 @@ func (r *RTCRoomSession) handleSignal(ctx context.Context, signal Signal) {
 		} else {
 			close(req.respChan)
 		}
+	case SignalTransferControl:
+		req := signal.Data.(transferControlRequest)
+		if err := r.transferControl(req.memberId, req.control1, req.control2); err != nil {
+			req.future.Fail(err)
+		} else {
+			req.future.Success(&struct{}{})
+		}
 	}
 }
 
-func (r *RTCRoomSession) handleGameButtonMsg(msg Message) {
+func (r *RTCRoomSession) handleGameButtonMsg(msg MsgWithConnectionInfo) {
+	var controlId int
+	if msg.MemberId == r.controller1 {
+		controlId = 1
+	} else if msg.MemberId == r.controller2 {
+		controlId = 2
+	} else {
+		return
+	}
 	pressed := msg.Type == MessageGameButtonPressed
 	switch string(msg.Data) {
 	case "Left":
-		r.e.SetJoyPadButtonPressed(bus.Left, pressed)
+		r.e.SetJoyPadButtonPressed(controlId, bus.Left, pressed)
 	case "Right":
-		r.e.SetJoyPadButtonPressed(bus.Right, pressed)
+		r.e.SetJoyPadButtonPressed(controlId, bus.Right, pressed)
 	case "Up":
-		r.e.SetJoyPadButtonPressed(bus.Up, pressed)
+		r.e.SetJoyPadButtonPressed(controlId, bus.Up, pressed)
 	case "Down":
-		r.e.SetJoyPadButtonPressed(bus.Down, pressed)
+		r.e.SetJoyPadButtonPressed(controlId, bus.Down, pressed)
 	case "A":
-		r.e.SetJoyPadButtonPressed(bus.ButtonA, pressed)
+		r.e.SetJoyPadButtonPressed(controlId, bus.ButtonA, pressed)
 	case "B":
-		r.e.SetJoyPadButtonPressed(bus.ButtonB, pressed)
+		r.e.SetJoyPadButtonPressed(controlId, bus.ButtonB, pressed)
 	case "Start":
-		r.e.SetJoyPadButtonPressed(bus.Start, pressed)
+		r.e.SetJoyPadButtonPressed(controlId, bus.Start, pressed)
 	case "Select":
-		r.e.SetJoyPadButtonPressed(bus.Select, pressed)
+		r.e.SetJoyPadButtonPressed(controlId, bus.Select, pressed)
 	default:
 	}
 }
@@ -223,7 +237,17 @@ func (r *RTCRoomSession) Restart(game string) error {
 func (r *RTCRoomSession) restart(game string) error {
 	r.game = game
 	game = filepath.Join(config.GetEmulatorConfig().GameDirectory, game)
-	e, err := emulator.NewEmulator(game, config.GetEmulatorConfig(), r.renderCallback)
+
+LOOP:
+	for {
+		select {
+		case <-r.audioSampleChan:
+		default:
+			break LOOP
+		}
+	}
+
+	e, err := emulator.NewEmulator(game, config.GetEmulatorConfig(), r.renderCallback, r.audioSampleChan, r.audioSampleRate)
 	if err != nil {
 		return err
 	}
@@ -276,6 +300,42 @@ func (r *RTCRoomSession) loadSavedGame(data []byte) error {
 	return r.e.Load(data)
 }
 
+func (r *RTCRoomSession) TransferControl(memberId int64, control1, control2 bool) error {
+	req := transferControlRequest{
+		memberId: memberId,
+		control1: control1,
+		control2: control2,
+		future:   future.NewFuture[struct{}](),
+	}
+	r.signalChan <- Signal{
+		Type: SignalTransferControl,
+		Data: req,
+	}
+	_, err := req.future.Result()
+	return err
+}
+
+func (r *RTCRoomSession) transferControl(memberId int64, control1, control2 bool) error {
+	if _, ok := r.members[memberId]; !ok {
+		return errors.New("member not connected")
+	}
+	if r.members[memberId].MemberType == room.MemberTypeWatcher {
+		return errors.New("watcher can't not gain control")
+	} else {
+		if control1 {
+			r.controller1 = memberId
+		} else if r.controller1 == memberId {
+			r.controller1 = 0
+		}
+		if control2 {
+			r.controller2 = memberId
+		} else if r.controller2 == memberId {
+			r.controller2 = 0
+		}
+		return nil
+	}
+}
+
 func (r *RTCRoomSession) renderCallback(p *ppu.PPU) {
 	p.Render()
 	for _, conn := range r.connections {
@@ -292,7 +352,7 @@ func (r *RTCRoomSession) renderCallback(p *ppu.PPU) {
 			continue
 		}
 		data := conn.videoEncoder.FlushBuffer()
-		if err := conn.track.WriteSample(media.Sample{
+		if err := conn.videoTrack.WriteSample(media.Sample{
 			Data:     data,
 			Duration: 2 * time.Millisecond, // todo 根据帧率设置Duration
 		}); err != nil {
@@ -329,13 +389,18 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 		}
 	}()
 
-	track, _ := rtcFactory.VideoTrack("h264")
+	videoTrack, _ := rtcFactory.VideoTrack("h264")
 	// add video track to peer connection
-	if _, err := peer.AddTrack(track); err != nil {
+	if _, err := peer.AddTrack(videoTrack); err != nil {
 		panic(fmt.Errorf("unable to add video track to peer, error: %w", err))
 	}
-	roomConnection.track = track
-	// todo add audio track
+	roomConnection.videoTrack = videoTrack
+
+	audioTrack, _ := rtcFactory.AudioTrack("opus")
+	if _, err := peer.AddTrack(audioTrack); err != nil {
+		panic(fmt.Errorf("unable to add audio track to peer, error: %w", err))
+	}
+	roomConnection.audioTrack = audioTrack
 	// create sdp offer and set local description
 	sdp, err := peer.CreateOffer(nil)
 	if err != nil {
@@ -357,13 +422,7 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 		log.Println("rtc conn state:", state)
 		switch state {
 		case webrtc.PeerConnectionStateConnected:
-			// 检查当前连接数量，第一个建立的连接启动模拟器
-			r.m.Lock()
-			if len(r.connections) == 1 {
-				r.e.Resume()
-			}
-			r.m.Unlock()
-			roomConnection.connected.Store(true)
+			r.signalChan <- Signal{SignalPeerConnected, roomConnection}
 		case webrtc.PeerConnectionStateDisconnected:
 			roomConnection.connected.Store(false)
 			roomConnection.Close()
@@ -380,10 +439,14 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 		panic(fmt.Errorf("unable to create encoder, error: %w", err))
 	}
 	roomConnection.videoEncoder = encoder
-	r.m.Lock()
+	controllableMembers := r.filterMembers(func(m room.Member) bool {
+		return m.MemberType != room.MemberTypeWatcher
+	})
 	r.members[wsConn.Member.UserId] = wsConn.Member
 	r.connections[wsConn.Member.UserId] = roomConnection
-	r.m.Unlock()
+	if r.controller1 == 0 && len(controllableMembers) == 0 && wsConn.Member.MemberType == room.MemberTypeOwner {
+		_ = r.transferControl(wsConn.Member.UserId, true, false)
+	}
 	go func() {
 		roomConnection.Handle(context.WithoutCancel(ctx), r.wsMessageChan)
 		r.signalChan <- Signal{
@@ -394,74 +457,78 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 }
 
 func (r *RTCRoomSession) onWebsocketConnClose(wsConn *WebsocketConn) {
-	r.m.Lock()
 	delete(r.connections, wsConn.Member.UserId)
 	delete(r.members, wsConn.Member.UserId)
+	if wsConn.Member.UserId == r.controller1 {
+		r.controller1 = 0
+	}
+	if wsConn.Member.UserId == r.controller2 {
+		r.controller2 = 0
+	}
 	// 已经没有活跃连接，暂停模拟器线程
-	if len(r.connections) == 0 {
+	controllableMembers := r.filterMembers(func(m room.Member) bool {
+		return m.MemberType != room.MemberTypeWatcher
+	})
+	if len(controllableMembers) == 0 {
 		r.e.Pause()
 	}
-	r.m.Unlock()
 }
 
-func (rc *RTCRoomConnection) Handle(ctx context.Context, msgChan chan MsgWithConnectionInfo) {
-	wsConn := rc.wsConn.Conn
+func (r *RTCRoomSession) audioSampleListener(ctx context.Context) {
+	buffer := make([]float32, 0, r.audioSampleRate*5/1000)
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		default:
-		}
-		msgType, payload, err := wsConn.ReadMessage()
-		if err != nil {
-			log.Println("ws read error:", err)
-			return
-		}
-		switch msgType {
-		case websocket.TextMessage:
-			msg := Message{}
-			if err := json.Unmarshal(payload, &msg); err != nil {
-				log.Println("invalid message error:", err)
-				continue
+		case s := <-r.audioSampleChan:
+			buffer = append(buffer, s)
+			if len(buffer) == cap(buffer) {
+				r.sendAudioSamples(buffer)
+				buffer = buffer[:0]
 			}
-			rc.HandleMessage(msg, msgChan)
-		case websocket.BinaryMessage:
 		}
 	}
 }
 
-func (rc *RTCRoomConnection) sendMessage(msg Message) error {
-	payload, _ := json.Marshal(msg)
-	return rc.wsConn.Conn.WriteMessage(websocket.TextMessage, payload)
-}
-
-func (rc *RTCRoomConnection) Close() {
-	_ = rc.wsConn.Conn.Close()
-	_ = rc.rtcConn.Close()
-}
-
-func (rc *RTCRoomConnection) HandleMessage(msg Message, msgChan chan MsgWithConnectionInfo) {
-	switch msg.Type {
-	case MessageSDPAnswer:
-		sdp := webrtc.SessionDescription{}
-		_ = json.Unmarshal(msg.Data, &sdp)
-		if err := rc.rtcConn.SetRemoteDescription(sdp); err != nil {
-			log.Println("unable to set remote description, error:", err)
-			rc.Close()
-		}
-	case MessageICECandidate:
-		candidate := webrtc.ICECandidateInit{}
-		_ = json.Unmarshal(msg.Data, &candidate)
-		log.Println("candidate:", candidate)
-		if err := rc.rtcConn.AddICECandidate(candidate); err != nil {
-			log.Println("unable to add ICE candidate, error:", err)
-			rc.Close()
-		}
-	case MessageGameButtonPressed, MessageGameButtonReleased:
-		msgChan <- MsgWithConnectionInfo{
-			Message:           msg,
-			RTCRoomConnection: *rc,
-		}
-	default:
+func (r *RTCRoomSession) sendAudioSamples(samples []float32) {
+	frame, err := r.audioEncoder.Encode(samples)
+	if err != nil {
+		log.Println(err)
+		return
 	}
+	for _, conn := range r.connections {
+		if !conn.connected.Load() {
+			continue
+		}
+		if err := conn.audioTrack.WriteSample(media.Sample{
+			Data:      frame,
+			Timestamp: time.Now(),
+			Duration:  5 * time.Millisecond,
+		}); err != nil {
+			log.Println("send audio frame to:", conn.wsConn.Conn.RemoteAddr(), "error:", err)
+		}
+	}
+}
+
+func (r *RTCRoomSession) wsBroadcast(msgType byte, data any) {
+	bytes, _ := json.Marshal(data)
+	msg := Message{
+		Type: msgType,
+		Data: bytes,
+	}
+	for _, conn := range r.connections {
+		if err := conn.sendMessage(msg); err != nil {
+			log.Println("broadcast to", conn.wsConn.Conn.RemoteAddr(), "error:", err)
+		}
+	}
+}
+
+func (r *RTCRoomSession) filterMembers(filterFunc func(room.Member) bool) []*room.Member {
+	result := make([]*room.Member, 0, len(r.members))
+	for _, m := range r.members {
+		if filterFunc(*m) {
+			result = append(result, m)
+		}
+	}
+	return result
 }

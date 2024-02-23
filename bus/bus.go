@@ -26,7 +26,8 @@ type Bus struct {
 	ppu            *ppu.PPU            // ppu 图形处理器
 	cycles         uint64              // cycles 总线时钟周期数，用来同步CPU和PPU的周期
 	renderCallback RenderCallback
-	joyPad         *JoyPad
+	joyPad1        *JoyPad
+	joyPad2        *JoyPad
 
 	lastRenderCycles uint64
 	lastRenderTime   time.Time
@@ -43,13 +44,14 @@ type Snapshot struct {
 }
 
 // NewBus 创建总线，并将PPU和ROM接入总线
-func NewBus(cartridge cartridge.Cartridge, ppu *ppu.PPU, callback RenderCallback, joyPad *JoyPad, apu *apu.BasicAPU) *Bus {
+func NewBus(cartridge cartridge.Cartridge, ppu *ppu.PPU, callback RenderCallback, joyPad1 *JoyPad, joyPad2 *JoyPad, apu *apu.BasicAPU) *Bus {
 	return &Bus{
 		cpuRAM:         [2048]byte{},
 		cartridge:      cartridge,
 		ppu:            ppu,
 		renderCallback: callback,
-		joyPad:         joyPad,
+		joyPad1:        joyPad1,
+		joyPad2:        joyPad2,
 		cpuBoost:       1.0,
 		apu:            apu,
 	}
@@ -124,9 +126,9 @@ func (b *Bus) ReadMemUint8(addr uint16) byte {
 		return b.ReadMemUint8(addr)
 	case addr >= 0x4000 && addr <= 0x4015:
 	case addr == 0x4016:
-		return b.joyPad.read()
+		return b.joyPad1.read()
 	case addr == 0x4017:
-		return 0
+		return b.joyPad2.read()
 	case addr >= 0x6000:
 		return b.cartridge.Read(addr)
 	default:
@@ -167,7 +169,8 @@ func (b *Bus) WriteMemUint8(addr uint16, val byte) {
 		}
 		b.ppu.WriteOamDMA(buffer)
 	case addr == 0x4016: // joyPad 1
-		b.joyPad.write(val)
+		b.joyPad1.write(val)
+		b.joyPad2.write(val)
 	case addr >= 0x6000:
 		b.cartridge.Write(addr, val)
 	default:

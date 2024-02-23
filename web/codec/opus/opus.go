@@ -1,6 +1,10 @@
 package opus
 
-import "gopkg.in/hraban/opus.v2"
+import (
+	"gopkg.in/hraban/opus.v2"
+	"log"
+	"math"
+)
 
 type Encoder struct {
 	enc *opus.Encoder
@@ -12,6 +16,7 @@ type Encoder struct {
 func NewEncoder(sampleRate int) (*Encoder, error) {
 	enc, err := opus.NewEncoder(sampleRate, 1, opus.AppVoIP)
 	if err != nil {
+		log.Println("new encoder error: ", err)
 		return nil, err
 	}
 	return &Encoder{
@@ -22,5 +27,24 @@ func NewEncoder(sampleRate int) (*Encoder, error) {
 }
 
 func (e *Encoder) Encode(pcm []float32) ([]byte, error) {
-	panic("not implemented")
+	pcm16 := make([]int16, len(pcm))
+	for i, s32 := range pcm {
+		pcm16[i] = pcmFloat32ToInt16(s32)
+	}
+	buffer := make([]byte, 1024)
+	n, err := e.enc.Encode(pcm16, buffer)
+	if err != nil {
+		return nil, err
+	}
+	return buffer[:n], nil
+}
+
+func pcmFloat32ToInt16(s float32) int16 {
+	if s < -0.9999 {
+		return math.MinInt16
+	} else if s > 0.9999 {
+		return math.MaxInt16
+	} else {
+		return int16(s * 32767)
+	}
 }

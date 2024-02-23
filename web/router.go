@@ -36,7 +36,7 @@ func setupRouter() *gin.Engine {
 			c.HTML(200, "login.html", gin.H{})
 		})
 		page.GET("/room/:roomId", func(c *gin.Context) {
-			c.HTML(200, "video.html", gin.H{})
+			c.HTML(200, "room.html", gin.H{})
 		})
 		page.GET("/home", func(c *gin.Context) {
 			c.HTML(200, "home.html", gin.H{})
@@ -51,30 +51,39 @@ func setupRouter() *gin.Engine {
 	{
 		api.POST("/user/register", userService.Register)
 		api.POST("/user/login", userService.Login)
+		// only authorized user can access these apis:
 		authorized := api.Group("/", middleware.ParseQueryToken, middleware.JWTAuth)
 		{
 			authorized.POST("/room", roomService.CreateRoom)
 			authorized.GET("/room/list", roomService.ListAllRooms)
 			authorized.GET("/room/list/joined", roomService.ListJoinedRooms)
 			authorized.POST("/room/:roomId/join", roomService.JoinRoom)
-			authorized.GET("/room/:roomId/members", roomService.ListRoomMembers)
 			authorized.GET("/room/:roomId/info", roomService.GetRoomInfo)
-			authorized.GET("/room/:roomId/member", roomService.GetRoomMemberSelf)
-
 			authorized.GET("/games", gameService.ListGames)
 			authorized.GET("/game/:name", gameService.GetGameInfo)
-
-			authorized.POST("/room/:roomId/restart", roomService.Restart)
-
-			authorized.POST("/room/:roomId/quickSave", roomService.QuickSave)
-			authorized.POST("/room/:roomId/quickLoad", roomService.QuickLoad)
+		}
+		// only room member can access these apis:
+		roomOwnerApis := authorized.Group("/", roomService.OwnerAccessible())
+		{
+			roomOwnerApis.POST("/room/:roomId/restart", roomService.Restart)
+			roomOwnerApis.POST("/room/:roomId/quickSave", roomService.QuickSave)
+			roomOwnerApis.POST("/room/:roomId/quickLoad", roomService.QuickLoad)
+			roomOwnerApis.POST("/room/:roomId/control/transfer", roomService.TransferControl)
+			roomOwnerApis.POST("/room/:roomId/member/kick", roomService.KickMember)
+			roomOwnerApis.POST("/room/:roomId/memberType", roomService.AlterMemberType)
+		}
+		// only room member can access these apis:
+		roomMemberApis := authorized.Group("/", roomService.MemberAccessible())
+		{
+			roomMemberApis.GET("/room/:roomId/members", roomService.ListRoomMembers)
+			roomMemberApis.GET("/room/:roomId/member", roomService.GetRoomMemberSelf)
 		}
 	}
 
 	// websocket
 	ws := r.Group("/ws", middleware.ParseQueryToken, middleware.JWTAuth)
 	{
-		ws.GET("/room/:roomId/rtc", roomService.ConnectRTCRoomSession)
+		ws.GET("/room/:roomId/rtc", roomService.MemberAccessible(), roomService.ConnectRTCRoomSession)
 	}
 
 	return r
