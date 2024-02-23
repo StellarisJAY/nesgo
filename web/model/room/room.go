@@ -171,6 +171,13 @@ func DeleteMember(roomId, memberId int64) error {
 		Error
 }
 
+func UpdateMember(member *Member) error {
+	return db.GetDB().Model(&Member{}).
+		Where("room_id=? AND user_id=?", member.RoomId, member.UserId).
+		Updates(member).
+		Error
+}
+
 func CacheKeyForRoom(roomId int64) string {
 	return fmt.Sprintf("nesgo_room_%d", roomId)
 }
