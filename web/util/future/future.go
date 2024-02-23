@@ -32,7 +32,9 @@ func (f *Future[T]) Result() (*T, error) {
 	defer func() {
 		close(f.resultChan)
 		close(f.errChan)
-		f.timer.Stop()
+		if f.timer != nil {
+			f.timer.Stop()
+		}
 	}()
 	if f.timer == nil {
 		select {
