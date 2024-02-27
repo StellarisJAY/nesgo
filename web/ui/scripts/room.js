@@ -51,6 +51,7 @@ function connect() {
     connectButton.disabled = true
     const selectedGame = document.getElementById("select-game").value;
     const ws = new WebSocket(websocketAddr+"/room/"+roomId+"/rtc?auth=" + getToken() + "&game="+selectedGame)
+    document.getElementById("connect-button").disabled = true
     ws.onopen = ev=> {
         const pc = new RTCPeerConnection({
             iceServers: [
@@ -75,6 +76,7 @@ function connect() {
             console.log("peer conn state: " + pc.connectionState)
             switch (pc.connectionState) {
                 case "connected":
+                    rtcSession.ws.close()
                     break
                 case "disconnected":
                     pc.close()
@@ -95,14 +97,26 @@ function connect() {
             document.getElementById("video").autoplay = true
             document.getElementById("video").controls = true
         }
+
+        pc.ondatachannel = ev=>{
+            const datachannel = ev.channel
+            rtcSession.dataChannel = datachannel
+            datachannel.onclose = _=>{
+                window.onkeydown = _=>{}
+                window.onkeyup = _ => {}
+            }
+            datachannel.onerror = err=>{
+                console.log(err)
+            }
+            datachannel.onmessage = msg=>{
+                console.log("unexpected dataChannel message:", msg)
+            }
+        }
         rtcSession.pc = pc
     }
 
     ws.onclose = ev => {
-        window.onkeydown = _=>{}
-        window.onkeyup = _ => {}
-        alert("websocket connection closed")
-        document.getElementById("connect-button").disabled = false
+        console.log("websocket connection closed")
     }
 
     ws.onerror = ev => {
@@ -145,7 +159,7 @@ function restartEmulator() {
 }
 
 function sendAction(code, pressed) {
-    rtcSession.ws.send(JSON.stringify({
+    rtcSession.dataChannel.send(JSON.stringify({
         "type": pressed,
         "data": btoa(code),
     }))

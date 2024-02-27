@@ -1,18 +1,27 @@
 let joinedRooms = []
+let listRoomsPage = 1
+let joinedRoomsPage = 1
+const listRoomsPageSize = 10
 
 onload = ()=> {
-    listJoinedRooms(1, 10)
-    listRooms(1, 10)
+    listJoinedRooms(joinedRoomsPage, listRoomsPageSize)
+    listRooms(listRoomsPage, listRoomsPageSize)
 
-    document.getElementById("refresh-all-rooms-btn").onclick = _ => listRooms(1, 10)
-    document.getElementById("refresh-joined-rooms-btn").onclick = _=>listJoinedRooms(1, 10)
+    document.getElementById("refresh-all-rooms-btn").onclick = _ => listJoinedRooms(joinedRoomsPage, listRoomsPageSize)
+    document.getElementById("refresh-joined-rooms-btn").onclick = _=>listRooms(listRoomsPage, listRoomsPageSize)
+    document.getElementById("list-rooms-next").onclick = _=>listRooms(listRoomsPage+1, listRoomsPageSize)
+    document.getElementById("list-rooms-prev").onclick = _=>listRooms(listRoomsPage-1, listRoomsPageSize)
+    document.getElementById("joined-rooms-next").onclick = _=>listJoinedRooms(joinedRoomsPage+1, listRoomsPageSize)
+    document.getElementById("joined-rooms-prev").onclick = _=>listJoinedRooms(joinedRoomsPage-1, listRoomsPageSize)
 }
-
-memberTypes = ["Owner", "Gamer", "Watcher"]
 
 function listJoinedRooms(page,pageSize) {
     get("/room/list/joined?page=" + page + "&pageSize=" + pageSize, null)
         .then(data=>{
+            if (data.length === 0) {
+                return null
+            }
+            joinedRoomsPage = page
             renderRoomsList(data, "joined-rooms-rows", ["private", "name", "memberType", "owner"],(r)=>{
                 const enterButton = document.createElement("button");
                 enterButton.className = "btn btn-primary"
@@ -21,6 +30,12 @@ function listJoinedRooms(page,pageSize) {
                 enterButton.onclick = _ => window.location = "/room/"+r["id"]
                 return enterButton
             })
+            return data
+        })
+        .then(data=>{
+            document.getElementById("joined-rooms-prev").hidden = joinedRoomsPage === 1
+            document.getElementById("joined-rooms-next").hidden = data === null
+            document.getElementById("joined-rooms-page").innerText = ""+ joinedRoomsPage
         })
         .catch(err=>{
             console.log(err)
@@ -28,9 +43,15 @@ function listJoinedRooms(page,pageSize) {
 }
 
 function listRooms(page, pageSize) {
+    if (page === 0) {
+        return
+    }
     get("/room/list?page=" + page + "&pageSize=" + pageSize)
         .then(data=>{
-            console.log(data)
+            if (data.length === 0) {
+                return null
+            }
+            listRoomsPage = page
             renderRoomsList(data, "list-rooms-rows", ["private", "name", "owner"], r=>{
                 const joinButton = document.createElement("button")
                 joinButton.className = "btn btn-primary"
@@ -39,6 +60,12 @@ function listRooms(page, pageSize) {
                 joinButton.onclick = _ => tryJoinRoom(r)
                 return joinButton
             })
+            return data
+        })
+        .then(data=>{
+            document.getElementById("list-rooms-prev").hidden = listRoomsPage=== 1
+            document.getElementById("list-rooms-next").hidden = data === null
+            document.getElementById("list-rooms-page").innerText = ""+ listRoomsPage
         })
         .catch(err=>{
             console.log(err)
@@ -101,7 +128,7 @@ function joinRoom(room) {
 
 function createRoom() {
     const name = document.getElementById("create-room-name").value
-    const isPrivate = document.getElementById("create-room-private").value === "on"
+    const isPrivate = document.getElementById("create-room-private").checked
     if (name === "" || name.length > 16) {
         alert("invalid name")
         return
