@@ -18,13 +18,13 @@ import (
 
 type RoomService struct {
 	m           sync.Mutex
-	rtcSessions map[int64]*RTCRoomSession
+	rtcSessions map[int64]*WebRTCRoomSession
 	fileStorage fs.FileStorage
 }
 
 type CreateRoomForm struct {
-	Name    string `json:"name" binding:"required"`
-	Private bool   `json:"private" binding:"required"`
+	Name    string `json:"name"`
+	Private bool   `json:"private"`
 }
 
 type CreateRoomResp struct {
@@ -59,7 +59,7 @@ func NewRoomService() *RoomService {
 	}
 	return &RoomService{
 		m:           sync.Mutex{},
-		rtcSessions: make(map[int64]*RTCRoomSession),
+		rtcSessions: make(map[int64]*WebRTCRoomSession),
 		fileStorage: storage,
 	}
 }

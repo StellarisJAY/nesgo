@@ -21,23 +21,20 @@ import (
 	"time"
 )
 
-type RTCRoomSession struct {
-	members     map[int64]*room.Member
-	connections map[int64]*RTCRoomConnection
-	e           *emulator.Emulator
-	signalChan  chan Signal
-	cancel      context.CancelFunc
-
-	wsMessageChan chan MsgWithConnectionInfo
-
-	emulatorCancel  context.CancelFunc
-	game            string
-	audioSampleRate int
-	audioEncoder    codec.IAudioEncoder
-	audioSampleChan chan float32
-
-	controller1 int64
-	controller2 int64
+type WebRTCRoomSession struct {
+	cancel             context.CancelFunc
+	members            map[int64]*room.Member
+	connections        map[int64]*RoomConn
+	signalChan         chan Signal              // signalChan 传递模拟器信号、连接信号
+	dataChannelMsgChan chan MessageWithConnInfo // dataChannelMsgChan 用于接收webrtc datachannel
+	e                  *emulator.Emulator
+	emulatorCancel     context.CancelFunc
+	game               string
+	audioSampleRate    int
+	audioEncoder       codec.IAudioEncoder
+	audioSampleChan    chan float32 // audioSampleChan 音频输出channel
+	controller1        int64        // controller1 模拟器P1控制权玩家
+	controller2        int64        // controller2 模拟器P2控制权玩家
 }
 
 type Signal struct {
@@ -71,6 +68,7 @@ const (
 	SignalNewConnection byte = iota
 	SignalWebsocketClose
 	SignalPeerConnected
+	SignalPeerDisconnected
 	SignalRestartEmulator
 	SignalSaveGame
 	SignalLoadSavedGame
@@ -91,15 +89,15 @@ func init() {
 	rtcFactory = factory
 }
 
-func NewRTCRoomSession(game string) (*RTCRoomSession, error) {
+func NewRTCRoomSession(game string) (*WebRTCRoomSession, error) {
 	const sampleRate = 48000
-	rs := &RTCRoomSession{
-		members:         make(map[int64]*room.Member),
-		connections:     make(map[int64]*RTCRoomConnection),
-		signalChan:      make(chan Signal),
-		wsMessageChan:   make(chan MsgWithConnectionInfo),
-		game:            game,
-		audioSampleRate: sampleRate,
+	rs := &WebRTCRoomSession{
+		members:            make(map[int64]*room.Member),
+		connections:        make(map[int64]*RoomConn),
+		signalChan:         make(chan Signal),
+		dataChannelMsgChan: make(chan MessageWithConnInfo),
+		game:               game,
+		audioSampleRate:    sampleRate,
 	}
 	game = filepath.Join(config.GetEmulatorConfig().GameDirectory, game)
 	sampleChan := make(chan float32, sampleRate)
@@ -122,25 +120,21 @@ func NewRTCRoomSession(game string) (*RTCRoomSession, error) {
 	return rs, nil
 }
 
-func (r *RTCRoomSession) ControlLoop(ctx context.Context) {
+// ControlLoop 所有房间相关的消息和信号，都由control 循环处理，避免线程安全问题
+func (r *WebRTCRoomSession) ControlLoop(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case signal := <-r.signalChan:
 			r.handleSignal(ctx, signal)
-		case msg := <-r.wsMessageChan:
-			if msg.wsConn.Member.MemberType == room.MemberTypeWatcher {
-				continue
-			}
-			if msg.Type == MessageGameButtonReleased || msg.Type == MessageGameButtonPressed {
-				r.handleGameButtonMsg(msg)
-			}
+		case msg := <-r.dataChannelMsgChan:
+			r.handleDataChannelMessage(msg)
 		}
 	}
 }
 
-func (r *RTCRoomSession) handleSignal(ctx context.Context, signal Signal) {
+func (r *WebRTCRoomSession) handleSignal(ctx context.Context, signal Signal) {
 	switch signal.Type {
 	case SignalNewConnection:
 		if conn, ok := signal.Data.(*WebsocketConn); ok {
@@ -151,15 +145,22 @@ func (r *RTCRoomSession) handleSignal(ctx context.Context, signal Signal) {
 			r.onWebsocketConnClose(conn)
 		}
 	case SignalPeerConnected:
-		conn, _ := signal.Data.(*RTCRoomConnection)
+		conn, _ := signal.Data.(*RoomConn)
 		// 检查当前连接数量，第一个建立的连接启动模拟器
-		controllers := r.filterMembers(func(m room.Member) bool {
-			return m.MemberType != room.MemberTypeWatcher
-		})
+		controllers := r.filterMembers(isControllableMember)
 		if len(controllers) == 1 {
 			r.e.Resume()
 		}
 		conn.connected.Store(true)
+	case SignalPeerDisconnected:
+		conn, _ := signal.Data.(*RoomConn)
+		delete(r.connections, conn.MemberId)
+		delete(r.members, conn.MemberId)
+		// 无可控制游戏的用户，暂停模拟器
+		controllers := r.filterMembers(isControllableMember)
+		if len(controllers) == 0 {
+			r.e.Pause()
+		}
 	case SignalRestartEmulator:
 		req := signal.Data.(*restartEmulatorRequest)
 		if err := r.restart(req.game); err != nil {
@@ -191,7 +192,17 @@ func (r *RTCRoomSession) handleSignal(ctx context.Context, signal Signal) {
 	}
 }
 
-func (r *RTCRoomSession) handleGameButtonMsg(msg MsgWithConnectionInfo) {
+func (r *WebRTCRoomSession) handleDataChannelMessage(msg MessageWithConnInfo) {
+	switch msg.Type {
+	case MessageGameButtonReleased, MessageGameButtonPressed:
+		if msg.wsConn.Member.MemberType != room.MemberTypeWatcher {
+			r.handleGameButtonMsg(msg)
+		}
+	default:
+	}
+}
+
+func (r *WebRTCRoomSession) handleGameButtonMsg(msg MessageWithConnInfo) {
 	var controlId int
 	if msg.MemberId == r.controller1 {
 		controlId = 1
@@ -222,7 +233,7 @@ func (r *RTCRoomSession) handleGameButtonMsg(msg MsgWithConnectionInfo) {
 	}
 }
 
-func (r *RTCRoomSession) Restart(game string) error {
+func (r *WebRTCRoomSession) Restart(game string) error {
 	respChan := make(chan error)
 	r.signalChan <- Signal{
 		Type: SignalRestartEmulator,
@@ -234,10 +245,10 @@ func (r *RTCRoomSession) Restart(game string) error {
 	return <-respChan
 }
 
-func (r *RTCRoomSession) restart(game string) error {
+func (r *WebRTCRoomSession) restart(game string) error {
 	r.game = game
 	game = filepath.Join(config.GetEmulatorConfig().GameDirectory, game)
-
+	// 重启模拟器之前清空音频输出chan，避免上一个模拟器的音频在新模拟器播放
 LOOP:
 	for {
 		select {
@@ -262,7 +273,7 @@ LOOP:
 	return nil
 }
 
-func (r *RTCRoomSession) Save() ([]byte, error) {
+func (r *WebRTCRoomSession) Save() ([]byte, error) {
 	respChan := make(chan []byte)
 	errChan := make(chan error)
 	r.signalChan <- Signal{
@@ -279,13 +290,13 @@ func (r *RTCRoomSession) Save() ([]byte, error) {
 	}
 }
 
-func (r *RTCRoomSession) save() ([]byte, error) {
+func (r *WebRTCRoomSession) save() ([]byte, error) {
 	r.e.Pause()
 	defer r.e.Resume()
 	return r.e.GetSaveData()
 }
 
-func (r *RTCRoomSession) LoadSavedGame(data []byte) error {
+func (r *WebRTCRoomSession) LoadSavedGame(data []byte) error {
 	respChan := make(chan error)
 	r.signalChan <- Signal{
 		Type: SignalLoadSavedGame,
@@ -294,13 +305,13 @@ func (r *RTCRoomSession) LoadSavedGame(data []byte) error {
 	return <-respChan
 }
 
-func (r *RTCRoomSession) loadSavedGame(data []byte) error {
+func (r *WebRTCRoomSession) loadSavedGame(data []byte) error {
 	r.e.Pause()
 	defer r.e.Resume()
 	return r.e.Load(data)
 }
 
-func (r *RTCRoomSession) TransferControl(memberId int64, control1, control2 bool) error {
+func (r *WebRTCRoomSession) TransferControl(memberId int64, control1, control2 bool) error {
 	req := transferControlRequest{
 		memberId: memberId,
 		control1: control1,
@@ -315,7 +326,7 @@ func (r *RTCRoomSession) TransferControl(memberId int64, control1, control2 bool
 	return err
 }
 
-func (r *RTCRoomSession) transferControl(memberId int64, control1, control2 bool) error {
+func (r *WebRTCRoomSession) transferControl(memberId int64, control1, control2 bool) error {
 	if _, ok := r.members[memberId]; !ok {
 		return errors.New("member not connected")
 	}
@@ -336,7 +347,7 @@ func (r *RTCRoomSession) transferControl(memberId int64, control1, control2 bool
 	}
 }
 
-func (r *RTCRoomSession) renderCallback(p *ppu.PPU) {
+func (r *WebRTCRoomSession) renderCallback(p *ppu.PPU) {
 	p.Render()
 	for _, conn := range r.connections {
 		// peer conn没有建立连接不编码视频，否则会导致I帧没有发送到客户端
@@ -362,7 +373,13 @@ func (r *RTCRoomSession) renderCallback(p *ppu.PPU) {
 	}
 }
 
-func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketConn) {
+// onNewConnection 新websocket连接建立后， 创建webrtc连接
+// 1. 创建webrtc连接，创建视频音频流track
+// 2. 创建SDP Offer， 并发送给客户端，完成SDP协商
+// 3. 创建DataChannel，设置Message回调和连接状态回调
+// 4. 创建视频编码器， 每个连接使用独立的视频编码器
+// 5. 转移模拟器控制权
+func (r *WebRTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketConn) {
 	if _, ok := r.connections[wsConn.Member.UserId]; ok {
 		log.Println("member already connected")
 		_ = wsConn.Conn.Close()
@@ -374,7 +391,7 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 		_ = wsConn.Conn.Close()
 		return
 	}
-	roomConnection := &RTCRoomConnection{
+	roomConnection := &RoomConn{
 		MemberId:  wsConn.Member.UserId,
 		wsConn:    wsConn,
 		rtcConn:   peer,
@@ -389,19 +406,24 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 		}
 	}()
 
+	// 创建H264视频和opus音频流
 	videoTrack, _ := rtcFactory.VideoTrack("h264")
-	// add video track to peer connection
 	if _, err := peer.AddTrack(videoTrack); err != nil {
 		panic(fmt.Errorf("unable to add video track to peer, error: %w", err))
 	}
 	roomConnection.videoTrack = videoTrack
-
 	audioTrack, _ := rtcFactory.AudioTrack("opus")
 	if _, err := peer.AddTrack(audioTrack); err != nil {
 		panic(fmt.Errorf("unable to add audio track to peer, error: %w", err))
 	}
 	roomConnection.audioTrack = audioTrack
-	// create sdp offer and set local description
+	// 创建DataChannel，用于控制消息传递
+	channel, err := peer.CreateDataChannel("control-channel", nil)
+	if err != nil {
+		panic(fmt.Errorf("unable to create control data channel, error: %w", err))
+	}
+	roomConnection.dataChannel = channel
+	// 创建SDP Offer， 并设置LocalSDP
 	sdp, err := peer.CreateOffer(nil)
 	if err != nil {
 		panic(fmt.Errorf("create sdp offer error: %w", err))
@@ -409,7 +431,7 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 	if err := peer.SetLocalDescription(sdp); err != nil {
 		panic(fmt.Errorf("unable to set local description, error: %w", err))
 	}
-	// send sdp to client
+	// 发送SDP Offer到客户端
 	data, _ := json.Marshal(sdp)
 	if err := roomConnection.sendMessage(Message{
 		Type: MessageSDPOffer,
@@ -417,38 +439,33 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 	}); err != nil {
 		panic(fmt.Errorf("unable to send sdp offer, error: %w", err))
 	}
-
+	// DataChannel OnMessage
+	channel.OnMessage(func(msg webrtc.DataChannelMessage) {
+		roomConnection.OnDataChannelMessage(msg, r.dataChannelMsgChan)
+	})
+	// PeerConnection connection state change
 	peer.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
-		log.Println("rtc conn state:", state)
-		switch state {
-		case webrtc.PeerConnectionStateConnected:
-			r.signalChan <- Signal{SignalPeerConnected, roomConnection}
-		case webrtc.PeerConnectionStateDisconnected:
-			roomConnection.connected.Store(false)
-			roomConnection.Close()
-		default:
-		}
+		roomConnection.onPeerConnectionState(state, r.signalChan)
 	})
+	peer.OnICEConnectionStateChange(roomConnection.onICEStateChange)
 
-	peer.OnICEConnectionStateChange(func(state webrtc.ICEConnectionState) {
-		log.Println("ice conn state:", state)
-	})
-
+	// 创建每个连接独有的视频编码器
 	encoder, err := codec.NewVideoEncoder("h264")
 	if err != nil {
 		panic(fmt.Errorf("unable to create encoder, error: %w", err))
 	}
 	roomConnection.videoEncoder = encoder
-	controllableMembers := r.filterMembers(func(m room.Member) bool {
-		return m.MemberType != room.MemberTypeWatcher
-	})
+
+	controllableMembers := r.filterMembers(isControllableMember)
 	r.members[wsConn.Member.UserId] = wsConn.Member
 	r.connections[wsConn.Member.UserId] = roomConnection
+	// 如果当前没有可控制游戏的玩家，且当前连接是可控制游戏的玩家，转移控制权
 	if r.controller1 == 0 && len(controllableMembers) == 0 && wsConn.Member.MemberType == room.MemberTypeOwner {
 		_ = r.transferControl(wsConn.Member.UserId, true, false)
 	}
+
 	go func() {
-		roomConnection.Handle(context.WithoutCancel(ctx), r.wsMessageChan)
+		roomConnection.Handle(context.WithoutCancel(ctx))
 		r.signalChan <- Signal{
 			Type: SignalWebsocketClose,
 			Data: roomConnection.wsConn,
@@ -456,25 +473,13 @@ func (r *RTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketC
 	}()
 }
 
-func (r *RTCRoomSession) onWebsocketConnClose(wsConn *WebsocketConn) {
-	delete(r.connections, wsConn.Member.UserId)
-	delete(r.members, wsConn.Member.UserId)
-	if wsConn.Member.UserId == r.controller1 {
-		r.controller1 = 0
-	}
-	if wsConn.Member.UserId == r.controller2 {
-		r.controller2 = 0
-	}
-	// 已经没有活跃连接，暂停模拟器线程
-	controllableMembers := r.filterMembers(func(m room.Member) bool {
-		return m.MemberType != room.MemberTypeWatcher
-	})
-	if len(controllableMembers) == 0 {
-		r.e.Pause()
-	}
+func (r *WebRTCRoomSession) onWebsocketConnClose(wsConn *WebsocketConn) {
+
 }
 
-func (r *RTCRoomSession) audioSampleListener(ctx context.Context) {
+// audioSampleListener 模拟器的音频输出到chan中，该循环从channel读取音频数据，并按照采样率打包发送
+func (r *WebRTCRoomSession) audioSampleListener(ctx context.Context) {
+	// 每5毫秒发送一次，根据采样率计算buffer大小
 	buffer := make([]float32, 0, r.audioSampleRate*5/1000)
 	for {
 		select {
@@ -490,7 +495,7 @@ func (r *RTCRoomSession) audioSampleListener(ctx context.Context) {
 	}
 }
 
-func (r *RTCRoomSession) sendAudioSamples(samples []float32) {
+func (r *WebRTCRoomSession) sendAudioSamples(samples []float32) {
 	frame, err := r.audioEncoder.Encode(samples)
 	if err != nil {
 		log.Println(err)
@@ -510,20 +515,7 @@ func (r *RTCRoomSession) sendAudioSamples(samples []float32) {
 	}
 }
 
-func (r *RTCRoomSession) wsBroadcast(msgType byte, data any) {
-	bytes, _ := json.Marshal(data)
-	msg := Message{
-		Type: msgType,
-		Data: bytes,
-	}
-	for _, conn := range r.connections {
-		if err := conn.sendMessage(msg); err != nil {
-			log.Println("broadcast to", conn.wsConn.Conn.RemoteAddr(), "error:", err)
-		}
-	}
-}
-
-func (r *RTCRoomSession) filterMembers(filterFunc func(room.Member) bool) []*room.Member {
+func (r *WebRTCRoomSession) filterMembers(filterFunc func(room.Member) bool) []*room.Member {
 	result := make([]*room.Member, 0, len(r.members))
 	for _, m := range r.members {
 		if filterFunc(*m) {
@@ -531,4 +523,8 @@ func (r *RTCRoomSession) filterMembers(filterFunc func(room.Member) bool) []*roo
 		}
 	}
 	return result
+}
+
+func isControllableMember(m room.Member) bool {
+	return m.MemberType != room.MemberTypeWatcher
 }

@@ -111,16 +111,6 @@ func (rs *RoomService) KickMember(c *gin.Context) {
 	} else if err != nil {
 		panic(err)
 	}
-
-	rs.m.Lock()
-	session, ok := rs.rtcSessions[roomId]
-	rs.m.Unlock()
-	if ok {
-		session.wsBroadcast(MessageRoomMemberChange, RoomMemberChangeNotification{
-			MemberId: req.MemberId,
-			Kick:     true,
-		})
-	}
 	c.JSON(200, JSONResp{Status: 200, Message: "ok"})
 }
 

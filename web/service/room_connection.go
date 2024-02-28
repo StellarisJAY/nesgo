@@ -13,9 +13,9 @@ import (
 	"sync/atomic"
 )
 
-type MsgWithConnectionInfo struct {
+type MessageWithConnInfo struct {
 	Message
-	RTCRoomConnection
+	RoomConn
 }
 
 type Message struct {
@@ -29,11 +29,9 @@ const (
 	MessageICECandidate
 	MessageGameButtonPressed
 	MessageGameButtonReleased
-	MessageControlTransferred
-	MessageRoomMemberChange
 )
 
-type RTCRoomConnection struct {
+type RoomConn struct {
 	MemberId     int64
 	wsConn       *WebsocketConn
 	rtcConn      *webrtc.PeerConnection
@@ -41,6 +39,7 @@ type RTCRoomConnection struct {
 	audioTrack   *webrtc.TrackLocalStaticSample
 	videoEncoder codec.IVideoEncoder // 每个连接独占一个视频编码器 和 buffer
 	connected    *atomic.Bool
+	dataChannel  *webrtc.DataChannel
 }
 
 type WebsocketConn struct {
@@ -59,7 +58,7 @@ type RoomMemberChangeNotification struct {
 	Kick       bool  `json:"kick"`
 }
 
-func (rc *RTCRoomConnection) Handle(ctx context.Context, msgChan chan MsgWithConnectionInfo) {
+func (rc *RoomConn) Handle(ctx context.Context) {
 	wsConn := rc.wsConn.Conn
 	for {
 		select {
@@ -79,23 +78,23 @@ func (rc *RTCRoomConnection) Handle(ctx context.Context, msgChan chan MsgWithCon
 				log.Println("invalid message error:", err)
 				continue
 			}
-			rc.HandleMessage(msg, msgChan)
-		case websocket.BinaryMessage:
+			rc.HandleMessage(msg)
+		default:
 		}
 	}
 }
 
-func (rc *RTCRoomConnection) sendMessage(msg Message) error {
+func (rc *RoomConn) sendMessage(msg Message) error {
 	payload, _ := json.Marshal(msg)
 	return rc.wsConn.Conn.WriteMessage(websocket.TextMessage, payload)
 }
 
-func (rc *RTCRoomConnection) Close() {
+func (rc *RoomConn) Close() {
 	_ = rc.wsConn.Conn.Close()
 	_ = rc.rtcConn.Close()
 }
 
-func (rc *RTCRoomConnection) HandleMessage(msg Message, msgChan chan MsgWithConnectionInfo) {
+func (rc *RoomConn) HandleMessage(msg Message) {
 	switch msg.Type {
 	case MessageSDPAnswer:
 		sdp := webrtc.SessionDescription{}
@@ -112,13 +111,40 @@ func (rc *RTCRoomConnection) HandleMessage(msg Message, msgChan chan MsgWithConn
 			log.Println("unable to add ICE candidate, error:", err)
 			rc.Close()
 		}
-	case MessageGameButtonPressed, MessageGameButtonReleased:
-		msgChan <- MsgWithConnectionInfo{
-			Message:           msg,
-			RTCRoomConnection: *rc,
-		}
 	default:
 	}
+}
+
+func (rc *RoomConn) OnDataChannelMessage(rawMsg webrtc.DataChannelMessage, msgChan chan MessageWithConnInfo) {
+	var message Message
+	if err := json.Unmarshal(rawMsg.Data, &message); err != nil {
+		log.Println("invalid data channel message, error:", err)
+		return
+	}
+	if message.Type == MessageGameButtonPressed || message.Type == MessageGameButtonReleased {
+		msgChan <- MessageWithConnInfo{
+			Message:  message,
+			RoomConn: *rc,
+		}
+	}
+}
+
+func (rc *RoomConn) onPeerConnectionState(state webrtc.PeerConnectionState, signalChan chan Signal) {
+	log.Println("peer conn state:", state)
+	switch state {
+	case webrtc.PeerConnectionStateConnected:
+		rc.connected.Store(true)
+		signalChan <- Signal{SignalPeerConnected, rc}
+	case webrtc.PeerConnectionStateDisconnected:
+		signalChan <- Signal{SignalPeerDisconnected, rc}
+		rc.connected.Store(false)
+		rc.Close()
+	default:
+	}
+}
+
+func (rc *RoomConn) onICEStateChange(state webrtc.ICEConnectionState) {
+	log.Println("ice conn state:", state)
 }
 
 func (rs *RoomService) ConnectRTCRoomSession(c *gin.Context) {
@@ -127,26 +153,17 @@ func (rs *RoomService) ConnectRTCRoomSession(c *gin.Context) {
 	member := v.(*room.Member)
 
 	rs.m.Lock()
-	var session *RTCRoomSession
-	// check if room's game session is created
-	if s, ok := rs.rtcSessions[roomId]; !ok {
+	session, ok := rs.rtcSessions[roomId]
+	rs.m.Unlock()
+	if !ok {
 		// Only owner can create session
 		if member.MemberType != room.MemberTypeOwner {
-			rs.m.Unlock()
-			c.JSON(200, JSONResp{
-				Status:  http.StatusForbidden,
-				Message: "only owner can start game session",
-			})
+			c.JSON(200, JSONResp{Status: http.StatusForbidden, Message: "only owner can start game session"})
 			return
 		}
-
 		game := c.Query("game")
 		if game == "" {
-			rs.m.Unlock()
-			c.JSON(200, JSONResp{
-				Status:  http.StatusBadRequest,
-				Message: "invalid game name",
-			})
+			c.JSON(200, JSONResp{Status: http.StatusBadRequest, Message: "invalid game name"})
 			return
 		}
 		newSession, err := NewRTCRoomSession(game)
@@ -159,10 +176,7 @@ func (rs *RoomService) ConnectRTCRoomSession(c *gin.Context) {
 		go newSession.ControlLoop(ctx)
 		go newSession.audioSampleListener(ctx)
 		session = newSession
-	} else {
-		session = s
 	}
-	rs.m.Unlock()
 	// handle room websocket conn
 	conn, err := websocket.Upgrade(c.Writer, c.Request, http.Header{}, 1024, 1024)
 	if err != nil {
