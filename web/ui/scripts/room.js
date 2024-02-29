@@ -32,6 +32,7 @@ const MessageSDPAnswer = 1
 const MessageICECandidate = 2
 const MessageGameButtonPressed = 3
 const MessageGameButtonReleased = 4
+const MessageTurnServerInfo = 5
 
 const MemberTypeOwner = 0
 const MemberTypeGamer = 1
@@ -52,68 +53,6 @@ function connect() {
     const selectedGame = document.getElementById("select-game").value;
     const ws = new WebSocket(websocketAddr+"/room/"+roomId+"/rtc?auth=" + getToken() + "&game="+selectedGame)
     document.getElementById("connect-button").disabled = true
-    ws.onopen = ev=> {
-        const pc = new RTCPeerConnection({
-            iceServers: [
-                {urls: stunServer},
-                {urls: turnServer, username: turnUser, credential: turnCredential}
-            ],
-            iceTransportPolicy: "relay",
-        })
-        pc.onicecandidate = ev => {
-            if (ev.candidate !== null) {
-                ws.send(JSON.stringify({
-                    "type": MessageICECandidate,
-                    "data": btoa(JSON.stringify(ev.candidate))
-                }))
-                pc.addIceCandidate(ev.candidate).then(_ => console.log("ice candidate: ", ev.candidate))
-            }else {
-                console.log(ev)
-            }
-        }
-
-        pc.onconnectionstatechange = ev=>{
-            console.log("peer conn state: " + pc.connectionState)
-            switch (pc.connectionState) {
-                case "connected":
-                    rtcSession.ws.close()
-                    break
-                case "disconnected":
-                    pc.close()
-                    connectButton.disabled = false
-                    break
-                default:
-                    break
-            }
-        }
-
-        pc.oniceconnectionstatechange = ev=>{
-            console.log("ice conn state: " + pc.iceConnectionState)
-        }
-
-        pc.ontrack = ev=>{
-            console.log("track id:" + ev.streams[0].id)
-            document.getElementById("video").srcObject = ev.streams[0]
-            document.getElementById("video").autoplay = true
-            document.getElementById("video").controls = true
-        }
-
-        pc.ondatachannel = ev=>{
-            const datachannel = ev.channel
-            rtcSession.dataChannel = datachannel
-            datachannel.onclose = _=>{
-                window.onkeydown = _=>{}
-                window.onkeyup = _ => {}
-            }
-            datachannel.onerror = err=>{
-                console.log(err)
-            }
-            datachannel.onmessage = msg=>{
-                console.log("unexpected dataChannel message:", msg)
-            }
-        }
-        rtcSession.pc = pc
-    }
 
     ws.onclose = ev => {
         console.log("websocket connection closed")
@@ -145,9 +84,81 @@ function connect() {
                 .catch(err=>{
                     console.log(err)
                 })
+        }else if (message["type"] === MessageTurnServerInfo) {
+            const turnInfo = JSON.parse(atob(message["data"]))
+            rtcSession.turnAddress = turnInfo["address"]
+            rtcSession.turnUser = turnInfo["username"]
+            rtcSession.turnPassword = turnInfo["password"]
+            createPeerConnection()
         }
     }
     rtcSession.ws = ws
+}
+
+function createPeerConnection() {
+    const ws = rtcSession.ws
+    console.log(rtcSession.turnAddress, rtcSession.turnPassword, rtcSession.turnUser)
+    const pc = new RTCPeerConnection({
+        iceServers: [
+            {urls: stunServer},
+            {urls: rtcSession.turnAddress, username: rtcSession.turnUser, credential: rtcSession.turnPassword },
+        ],
+        iceTransportPolicy: "relay",
+    })
+
+    pc.onicecandidate = ev => {
+        if (ev.candidate !== null) {
+            ws.send(JSON.stringify({
+                "type": MessageICECandidate,
+                "data": btoa(JSON.stringify(ev.candidate))
+            }))
+            pc.addIceCandidate(ev.candidate).then(_ => console.log("ice candidate: ", ev.candidate))
+        }else {
+            console.log(ev)
+        }
+    }
+
+    pc.onconnectionstatechange = ev=>{
+        console.log("peer conn state: " + pc.connectionState)
+        switch (pc.connectionState) {
+            case "connected":
+                rtcSession.ws.close()
+                break
+            case "disconnected":
+                pc.close()
+                document.getElementById("connect-button").disabled = false
+                break
+            default:
+                break
+        }
+    }
+
+    pc.oniceconnectionstatechange = ev=>{
+        console.log("ice conn state: " + pc.iceConnectionState)
+    }
+
+    pc.ontrack = ev=>{
+        console.log("track id:" + ev.streams[0].id)
+        document.getElementById("video").srcObject = ev.streams[0]
+        document.getElementById("video").autoplay = true
+        document.getElementById("video").controls = true
+    }
+
+    pc.ondatachannel = ev=>{
+        const datachannel = ev.channel
+        rtcSession.dataChannel = datachannel
+        datachannel.onclose = _=>{
+            window.onkeydown = _=>{}
+            window.onkeyup = _ => {}
+        }
+        datachannel.onerror = err=>{
+            console.log(err)
+        }
+        datachannel.onmessage = msg=>{
+            console.log("unexpected dataChannel message:", msg)
+        }
+    }
+    rtcSession.pc = pc
 }
 
 function restartEmulator() {
