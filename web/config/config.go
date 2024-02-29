@@ -14,6 +14,8 @@ type Config struct {
 
 	FileStorageType          string `yaml:"file_storage_type"`
 	HostFileSystemStorageDir string `yaml:"host_fs_store_dir"`
+
+	TurnServerAddr string `yaml:"turn_server_addr"`
 }
 
 var config Config = Config{
@@ -22,6 +24,7 @@ var config Config = Config{
 	JwtSecret:                "123456",
 	RedisAddr:                "localhost:6369",
 	HostFileSystemStorageDir: "/var/tmp/nesgo/saves",
+	TurnServerAddr:           "turn:192.168.0.107:3478",
 }
 
 func init() {
