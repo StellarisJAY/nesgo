@@ -375,6 +375,7 @@ func (r *WebRTCRoomSession) renderCallback(p *ppu.PPU) {
 
 // onNewConnection 新websocket连接建立后， 创建webrtc连接
 // 1. 创建webrtc连接，创建视频音频流track
+// 1.5 创建turn服务器凭证，保存在redis中，将用户名密码对发送给客户端
 // 2. 创建SDP Offer， 并发送给客户端，完成SDP协商
 // 3. 创建DataChannel，设置Message回调和连接状态回调
 // 4. 创建视频编码器， 每个连接使用独立的视频编码器
@@ -405,7 +406,9 @@ func (r *WebRTCRoomSession) onNewConnection(ctx context.Context, wsConn *Websock
 			_ = peer.Close()
 		}
 	}()
-
+	if err := roomConnection.SendTurnServerInfo(); err != nil {
+		panic(fmt.Errorf("unable to send turn server info, error: %w", err))
+	}
 	// 创建H264视频和opus音频流
 	videoTrack, _ := rtcFactory.VideoTrack("h264")
 	if _, err := peer.AddTrack(videoTrack); err != nil {

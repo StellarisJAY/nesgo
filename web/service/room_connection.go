@@ -3,14 +3,22 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v3"
 	"github.com/stellarisJAY/nesgo/web/codec"
+	"github.com/stellarisJAY/nesgo/web/config"
+	"github.com/stellarisJAY/nesgo/web/model/db"
 	"github.com/stellarisJAY/nesgo/web/model/room"
 	"log"
+	"net"
 	"net/http"
+	"path"
 	"sync/atomic"
+	"time"
 )
 
 type MessageWithConnInfo struct {
@@ -29,6 +37,7 @@ const (
 	MessageICECandidate
 	MessageGameButtonPressed
 	MessageGameButtonReleased
+	MessageTurnServerInfo
 )
 
 type RoomConn struct {
@@ -56,6 +65,20 @@ type RoomMemberChangeNotification struct {
 	MemberId   int64 `json:"id"`
 	MemberType byte  `json:"memberType"`
 	Kick       bool  `json:"kick"`
+}
+
+type TurnServerInfo struct {
+	Addr     string `json:"address"`
+	Realm    string `json:"realm"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type TurnServerClaim struct {
+	jwt.Claims
+	SrcIp        string
+	TurnUsername string
+	TurnPassword string
 }
 
 func (rc *RoomConn) Handle(ctx context.Context) {
@@ -135,7 +158,7 @@ func (rc *RoomConn) onPeerConnectionState(state webrtc.PeerConnectionState, sign
 	case webrtc.PeerConnectionStateConnected:
 		rc.connected.Store(true)
 		signalChan <- Signal{SignalPeerConnected, rc}
-	case webrtc.PeerConnectionStateDisconnected:
+	case webrtc.PeerConnectionStateDisconnected, webrtc.PeerConnectionStateFailed:
 		signalChan <- Signal{SignalPeerDisconnected, rc}
 		rc.connected.Store(false)
 		rc.Close()
@@ -189,4 +212,40 @@ func (rs *RoomService) ConnectRTCRoomSession(c *gin.Context) {
 			Conn:   conn,
 		},
 	}
+}
+
+func (rc *RoomConn) SendTurnServerInfo() error {
+	username := rc.getTurnUsername()
+	key := getRedisTurnAuthKey(username, "nesgo", rc.ip())
+	password := generateTurnPassword()
+	if err := db.GetRedis().Set(key, password, 30*time.Second).Err(); err != nil {
+		return err
+	}
+	data, _ := json.Marshal(TurnServerInfo{
+		Addr:     config.GetConfig().TurnServerAddr,
+		Realm:    "nesgo",
+		Username: username,
+		Password: password,
+	})
+	return rc.sendMessage(Message{
+		Type: MessageTurnServerInfo,
+		Data: data,
+	})
+}
+
+func getRedisTurnAuthKey(username string, realm string, ipAddr string) string {
+	return path.Join("turn", realm, username, ipAddr)
+}
+
+func (rc *RoomConn) getTurnUsername() string {
+	return fmt.Sprintf("turn-user-%d", rc.MemberId)
+}
+
+func (rc *RoomConn) ip() string {
+	return rc.wsConn.Conn.RemoteAddr().(*net.TCPAddr).IP.String()
+}
+
+func generateTurnPassword() string {
+	u, _ := uuid.NewUUID()
+	return u.String()
 }
