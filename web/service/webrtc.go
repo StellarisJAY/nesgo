@@ -54,6 +54,7 @@ type saveGameRequest struct {
 
 type loadSavedGameRequest struct {
 	data     []byte
+	game     string
 	respChan chan error
 }
 
@@ -177,7 +178,7 @@ func (r *WebRTCRoomSession) handleSignal(ctx context.Context, signal Signal) {
 		}
 	case SignalLoadSavedGame:
 		req := signal.Data.(*loadSavedGameRequest)
-		if err := r.loadSavedGame(req.data); err != nil {
+		if err := r.loadSavedGame(req.game, req.data); err != nil {
 			req.respChan <- err
 		} else {
 			close(req.respChan)
@@ -296,16 +297,21 @@ func (r *WebRTCRoomSession) save() ([]byte, error) {
 	return r.e.GetSaveData()
 }
 
-func (r *WebRTCRoomSession) LoadSavedGame(data []byte) error {
+func (r *WebRTCRoomSession) LoadSavedGame(game string, data []byte) error {
 	respChan := make(chan error)
 	r.signalChan <- Signal{
 		Type: SignalLoadSavedGame,
-		Data: &loadSavedGameRequest{data, respChan},
+		Data: &loadSavedGameRequest{data, game, respChan},
 	}
 	return <-respChan
 }
 
-func (r *WebRTCRoomSession) loadSavedGame(data []byte) error {
+func (r *WebRTCRoomSession) loadSavedGame(game string, data []byte) error {
+	if r.game != game {
+		if err := r.restart(game); err != nil {
+			return err
+		}
+	}
 	r.e.Pause()
 	defer r.e.Resume()
 	return r.e.Load(data)

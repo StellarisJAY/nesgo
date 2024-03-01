@@ -45,6 +45,7 @@ onload = ev=>{
     // 连接之前禁用控制按钮
     setControlButtonsDisabled(true)
     getRoomMemberSelf()
+    getRoomInfo()
 }
 
 function connect() {
@@ -398,6 +399,102 @@ function alterRole(memberId, role) {
     }))
         .then(_=>{return listRoomMembers()})
         .then(_=>renderMembersTable())
+        .catch(resp=>{
+            if (resp.status !== 500) {
+                alert(resp.message)
+            }
+            console.log(resp.message)
+        })
+}
+
+function showRoomInfoModal() {
+    const modal = new bootstrap.Modal(document.getElementById("room-info-modal"), {
+        keyboard: false
+    })
+    modal.show()
+}
+
+function getRoomInfo() {
+    get("/room/" + roomId + "/info", null)
+        .then(data=>{
+            document.getElementById("room-name").innerText = "Name:" + data["name"]
+            if (data["password"] === "") {
+                document.getElementById("room-password").hidden = true
+            }else {
+                document.getElementById("room-password").value = data["password"]
+            }
+        })
+}
+
+function showSavesModal() {
+    const modal = new bootstrap.Modal(document.getElementById("saves-modal"), {
+        keyboard: false
+    })
+    listSavedGames()
+    modal.show()
+}
+
+function listSavedGames() {
+    get("/room/"+roomId+"/saves", null)
+        .then(data=>{
+            const table = document.getElementById("saves-list")
+            table.innerHTML = ""
+            data.forEach(save=>{
+                const row = document.createElement("tr")
+                const time = document.createElement("td")
+                time.innerText = save["createdAt"]
+                const loadBtn = document.createElement("button")
+                const delBtn = document.createElement("button")
+                const opts = document.createElement("td")
+                loadBtn.onclick = _=>loadSave(save["id"])
+                delBtn.onclick = _=>deleteSave(save["id"])
+                loadBtn.type = "button"
+                delBtn.type = "button"
+                loadBtn.className = "btn btn-primary"
+                delBtn.className = "btn btn-danger"
+                loadBtn.innerText = "load"
+                delBtn.innerText = "delete"
+                if (rtcSession.member["role"] !== RoleHost) {
+                    delBtn.disabled = true
+                    loadBtn.disabled = true
+                }
+                opts.appendChild(loadBtn)
+                opts.appendChild(delBtn)
+                row.innerHTML += "<td>" + save["game"] + "</td>"
+                row.appendChild(time)
+                row.appendChild(opts)
+                table.appendChild(row)
+            })
+        })
+        .catch(resp=>{
+            if (resp.status !== 500) {
+                alert(resp.message)
+            }
+            console.log(resp.message)
+        })
+}
+
+function deleteSave(id) {
+    post("/room/" + roomId + "/saves/" + id + "/delete", null)
+        .then(_=>{
+            listSavedGames()
+        })
+        .catch(resp=>{
+            if (resp.status !== 500) {
+                alert(resp.message)
+            }
+            console.log(resp.message)
+        })
+}
+
+function loadSave(id) {
+    post("/room/" + roomId + "/load/" + id, null)
+        .then(_=>{
+            const modal = new bootstrap.Modal(document.getElementById("saves-modal"), {
+                keyboard: false
+            })
+            modal.hide()
+        })
         .catch(resp=>{
             if (resp.status !== 500) {
                 alert(resp.message)

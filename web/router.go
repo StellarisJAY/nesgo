@@ -70,17 +70,19 @@ func setupRouter() *gin.Engine {
 		{
 			hostApis.POST("/room/:roomId/restart", roomService.Restart)
 			hostApis.POST("/room/:roomId/quickSave", roomService.QuickSave)
-			hostApis.POST("/room/:roomId/quickLoad", roomService.QuickLoad)
+			hostApis.POST("/room/:roomId/load/:saveId", roomService.QuickLoad)
 			hostApis.POST("/room/:roomId/control/transfer", roomService.TransferControl)
 			hostApis.POST("/room/:roomId/member/kick", roomService.KickMember)
 			hostApis.POST("/room/:roomId/role", roomService.AlterRole)
 			hostApis.POST("/room/:roomId/delete", roomService.DeleteRoom)
+			hostApis.POST("/room/:roomId/saves/:saveId/delete", roomService.DeleteSave)
 		}
 		// only room member can access these apis:
 		roomMemberApis := authorized.Group("/", roomService.MemberAccessible())
 		{
 			roomMemberApis.GET("/room/:roomId/members", roomService.ListRoomMembers)
 			roomMemberApis.GET("/room/:roomId/member", roomService.GetRoomMemberSelf)
+			roomMemberApis.GET("/room/:roomId/saves", roomService.ListSaves)
 		}
 	}
 
