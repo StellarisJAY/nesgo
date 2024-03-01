@@ -102,6 +102,7 @@ func (rc *RoomConn) sendMessage(msg Message) error {
 }
 
 func (rc *RoomConn) Close() {
+	rc.videoEncoder.Close()
 	_ = rc.wsConn.Conn.Close()
 	_ = rc.rtcConn.Close()
 }

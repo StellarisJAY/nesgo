@@ -11,6 +11,7 @@ type IVideoEncoder interface {
 	Encode(frame *ppu.Frame) error
 	Flush() error
 	FlushBuffer() []byte
+	Close()
 }
 
 func NewVideoEncoder(codec string) (IVideoEncoder, error) {

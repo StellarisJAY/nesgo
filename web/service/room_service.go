@@ -6,6 +6,7 @@ import (
 	"github.com/stellarisJAY/nesgo/web/config"
 	"github.com/stellarisJAY/nesgo/web/model/db"
 	"github.com/stellarisJAY/nesgo/web/model/room"
+	"github.com/stellarisJAY/nesgo/web/model/save"
 	"github.com/stellarisJAY/nesgo/web/model/user"
 	"github.com/stellarisJAY/nesgo/web/util/fs"
 	"gorm.io/gorm"
@@ -280,6 +281,15 @@ func (rs *RoomService) GetRoomInfo(c *gin.Context) {
 
 func (rs *RoomService) DeleteRoom(c *gin.Context) {
 	roomId := c.GetInt64("roomId")
+
+	rs.m.Lock()
+	session, ok := rs.rtcSessions[roomId]
+	if ok {
+		delete(rs.rtcSessions, roomId)
+		session.Close()
+	}
+	rs.m.Unlock()
+
 	err := db.GetDB().Transaction(func(tx *gorm.DB) error {
 		if err := room.DeleteRoomMembers(tx, roomId); err != nil {
 			return err
@@ -292,6 +302,24 @@ func (rs *RoomService) DeleteRoom(c *gin.Context) {
 	if err != nil {
 		panic(err)
 	}
+
+	saves, err := save.ListSaves(roomId, 1, 10)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		goto RETURN
+	}
+	if err != nil {
+		panic(err)
+	}
+	err = save.DeleteSave(db.GetDB(), roomId)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		goto RETURN
+	} else if err != nil {
+		panic(err)
+	}
+	for _, s := range saves {
+		_ = rs.fileStorage.Delete(s.Path)
+	}
+RETURN:
 	c.JSON(200, JSONResp{Status: 200, Message: "ok"})
 }
 

@@ -48,3 +48,7 @@ func (e *Encoder) Encode(frame *ppu.Frame) error {
 func (e *Encoder) Flush() error {
 	return e.enc.Flush()
 }
+
+func (e *Encoder) Close() {
+	_ = e.enc.Close()
+}

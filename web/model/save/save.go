@@ -86,3 +86,7 @@ func DeleteSave(db *gorm.DB, id int64) error {
 		Delete(&Save{}).
 		Error
 }
+
+func DeleteRoomSaves(db *gorm.DB, roomId int64) error {
+	return db.Where("room_id=?", roomId).Delete(&Save{}).Error
+}

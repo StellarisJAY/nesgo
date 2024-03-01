@@ -537,3 +537,14 @@ func (r *WebRTCRoomSession) filterMembers(filterFunc func(room.Member) bool) []*
 func isControllableMember(m room.Member) bool {
 	return m.Role != room.RoleObserver
 }
+
+func (r *WebRTCRoomSession) Close() {
+	r.cancel()
+}
+
+func (r *WebRTCRoomSession) onClose() {
+	r.emulatorCancel()
+	for _, conn := range r.connections {
+		conn.Close()
+	}
+}
