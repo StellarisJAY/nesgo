@@ -153,7 +153,7 @@ func (rs *RoomService) AlterRole(c *gin.Context) {
 func (rs *RoomService) RoomMemberVerifier(accessRoles []byte) func(*gin.Context) {
 	return func(c *gin.Context) {
 		roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
-		userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+		userId := c.GetInt64("uid")
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, JSONResp{
 				Status:  400,

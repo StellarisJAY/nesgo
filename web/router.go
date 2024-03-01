@@ -55,7 +55,7 @@ func setupRouter() *gin.Engine {
 		api.POST("/user/register", userService.Register)
 		api.POST("/user/login", userService.Login)
 		// only authorized user can access these apis:
-		authorized := api.Group("/", middleware.ParseQueryToken, middleware.JWTAuth)
+		authorized := api.Group("/", middleware.ParseQueryToken, middleware.AuthHandler)
 		{
 			authorized.POST("/room", roomService.CreateRoom)
 			authorized.GET("/room/list", roomService.ListAllRooms)
@@ -85,7 +85,7 @@ func setupRouter() *gin.Engine {
 	}
 
 	// websocket
-	ws := r.Group("/ws", middleware.ParseQueryToken, middleware.JWTAuth)
+	ws := r.Group("/ws", middleware.ParseQueryToken, middleware.AuthHandler)
 	{
 		ws.GET("/room/:roomId/rtc", roomService.MemberAccessible(), roomService.ConnectRTCRoomSession)
 	}

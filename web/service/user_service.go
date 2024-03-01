@@ -1,15 +1,11 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/stellarisJAY/nesgo/web/middleware"
-	"github.com/stellarisJAY/nesgo/web/model/db"
 	"github.com/stellarisJAY/nesgo/web/model/user"
 	"gorm.io/gorm"
-	"strconv"
-	"time"
 )
 
 type UserService struct{}
@@ -62,40 +58,28 @@ func (u *UserService) Register(c *gin.Context) {
 func (u *UserService) Login(c *gin.Context) {
 	var loginForm LoginForm
 	if err := c.ShouldBindJSON(&loginForm); err != nil {
-		c.JSON(400, JSONResp{
-			Status:  400,
-			Message: "Bad request form",
-		})
+		c.JSON(400, JSONResp{Status: 400, Message: "Bad request form"})
 		return
 	}
 	usr, err := user.GetUserByName(loginForm.Name)
-	if err == nil {
-		if loginForm.Password != usr.Password {
-			c.JSON(401, JSONResp{
-				Status:  401,
-				Message: "Wrong password or username",
-			})
-			return
-		}
-		token, _ := middleware.GenerateToken(usr)
-		client := db.GetRedis()
-		data, _ := json.Marshal(usr)
-		if _, err := client.Set("user_"+strconv.FormatInt(usr.Id, 10), data, time.Hour*24).Result(); err != nil {
-			panic(err)
-		}
-		c.JSON(200, JSONResp{
-			Status:  200,
-			Message: "login success",
-			Data:    gin.H{"token": token},
-		})
-		return
-	}
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(404, JSONResp{
-			Status:  404,
-			Message: "User not found",
-		})
+		c.JSON(404, JSONResp{Status: 404, Message: "User not found"})
+		return
+	} else if err != nil {
+		panic(err)
+	}
+	if loginForm.Password != usr.Password {
+		c.JSON(401, JSONResp{Status: 401, Message: "Wrong password or username"})
 		return
 	}
-	panic(err)
+	auth := middleware.Authorization{
+		UserId:    usr.Id,
+		Ip:        c.RemoteIP(),
+		UserAgent: c.GetHeader("User-Agent"),
+	}
+	token, err := middleware.StoreAuthorization(auth)
+	if err != nil {
+		panic(err)
+	}
+	c.JSON(200, JSONResp{Status: 200, Message: "ok", Data: token})
 }

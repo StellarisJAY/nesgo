@@ -66,7 +66,7 @@ func NewRoomService() *RoomService {
 }
 
 func (rs *RoomService) CreateRoom(c *gin.Context) {
-	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+	userId := c.GetInt64("uid")
 	var form CreateRoomForm
 	if err := c.ShouldBindJSON(&form); err != nil {
 		c.JSON(http.StatusBadRequest, JSONResp{
@@ -116,7 +116,7 @@ func (rs *RoomService) CreateRoom(c *gin.Context) {
 }
 
 func (rs *RoomService) ListJoinedRooms(c *gin.Context) {
-	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+	userId := c.GetInt64("uid")
 	page, pageSize, err := getPageQuery(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid page query params"})
@@ -211,7 +211,7 @@ func (rs *RoomService) ListAllRooms(c *gin.Context) {
 }
 
 func (rs *RoomService) JoinRoom(c *gin.Context) {
-	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+	userId := c.GetInt64("uid")
 	roomId := c.Param("roomId")
 	password := c.Query("password")
 	if roomId == "" {
@@ -255,39 +255,6 @@ func (rs *RoomService) JoinRoom(c *gin.Context) {
 		})
 		return
 	}
-}
-
-func (rs *RoomService) RoomPage(c *gin.Context) {
-	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
-	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, JSONResp{
-			Status:  400,
-			Message: "invalid room id",
-		})
-		return
-	}
-	roomDO, err := room.GetRoomById(roomId)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(404, JSONResp{
-				Status:  404,
-				Message: "room not found",
-			})
-			return
-		} else {
-			panic(err)
-		}
-	}
-	if _, ok := rs.IsRoomMember(roomId, userId); !ok {
-		c.JSON(200, JSONResp{
-			Status:  http.StatusForbidden,
-			Message: "not a member of this room",
-		})
-		return
-	}
-
-	c.HTML(200, "room.html", roomDO)
 }
 
 func (rs *RoomService) GetRoomInfo(c *gin.Context) {
