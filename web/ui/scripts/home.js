@@ -18,7 +18,7 @@ onload = ()=> {
 function listJoinedRooms(page,pageSize) {
     get("/room/list/joined?page=" + page + "&pageSize=" + pageSize, null)
         .then(data=>{
-            renderRoomsList(data, "joined-rooms-rows", ["private", "name", "role", "host"],(r)=>{
+            renderRoomsList(data, "joined-rooms-rows", ["private", "name", "role", "host", "memberCount"],(r)=>{
                 const enterButton = document.createElement("button");
                 enterButton.className = "btn btn-primary"
                 enterButton.type = "button"
@@ -57,7 +57,7 @@ function listRooms(page, pageSize) {
                 return null
             }
             listRoomsPage = page
-            renderRoomsList(data, "list-rooms-rows", ["private", "name", "host"], r=>{
+            renderRoomsList(data, "list-rooms-rows", ["private", "name", "host", "memberCount"], r=>{
                 const joinButton = document.createElement("button")
                 joinButton.className = "btn btn-primary"
                 joinButton.type = "button"
@@ -86,6 +86,8 @@ function renderRoomsList(data, elementId, columns, buttonCreator) {
             const td = document.createElement("td")
             if (col === "role") {
                 td.innerHTML = roles[r[col]]
+            }else if (col === "memberCount") {
+                td.innerHTML = r[col] + "/4"
             }else {
                 td.innerHTML = r[col]
             }

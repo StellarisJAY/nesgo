@@ -40,6 +40,7 @@ const (
 	RoleHost byte = iota
 	RoleGamer
 	RoleObserver
+	MaxMemberCount = 4
 )
 
 func init() {

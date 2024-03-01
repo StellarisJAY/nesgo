@@ -9,7 +9,6 @@ import (
 	"github.com/stellarisJAY/nesgo/web/model/user"
 	"github.com/stellarisJAY/nesgo/web/util/fs"
 	"gorm.io/gorm"
-	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -69,18 +68,12 @@ func (rs *RoomService) CreateRoom(c *gin.Context) {
 	userId := c.GetInt64("uid")
 	var form CreateRoomForm
 	if err := c.ShouldBindJSON(&form); err != nil {
-		c.JSON(http.StatusBadRequest, JSONResp{
-			Status:  http.StatusBadRequest,
-			Message: "bad request form",
-		})
+		c.JSON(http.StatusBadRequest, JSONResp{Status: http.StatusBadRequest, Message: "bad request form"})
 		return
 	}
 	_, err := room.GetRoomByNameAndHost(form.Name, userId)
 	if err == nil {
-		c.JSON(200, JSONResp{
-			Status:  http.StatusBadRequest,
-			Message: "room name already inuse",
-		})
+		c.JSON(200, JSONResp{Status: http.StatusBadRequest, Message: "room name already inuse"})
 		return
 	}
 	password := ""
@@ -224,16 +217,23 @@ func (rs *RoomService) JoinRoom(c *gin.Context) {
 		return
 	}
 	r, err := room.GetRoomById(id)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(200, JSONResp{
-				Status:  404,
-				Message: "room not found",
-			})
-			return
-		}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(200, JSONResp{Status: 404, Message: "room not found"})
+		return
+	} else if err != nil {
 		panic(err)
 	}
+
+	count, err := room.GetMemberCount(id)
+	if err != nil {
+		panic(err)
+	}
+
+	if count == room.MaxMemberCount {
+		c.JSON(200, JSONResp{Status: 400, Message: "room already full"})
+		return
+	}
+
 	if r.Password == "" || r.Password == password {
 		err := room.AddMember(db.GetDB(), &room.Member{
 			RoomId: id,
@@ -243,16 +243,9 @@ func (rs *RoomService) JoinRoom(c *gin.Context) {
 		if err != nil {
 			panic(err)
 		}
-		log.Println("inserted new member")
-		c.JSON(200, JSONResp{
-			Status:  200,
-			Message: "Success",
-		})
+		c.JSON(200, JSONResp{Status: 200, Message: "Success"})
 	} else {
-		c.JSON(200, JSONResp{
-			Status:  500,
-			Message: "wrong password",
-		})
+		c.JSON(200, JSONResp{Status: 500, Message: "wrong password"})
 		return
 	}
 }
