@@ -56,9 +56,6 @@ func (e *Emulator) LoadAndRun(ctx context.Context, enableTrace bool) {
 	if enableTrace {
 		e.processor.LoadAndRunWithCallback(ctx, trace.Trace, nil)
 	} else {
-		e.processor.LoadAndRunWithCallback(ctx, nil,
-			func(_ *cpu.Processor) {
-				e.PushSnapshot()
-			})
+		e.processor.LoadAndRunWithCallback(ctx, nil, nil)
 	}
 }
