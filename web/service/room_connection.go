@@ -160,6 +160,10 @@ func (rc *RoomConn) onPeerConnectionState(state webrtc.PeerConnectionState, sign
 		signalChan <- Signal{SignalPeerConnected, rc}
 	case webrtc.PeerConnectionStateDisconnected, webrtc.PeerConnectionStateFailed:
 		signalChan <- Signal{SignalPeerDisconnected, rc}
+		key := getRedisTurnAuthKey(rc.getTurnUsername(), "nesgo", rc.ip())
+		if err := db.GetRedis().Del(key).Err(); err != nil {
+			log.Println("delete turn authorization error:", err)
+		}
 		rc.connected.Store(false)
 		rc.Close()
 	default:
@@ -215,14 +219,19 @@ func (rs *RoomService) ConnectRTCRoomSession(c *gin.Context) {
 }
 
 func (rc *RoomConn) SendTurnServerInfo() error {
-	username := rc.getTurnUsername()
-	key := getRedisTurnAuthKey(username, "nesgo", rc.ip())
-	password := generateTurnPassword()
-	if err := db.GetRedis().Set(key, password, 30*time.Second).Err(); err != nil {
-		return err
+	username := config.GetConfig().TurnServer.LongTermUser
+	password := config.GetConfig().TurnServer.LongTermPassword
+	// 如果没有配置long-term用户，创建临时用户，并保存到redis
+	if username == "" {
+		username = rc.getTurnUsername()
+		key := getRedisTurnAuthKey(username, "nesgo", rc.ip())
+		password = generateTurnPassword()
+		if err := db.GetRedis().Set(key, password, 30*time.Second).Err(); err != nil {
+			return err
+		}
 	}
 	data, _ := json.Marshal(TurnServerInfo{
-		Addr:     config.GetConfig().TurnServerAddr,
+		Addr:     config.GetConfig().TurnServer.Addr,
 		Realm:    "nesgo",
 		Username: username,
 		Password: password,
