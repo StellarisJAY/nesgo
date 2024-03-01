@@ -11,7 +11,7 @@ import (
 
 func main() {
 	server := web.NewServer()
-	if config.GetEmulatorConfig().Pprof {
+	if config.GetEmulatorConfig().Debug {
 		go func() {
 			_ = http.ListenAndServe(":9999", nil)
 		}()
