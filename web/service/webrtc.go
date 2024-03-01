@@ -195,7 +195,7 @@ func (r *WebRTCRoomSession) handleSignal(ctx context.Context, signal Signal) {
 func (r *WebRTCRoomSession) handleDataChannelMessage(msg MessageWithConnInfo) {
 	switch msg.Type {
 	case MessageGameButtonReleased, MessageGameButtonPressed:
-		if msg.wsConn.Member.MemberType != room.MemberTypeWatcher {
+		if msg.wsConn.Member.Role != room.RoleObserver {
 			r.handleGameButtonMsg(msg)
 		}
 	default:
@@ -330,8 +330,8 @@ func (r *WebRTCRoomSession) transferControl(memberId int64, control1, control2 b
 	if _, ok := r.members[memberId]; !ok {
 		return errors.New("member not connected")
 	}
-	if r.members[memberId].MemberType == room.MemberTypeWatcher {
-		return errors.New("watcher can't not gain control")
+	if r.members[memberId].Role == room.RoleObserver {
+		return errors.New("observer can't not gain control")
 	} else {
 		if control1 {
 			r.controller1 = memberId
@@ -463,7 +463,7 @@ func (r *WebRTCRoomSession) onNewConnection(ctx context.Context, wsConn *Websock
 	r.members[wsConn.Member.UserId] = wsConn.Member
 	r.connections[wsConn.Member.UserId] = roomConnection
 	// 如果当前没有可控制游戏的玩家，且当前连接是可控制游戏的玩家，转移控制权
-	if r.controller1 == 0 && len(controllableMembers) == 0 && wsConn.Member.MemberType == room.MemberTypeOwner {
+	if r.controller1 == 0 && len(controllableMembers) == 0 && wsConn.Member.Role == room.RoleHost {
 		_ = r.transferControl(wsConn.Member.UserId, true, false)
 	}
 
@@ -529,5 +529,5 @@ func (r *WebRTCRoomSession) filterMembers(filterFunc func(room.Member) bool) []*
 }
 
 func isControllableMember(m room.Member) bool {
-	return m.MemberType != room.MemberTypeWatcher
+	return m.Role != room.RoleObserver
 }

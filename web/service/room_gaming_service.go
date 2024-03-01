@@ -43,10 +43,10 @@ func (rs *RoomService) TransferControl(c *gin.Context) {
 		return
 	}
 	targetMember, ok := rs.IsRoomMember(roomId, req.MemberId)
-	if !ok || targetMember.MemberType == room.MemberTypeWatcher {
+	if !ok || targetMember.Role == room.RoleObserver {
 		c.JSON(200, JSONResp{
 			Status:  http.StatusForbidden,
-			Message: "can not give control to watcher or not a room member",
+			Message: "can not give control to observer or not a room member",
 		})
 		return
 	}

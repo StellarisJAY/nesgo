@@ -18,18 +18,23 @@ onload = ()=> {
 function listJoinedRooms(page,pageSize) {
     get("/room/list/joined?page=" + page + "&pageSize=" + pageSize, null)
         .then(data=>{
-            if (data.length === 0) {
-                return null
-            }
-            joinedRoomsPage = page
-            renderRoomsList(data, "joined-rooms-rows", ["private", "name", "memberType", "owner"],(r)=>{
+            renderRoomsList(data, "joined-rooms-rows", ["private", "name", "role", "host"],(r)=>{
                 const enterButton = document.createElement("button");
                 enterButton.className = "btn btn-primary"
                 enterButton.type = "button"
                 enterButton.innerText = "Enter"
                 enterButton.onclick = _ => window.location = "/room/"+r["id"]
-                return enterButton
+                const deleteButton = document.createElement("button")
+                deleteButton.type = "button"
+                deleteButton.innerText = "delete"
+                deleteButton.className = "btn btn-danger"
+                deleteButton.onclick = _=> deleteRoom(r["id"])
+                return [enterButton, deleteButton]
             })
+            if (data.length === 0) {
+                return null
+            }
+            joinedRoomsPage = page
             return data
         })
         .then(data=>{
@@ -52,13 +57,13 @@ function listRooms(page, pageSize) {
                 return null
             }
             listRoomsPage = page
-            renderRoomsList(data, "list-rooms-rows", ["private", "name", "owner"], r=>{
+            renderRoomsList(data, "list-rooms-rows", ["private", "name", "host"], r=>{
                 const joinButton = document.createElement("button")
                 joinButton.className = "btn btn-primary"
                 joinButton.type = "button"
                 joinButton.innerText = "Join"
                 joinButton.onclick = _ => tryJoinRoom(r)
-                return joinButton
+                return [joinButton]
             })
             return data
         })
@@ -79,14 +84,17 @@ function renderRoomsList(data, elementId, columns, buttonCreator) {
         const tr = document.createElement("tr")
         columns.forEach(col=>{
             const td = document.createElement("td")
-            if (col === "memberType") {
-                td.innerHTML = memberTypes[r[col]]
+            if (col === "role") {
+                td.innerHTML = roles[r[col]]
             }else {
                 td.innerHTML = r[col]
             }
             tr.appendChild(td)
         })
-        tr.appendChild(buttonCreator(r))
+        const td = document.createElement("td")
+        const buttons = buttonCreator(r)
+        buttons.forEach(b=>td.appendChild(b))
+        tr.appendChild(td)
         rows.appendChild(tr)
     })
 }
@@ -135,10 +143,27 @@ function createRoom() {
     }
     post("/room", JSON.stringify({"name": name, "private": isPrivate}))
         .then(data=>{
-            console.log(data)
+            const modal = new bootstrap.Modal(document.getElementById("create-room-modal"))
+            modal.dispose()
+        })
+        .then(_=>{
+            listJoinedRooms(1, 10)
         })
         .catch(resp=>{
             if (resp.status === 400) {
+                alert(resp.message)
+            }
+            console.log(resp.message)
+        })
+}
+
+function deleteRoom(roomId ) {
+    post("/room/" + roomId + "/delete", null)
+        .then(_=>{
+            listJoinedRooms(1, 10)
+        })
+        .catch(resp=>{
+            if (resp.status !== 500) {
                 alert(resp.message)
             }
             console.log(resp.message)

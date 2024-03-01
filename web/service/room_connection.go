@@ -56,17 +56,6 @@ type WebsocketConn struct {
 	Conn   *websocket.Conn
 }
 
-type ControlTransferredNotification struct {
-	Control1 int64 `json:"control1"`
-	Control2 int64 `json:"control2"`
-}
-
-type RoomMemberChangeNotification struct {
-	MemberId   int64 `json:"id"`
-	MemberType byte  `json:"memberType"`
-	Kick       bool  `json:"kick"`
-}
-
 type TurnServerInfo struct {
 	Addr     string `json:"address"`
 	Realm    string `json:"realm"`
@@ -183,9 +172,9 @@ func (rs *RoomService) ConnectRTCRoomSession(c *gin.Context) {
 	session, ok := rs.rtcSessions[roomId]
 	rs.m.Unlock()
 	if !ok {
-		// Only owner can create session
-		if member.MemberType != room.MemberTypeOwner {
-			c.JSON(200, JSONResp{Status: http.StatusForbidden, Message: "only owner can start game session"})
+		// Only host can create session
+		if member.Role != room.RoleHost {
+			c.JSON(200, JSONResp{Status: http.StatusForbidden, Message: "only host can start game session"})
 			return
 		}
 		game := c.Query("game")

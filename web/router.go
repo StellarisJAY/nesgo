@@ -3,6 +3,7 @@ package web
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/stellarisJAY/nesgo/config"
 	"github.com/stellarisJAY/nesgo/web/middleware"
 	"github.com/stellarisJAY/nesgo/web/service"
 	"net/http"
@@ -21,7 +22,9 @@ func setupRouter() *gin.Engine {
 	corsConf.AllowAllOrigins = true
 	corsConf.AllowHeaders = append(corsConf.AllowHeaders, "Authorization")
 	r.Use(cors.New(corsConf), gin.Recovery())
-
+	if config.GetEmulatorConfig().Debug {
+		r.Use(noCache)
+	}
 	// static resources
 	{
 		r.StaticFS("/assets", http.Dir("web/ui/assets"))
@@ -63,14 +66,15 @@ func setupRouter() *gin.Engine {
 			authorized.GET("/game/:name", gameService.GetGameInfo)
 		}
 		// only room member can access these apis:
-		roomOwnerApis := authorized.Group("/", roomService.OwnerAccessible())
+		hostApis := authorized.Group("/", roomService.HostAccessible())
 		{
-			roomOwnerApis.POST("/room/:roomId/restart", roomService.Restart)
-			roomOwnerApis.POST("/room/:roomId/quickSave", roomService.QuickSave)
-			roomOwnerApis.POST("/room/:roomId/quickLoad", roomService.QuickLoad)
-			roomOwnerApis.POST("/room/:roomId/control/transfer", roomService.TransferControl)
-			roomOwnerApis.POST("/room/:roomId/member/kick", roomService.KickMember)
-			roomOwnerApis.POST("/room/:roomId/memberType", roomService.AlterMemberType)
+			hostApis.POST("/room/:roomId/restart", roomService.Restart)
+			hostApis.POST("/room/:roomId/quickSave", roomService.QuickSave)
+			hostApis.POST("/room/:roomId/quickLoad", roomService.QuickLoad)
+			hostApis.POST("/room/:roomId/control/transfer", roomService.TransferControl)
+			hostApis.POST("/room/:roomId/member/kick", roomService.KickMember)
+			hostApis.POST("/room/:roomId/role", roomService.AlterRole)
+			hostApis.POST("/room/:roomId/delete", roomService.DeleteRoom)
 		}
 		// only room member can access these apis:
 		roomMemberApis := authorized.Group("/", roomService.MemberAccessible())
@@ -87,4 +91,8 @@ func setupRouter() *gin.Engine {
 	}
 
 	return r
+}
+
+func noCache(c *gin.Context) {
+	c.Header("Cache-Control", "no-cache")
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/stellarisJAY/nesgo/web/config"
+	"github.com/stellarisJAY/nesgo/web/model/db"
 	"github.com/stellarisJAY/nesgo/web/model/room"
 	"github.com/stellarisJAY/nesgo/web/model/user"
 	"github.com/stellarisJAY/nesgo/web/util/fs"
@@ -35,19 +36,19 @@ type CreateRoomResp struct {
 type RoomVO struct {
 	Id       int64  `json:"id"`
 	Name     string `json:"name"`
-	Owner    int64  `json:"owner"`
+	Host     int64  `json:"host"`
 	Password string `json:"password"`
 }
 
 type ListJoinedRoomVO struct {
-	MemberType byte `json:"memberType"`
+	Role byte `json:"role"`
 	RoomListVO
 }
 
 type RoomListVO struct {
 	Id          int64  `json:"id"`
 	Name        string `json:"name"`
-	OwnerName   string `json:"owner"`
+	HostName    string `json:"host"`
 	Private     bool   `json:"private"`
 	MemberCount int    `json:"memberCount"`
 }
@@ -74,7 +75,7 @@ func (rs *RoomService) CreateRoom(c *gin.Context) {
 		})
 		return
 	}
-	_, err := room.GetRoomByNameAndOwner(form.Name, userId)
+	_, err := room.GetRoomByNameAndHost(form.Name, userId)
 	if err == nil {
 		c.JSON(200, JSONResp{
 			Status:  http.StatusBadRequest,
@@ -82,28 +83,35 @@ func (rs *RoomService) CreateRoom(c *gin.Context) {
 		})
 		return
 	}
+	password := ""
+	if form.Private {
+		password = generatePassword()
+	}
 	r := room.Room{
-		Owner:    userId,
+		Host:     userId,
 		Name:     form.Name,
-		Password: generatePassword(),
+		Password: password,
 	}
-	if err := room.CreateRoom(&r); err != nil {
-		panic(err)
-	}
-	if err := room.AddMember(&room.Member{
-		RoomId:     r.Id,
-		UserId:     userId,
-		MemberType: room.MemberTypeOwner,
-	}); err != nil {
+
+	err = db.GetDB().Transaction(func(tx *gorm.DB) error {
+		if err := room.CreateRoom(tx, &r); err != nil {
+			return err
+		}
+		if err := room.AddMember(tx, &room.Member{
+			RoomId: r.Id,
+			UserId: userId,
+			Role:   room.RoleHost,
+		}); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
 		panic(err)
 	}
 	c.JSON(200, JSONResp{
 		Status:  200,
 		Message: "ok",
-		Data: CreateRoomResp{
-			RoomId:   r.Id,
-			Password: r.Password,
-		},
 	})
 }
 
@@ -122,23 +130,22 @@ func (rs *RoomService) ListJoinedRooms(c *gin.Context) {
 	joinedRoomVOs := make([]*ListJoinedRoomVO, 0, len(rooms))
 	for _, r := range rooms {
 		joinedRoomVO := &ListJoinedRoomVO{
-			MemberType: r.MemberType,
+			Role: r.Role,
 		}
 		joinedRoomVO.Name = r.Name
-		log.Println(r.Password == "")
 		joinedRoomVO.Private = r.Password != ""
 		joinedRoomVO.Id = r.Id
-		if name, ok := userNames[r.Owner]; ok {
-			joinedRoomVO.OwnerName = name
+		if name, ok := userNames[r.Host]; ok {
+			joinedRoomVO.HostName = name
 		} else {
-			if u, err := user.GetUserById(r.Owner); err != nil {
+			if u, err := user.GetUserById(r.Host); err != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
 					continue
 				}
 				panic(err)
 			} else {
-				joinedRoomVO.OwnerName = u.Name
-				userNames[r.Owner] = u.Name
+				joinedRoomVO.HostName = u.Name
+				userNames[r.Host] = u.Name
 			}
 		}
 		count, err := room.GetMemberCount(r.Id)
@@ -164,11 +171,7 @@ func (rs *RoomService) ListAllRooms(c *gin.Context) {
 	rooms, err := room.ListAllRooms(page, pageSize)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(200, JSONResp{
-				Status:  200,
-				Message: "ok",
-				Data:    []*RoomListVO{},
-			})
+			c.JSON(200, JSONResp{Status: 200, Message: "ok", Data: []*RoomListVO{}})
 			return
 		}
 		panic(err)
@@ -181,17 +184,17 @@ func (rs *RoomService) ListAllRooms(c *gin.Context) {
 			Name:    r.Name,
 			Private: r.Password != "",
 		}
-		if name, ok := userNames[r.Owner]; ok {
-			vo.OwnerName = name
+		if name, ok := userNames[r.Host]; ok {
+			vo.HostName = name
 		} else {
-			u, err := user.GetUserById(r.Owner)
+			u, err := user.GetUserById(r.Host)
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				continue
 			} else if err != nil {
 				panic(err)
 			}
-			vo.OwnerName = u.Name
-			userNames[r.Owner] = u.Name
+			vo.HostName = u.Name
+			userNames[r.Host] = u.Name
 		}
 		count, err := room.GetMemberCount(r.Id)
 		if err != nil {
@@ -232,10 +235,10 @@ func (rs *RoomService) JoinRoom(c *gin.Context) {
 		panic(err)
 	}
 	if r.Password == "" || r.Password == password {
-		err := room.AddMember(&room.Member{
-			RoomId:     id,
-			UserId:     userId,
-			MemberType: room.MemberTypeWatcher,
+		err := room.AddMember(db.GetDB(), &room.Member{
+			RoomId: id,
+			UserId: userId,
+			Role:   room.RoleObserver,
 		})
 		if err != nil {
 			panic(err)
@@ -313,6 +316,23 @@ func (rs *RoomService) GetRoomInfo(c *gin.Context) {
 		Message: "ok",
 		Data:    roomDO,
 	})
+}
+
+func (rs *RoomService) DeleteRoom(c *gin.Context) {
+	roomId := c.GetInt64("roomId")
+	err := db.GetDB().Transaction(func(tx *gorm.DB) error {
+		if err := room.DeleteRoomMembers(tx, roomId); err != nil {
+			return err
+		}
+		if err := room.DeleteRoom(tx, roomId); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+	c.JSON(200, JSONResp{Status: 200, Message: "ok"})
 }
 
 const charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"

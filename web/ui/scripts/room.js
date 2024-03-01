@@ -34,9 +34,9 @@ const MessageGameButtonPressed = 3
 const MessageGameButtonReleased = 4
 const MessageTurnServerInfo = 5
 
-const MemberTypeOwner = 0
-const MemberTypeGamer = 1
-const MemberTypeWatcher = 2
+const RoleHost = 0
+const RoleGamer = 1
+const RoleObserver = 2
 
 let roomMembers = {}
 
@@ -97,7 +97,6 @@ function connect() {
 
 function createPeerConnection() {
     const ws = rtcSession.ws
-    console.log(rtcSession.turnAddress, rtcSession.turnPassword, rtcSession.turnUser)
     const pc = new RTCPeerConnection({
         iceServers: [
             {urls: stunServer},
@@ -177,7 +176,7 @@ function sendAction(code, pressed) {
 }
 
 function onConnected() {
-    if (rtcSession.member["memberType"] !== MemberTypeWatcher) {
+    if (rtcSession.member["role"] !== RoleObserver) {
         window.onkeydown = ev=> {
             const button = configs.keyboardMapping[ev.code];
             if (button) {
@@ -194,7 +193,7 @@ function onConnected() {
     }
     for (const id in configs.controlButtonMapping) {
         const button = document.getElementById(id)
-        button.disabled = rtcSession.member["memberType"] === MemberTypeWatcher
+        button.disabled = rtcSession.member["role"] === RoleObserver
         const code = configs.controlButtonMapping[id]
         button.addEventListener("mousedown", ()=>sendAction(code, MessageGameButtonPressed))
         button.addEventListener("mouseup", ()=>sendAction(code, MessageGameButtonReleased))
@@ -298,7 +297,7 @@ function showRoomMembersModal() {
 function renderMembersTable() {
     const rows = document.getElementById("member-rows")
     rows.innerHTML = ""
-    const isOwner = rtcSession.member["memberType"] === 0
+    const isHost = rtcSession.member["role"] === RoleHost
     for (let k in roomMembers) {
         const member = roomMembers[k];
         const row = document.createElement("tr")
@@ -311,38 +310,38 @@ function renderMembersTable() {
         const p1 = document.createElement("input")
         const p2 = document.createElement("input")
         const gamer = document.createElement("input")
-        const watcher = document.createElement("input")
+        const observer = document.createElement("input")
         p1.type="checkbox"
         p2.type = "checkbox"
         gamer.type = "checkbox"
-        watcher.type = "checkbox"
-        p1.disabled=!isOwner
-        p2.disabled=!isOwner
-        gamer.disabled = !isOwner
-        watcher.disabled = !isOwner
+        observer.type = "checkbox"
+        p1.disabled=!isHost
+        p2.disabled=!isHost
+        gamer.disabled = !isHost
+        observer.disabled = !isHost
         p1.checked = member["player1"]
         p2.checked = member["player2"]
-        gamer.checked = member["memberType"]  === MemberTypeGamer
-        watcher.checked = member["memberType"] === MemberTypeWatcher
-        if (isOwner) {
+        gamer.checked = member["role"]  === RoleGamer
+        observer.checked = member["role"] === RoleObserver
+        if (isHost) {
             p1.onchange = _ => transferControl(member["id"], true, false)
             p2.onchange = _=>transferControl(member["id"], false, true)
-            gamer.onchange = _=>alterMemberType(member["id"], MemberTypeGamer)
-            watcher.onchange = _=>alterMemberType(member["id"], MemberTypeWatcher)
+            gamer.onchange = _=>alterRole(member["id"], RoleGamer)
+            observer.onchange = _=>alterRole(member["id"], RoleObserver)
         }
         console.log(member)
         td1.appendChild(p1)
         td2.appendChild(p2)
         td3.appendChild(gamer)
-        td4.appendChild(watcher)
+        td4.appendChild(observer)
         row.append(td1, td2, td3, td4)
         const kickButton = document.createElement("button")
         kickButton.innerText = "Kick"
         kickButton.type = "button"
         kickButton.className = "btn btn-primary kick-button"
         kickButton.style.height = "80%"
-        kickButton.disabled = rtcSession.member["memberType"] !== 0
-        if (rtcSession.member["memberType"] === 0) {
+        kickButton.disabled = rtcSession.member["role"] !== 0
+        if (rtcSession.member["role"] === RoleHost) {
             kickButton.onclick = _=>kick(member["id"])
         }
         row.appendChild(kickButton)
@@ -368,8 +367,8 @@ function kick(memberId) {
 }
 
 function transferControl(memberId, control1, control2) {
-    if (roomMembers[memberId]["memberType"] === MemberTypeWatcher) {
-        alert("can not give control to watcher")
+    if (roomMembers[memberId]["role"] === RoleObserver) {
+        alert("can not give control to observer")
         return
     }
     post("/room/"+roomId+"/control/transfer", JSON.stringify({
@@ -389,13 +388,13 @@ function transferControl(memberId, control1, control2) {
         })
 }
 
-function alterMemberType(memberId, memberType) {
-    if (roomMembers[memberId]["memberType"] === memberType) {
+function alterRole(memberId, role) {
+    if (roomMembers[memberId]["role"] === role) {
         return
     }
-    post("/room/" + roomId + "/memberType", JSON.stringify({
+    post("/room/" + roomId + "/role", JSON.stringify({
         "memberId": memberId,
-        "memberType": memberType,
+        "role": role,
     }))
         .then(_=>{return listRoomMembers()})
         .then(_=>renderMembersTable())
