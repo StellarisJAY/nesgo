@@ -3,7 +3,7 @@ package web
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/stellarisJAY/nesgo/config"
+	"github.com/stellarisJAY/nesgo/emulator/config"
 	"github.com/stellarisJAY/nesgo/web/middleware"
 	"github.com/stellarisJAY/nesgo/web/service"
 	"net/http"

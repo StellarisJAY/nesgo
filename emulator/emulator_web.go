@@ -4,13 +4,13 @@ package emulator
 
 import (
 	"context"
-	"github.com/stellarisJAY/nesgo/apu"
-	"github.com/stellarisJAY/nesgo/bus"
-	"github.com/stellarisJAY/nesgo/cartridge"
-	"github.com/stellarisJAY/nesgo/config"
-	"github.com/stellarisJAY/nesgo/cpu"
-	"github.com/stellarisJAY/nesgo/ppu"
-	"github.com/stellarisJAY/nesgo/trace"
+	"github.com/stellarisJAY/nesgo/emulator/apu"
+	"github.com/stellarisJAY/nesgo/emulator/bus"
+	"github.com/stellarisJAY/nesgo/emulator/cartridge"
+	"github.com/stellarisJAY/nesgo/emulator/config"
+	"github.com/stellarisJAY/nesgo/emulator/cpu"
+	"github.com/stellarisJAY/nesgo/emulator/ppu"
+	"github.com/stellarisJAY/nesgo/emulator/trace"
 	"sync"
 )
 

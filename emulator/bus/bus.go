@@ -1,9 +1,9 @@
 package bus
 
 import (
-	"github.com/stellarisJAY/nesgo/apu"
-	"github.com/stellarisJAY/nesgo/cartridge"
-	"github.com/stellarisJAY/nesgo/ppu"
+	"github.com/stellarisJAY/nesgo/emulator/apu"
+	"github.com/stellarisJAY/nesgo/emulator/cartridge"
+	"github.com/stellarisJAY/nesgo/emulator/ppu"
 	"time"
 )
 

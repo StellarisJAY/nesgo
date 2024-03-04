@@ -1,8 +1,8 @@
 package game
 
 import (
-	"github.com/stellarisJAY/nesgo/cartridge"
-	"github.com/stellarisJAY/nesgo/config"
+	"github.com/stellarisJAY/nesgo/emulator/cartridge"
+	"github.com/stellarisJAY/nesgo/emulator/config"
 	"io"
 	"os"
 	"path/filepath"

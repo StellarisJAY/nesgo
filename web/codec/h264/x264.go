@@ -3,7 +3,7 @@ package h264
 import (
 	"bytes"
 	"github.com/gen2brain/x264-go"
-	"github.com/stellarisJAY/nesgo/ppu"
+	"github.com/stellarisJAY/nesgo/emulator/ppu"
 )
 
 type Encoder struct {

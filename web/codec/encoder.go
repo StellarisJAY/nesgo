@@ -2,7 +2,7 @@ package codec
 
 import (
 	"errors"
-	"github.com/stellarisJAY/nesgo/ppu"
+	"github.com/stellarisJAY/nesgo/emulator/ppu"
 	"github.com/stellarisJAY/nesgo/web/codec/h264"
 	"github.com/stellarisJAY/nesgo/web/codec/opus"
 )

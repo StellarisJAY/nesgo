@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
-	"github.com/stellarisJAY/nesgo/bus"
-	"github.com/stellarisJAY/nesgo/cpu"
-	"github.com/stellarisJAY/nesgo/ppu"
+	"github.com/stellarisJAY/nesgo/emulator/bus"
+	"github.com/stellarisJAY/nesgo/emulator/cpu"
+	"github.com/stellarisJAY/nesgo/emulator/ppu"
 	"time"
 )
 

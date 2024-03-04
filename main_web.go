@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/stellarisJAY/nesgo/config"
+	"github.com/stellarisJAY/nesgo/emulator/config"
 	"github.com/stellarisJAY/nesgo/web"
 	"net/http"
 	_ "net/http/pprof"
