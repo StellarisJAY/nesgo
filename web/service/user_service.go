@@ -58,18 +58,18 @@ func (u *UserService) Register(c *gin.Context) {
 func (u *UserService) Login(c *gin.Context) {
 	var loginForm LoginForm
 	if err := c.ShouldBindJSON(&loginForm); err != nil {
-		c.JSON(400, JSONResp{Status: 400, Message: "Bad request form"})
+		c.JSON(200, JSONResp{Status: 400, Message: "Bad request form"})
 		return
 	}
 	usr, err := user.GetUserByName(loginForm.Name)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		c.JSON(404, JSONResp{Status: 404, Message: "User not found"})
+		c.JSON(200, JSONResp{Status: 404, Message: "User not found"})
 		return
 	} else if err != nil {
 		panic(err)
 	}
 	if loginForm.Password != usr.Password {
-		c.JSON(401, JSONResp{Status: 401, Message: "Wrong password or username"})
+		c.JSON(200, JSONResp{Status: 401, Message: "Wrong password or username"})
 		return
 	}
 	auth := middleware.Authorization{

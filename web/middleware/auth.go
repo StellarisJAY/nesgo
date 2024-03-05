@@ -35,7 +35,7 @@ func AuthHandler(c *gin.Context) {
 
 	result, err := db.GetRedis().Get(path.Join("auth", tokenString)).Result()
 	if errors.Is(err, redis.Nil) {
-		c.Status(403)
+		c.Status(401)
 		c.Abort()
 		return
 	} else if err != nil {
@@ -45,14 +45,14 @@ func AuthHandler(c *gin.Context) {
 	_ = json.Unmarshal([]byte(result), &auth)
 
 	if ip != auth.Ip || ua != auth.UserAgent {
-		c.Status(403)
+		c.Status(401)
 		c.Abort()
 		return
 	}
 
 	ttl, err := db.GetRedis().TTL(tokenString).Result()
 	if errors.Is(err, redis.Nil) {
-		c.Status(403)
+		c.Status(401)
 		c.Abort()
 		return
 	} else if err != nil {
