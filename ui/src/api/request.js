@@ -4,7 +4,7 @@ import { message } from "ant-design-vue";
 import router from "../router/index"
 
 const a = axios.create({
-    baseURL: "http://localhost:8080/api",
+    baseURL: "http://192.168.0.107:8080/api",
 })
 
 a.interceptors.request.use(config=>{
@@ -23,13 +23,11 @@ a.interceptors.response.use(response=>{
         message.error(resp.message)
         return Promise.reject(resp)
     }else {
-        message.warn(resp.message)
         return Promise.reject(resp)
     }
-    return resp
 }, response=>{
-    if (response.status === 401) {
-        router.go("/login")
+    if (response.response.status === 401) {
+        return router.push("/login")
     }
     return Promise.reject(response)
 })
