@@ -59,9 +59,9 @@ export default {
     methods: {
         onFinish(ev) {
             api.post("/user/login", this.formState)
-            .then(data=>{
+            .then(resp=>{
                 message.success("登录成功")
-                tokenStorage.setToken(data)
+                tokenStorage.setToken(resp.data)
                 router.push("/home")
             }).catch(resp=>{
                 
