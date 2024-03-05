@@ -7,6 +7,8 @@ const a = axios.create({
     baseURL: "http://192.168.0.107:8080/api",
 })
 
+const webSocketAddr = "ws://192.168.0.107:8080/ws"
+
 a.interceptors.request.use(config=>{
     const token = tokenStorage.getToken()
     if (token) {
@@ -39,6 +41,9 @@ const api = {
     },
     post(path, data) {
         return a.post(path, data)
+    },
+    webSocket(path) {
+        return new WebSocket(webSocketAddr + path)
     }
 }
 
