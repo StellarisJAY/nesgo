@@ -155,7 +155,10 @@ export default {
           })
     },
     searchRoom() {
-
+      api.get("/room/search?search=" + this.searchInput)
+          .then(resp=>{
+            this.rooms = resp.data
+          })
     },
     tryJoinRoom(room) {
       api.get("/room/" + room.id + "/member")
