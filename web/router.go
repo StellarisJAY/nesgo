@@ -68,6 +68,7 @@ func setupRouter() *gin.Engine {
 			authorized.GET("/room/:roomId/info", roomService.GetRoomInfo)
 			authorized.GET("/games", gameService.ListGames)
 			authorized.GET("/game/:name", gameService.GetGameInfo)
+			authorized.GET("/room/search", roomService.Search)
 		}
 		// only room host can access these apis:
 		hostApis := authorized.Group("/", roomService.HostAccessible())

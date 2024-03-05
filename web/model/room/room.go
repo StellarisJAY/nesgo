@@ -177,6 +177,18 @@ func UpdateMember(member *Member) error {
 		Error
 }
 
+func SearchRoom(name string) ([]*Room, error) {
+	var rooms []*Room
+	if err := db.GetDB().
+		Model(&Room{}).
+		Where("name LIKE ?", name+"%").
+		Find(&rooms).
+		Error; err != nil {
+		return nil, err
+	}
+	return rooms, nil
+}
+
 func DeleteRoom(db *gorm.DB, roomId int64) error {
 	return db.Where("id=?", roomId).Delete(&Room{}).Error
 }

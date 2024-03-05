@@ -170,33 +170,7 @@ func (rs *RoomService) ListAllRooms(c *gin.Context) {
 		}
 		panic(err)
 	}
-	userNames := make(map[int64]string)
-	roomVOs := make([]*RoomListVO, 0, len(rooms))
-	for _, r := range rooms {
-		vo := &RoomListVO{
-			Id:      r.Id,
-			Name:    r.Name,
-			Private: r.Password != "",
-		}
-		if name, ok := userNames[r.Host]; ok {
-			vo.HostName = name
-		} else {
-			u, err := user.GetUserById(r.Host)
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				continue
-			} else if err != nil {
-				panic(err)
-			}
-			vo.HostName = u.Name
-			userNames[r.Host] = u.Name
-		}
-		count, err := room.GetMemberCount(r.Id)
-		if err != nil {
-			panic(err)
-		}
-		vo.MemberCount = count
-		roomVOs = append(roomVOs, vo)
-	}
+	roomVOs := roomDOToRoomListVO(rooms)
 	c.JSON(200, JSONResp{
 		Status:  200,
 		Message: "ok",
@@ -321,6 +295,58 @@ func (rs *RoomService) DeleteRoom(c *gin.Context) {
 	}
 RETURN:
 	c.JSON(200, JSONResp{Status: 200, Message: "ok"})
+}
+
+func (rs *RoomService) Search(c *gin.Context) {
+	search := c.Query("search")
+	if search == "" || len(search) >= 32 {
+		c.JSON(200, JSONResp{Status: 400, Message: "invalid search text format"})
+		return
+	}
+	rooms, err := room.SearchRoom(search)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(200, JSONResp{Status: 200, Message: "ok"})
+		return
+	} else if err != nil {
+		panic(err)
+	}
+	roomVOs := roomDOToRoomListVO(rooms)
+	c.JSON(200, JSONResp{
+		Status:  200,
+		Message: "ok",
+		Data:    roomVOs,
+	})
+}
+
+func roomDOToRoomListVO(rooms []*room.Room) []*RoomListVO {
+	userNames := make(map[int64]string)
+	roomVOs := make([]*RoomListVO, 0, len(rooms))
+	for _, r := range rooms {
+		vo := &RoomListVO{
+			Id:      r.Id,
+			Name:    r.Name,
+			Private: r.Password != "",
+		}
+		if name, ok := userNames[r.Host]; ok {
+			vo.HostName = name
+		} else {
+			u, err := user.GetUserById(r.Host)
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
+			} else if err != nil {
+				panic(err)
+			}
+			vo.HostName = u.Name
+			userNames[r.Host] = u.Name
+		}
+		count, err := room.GetMemberCount(r.Id)
+		if err != nil {
+			panic(err)
+		}
+		vo.MemberCount = count
+		roomVOs = append(roomVOs, vo)
+	}
+	return roomVOs
 }
 
 const charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
