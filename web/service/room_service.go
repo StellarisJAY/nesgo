@@ -246,7 +246,7 @@ func (rs *RoomService) JoinRoom(c *gin.Context) {
 		}
 		c.JSON(200, JSONResp{Status: 200, Message: "Success"})
 	} else {
-		c.JSON(200, JSONResp{Status: 500, Message: "wrong password"})
+		c.JSON(200, JSONResp{Status: 403, Message: "wrong password"})
 		return
 	}
 }

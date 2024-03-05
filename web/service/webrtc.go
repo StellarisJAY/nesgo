@@ -65,6 +65,11 @@ type transferControlRequest struct {
 	future   *future.Future[struct{}]
 }
 
+type kickMemberRequest struct {
+	memberId int64
+	future   *future.Future[struct{}]
+}
+
 const (
 	SignalNewConnection byte = iota
 	SignalWebsocketClose
@@ -74,6 +79,7 @@ const (
 	SignalSaveGame
 	SignalLoadSavedGame
 	SignalTransferControl
+	SignalKickMember
 )
 
 var rtcFactory *network.WebRTCFactory
@@ -186,6 +192,13 @@ func (r *WebRTCRoomSession) handleSignal(ctx context.Context, signal Signal) {
 	case SignalTransferControl:
 		req := signal.Data.(transferControlRequest)
 		if err := r.transferControl(req.memberId, req.control1, req.control2); err != nil {
+			req.future.Fail(err)
+		} else {
+			req.future.Success(&struct{}{})
+		}
+	case SignalKickMember:
+		req := signal.Data.(kickMemberRequest)
+		if err := r.kickMember(req.memberId); err != nil {
 			req.future.Fail(err)
 		} else {
 			req.future.Success(&struct{}{})
@@ -547,4 +560,26 @@ func (r *WebRTCRoomSession) onClose() {
 	for _, conn := range r.connections {
 		conn.Close()
 	}
+}
+
+func (r *WebRTCRoomSession) KickMember(memberId int64) error {
+	f := future.NewFuture[struct{}]()
+	r.signalChan <- Signal{
+		Type: SignalKickMember,
+		Data: kickMemberRequest{
+			memberId: memberId,
+			future:   f,
+		},
+	}
+	_, err := f.Result()
+	return err
+}
+
+func (r *WebRTCRoomSession) kickMember(memberId int64) error {
+	if conn, ok := r.connections[memberId]; ok {
+		conn.Close()
+	}
+	delete(r.connections, memberId)
+	delete(r.members, memberId)
+	return nil
 }

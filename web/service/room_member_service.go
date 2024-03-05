@@ -189,6 +189,31 @@ func (rs *RoomService) RoomMemberVerifier(accessRoles []byte) func(*gin.Context)
 	}
 }
 
+func (rs *RoomService) Leave(c *gin.Context) {
+	roomId := c.GetInt64("roomId")
+	m, _ := c.Get("optMember")
+	member := m.(*room.Member)
+
+	if member.Role == room.RoleHost {
+		c.JSON(200, JSONResp{Status: 400, Message: "host can not leave room"})
+		return
+	}
+
+	rs.m.Lock()
+	session, ok := rs.rtcSessions[roomId]
+	rs.m.Unlock()
+	if ok {
+		if err := session.KickMember(member.UserId); err != nil {
+			panic(err)
+		}
+	}
+	err := room.DeleteMember(roomId, member.UserId)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		panic(err)
+	}
+	c.JSON(200, JSONResp{Status: 200, Message: "ok"})
+}
+
 func (rs *RoomService) HostAccessible() func(*gin.Context) {
 	return rs.RoomMemberVerifier([]byte{room.RoleHost})
 }

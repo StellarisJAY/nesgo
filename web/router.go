@@ -25,29 +25,33 @@ func setupRouter() *gin.Engine {
 	if config.GetEmulatorConfig().Debug {
 		r.Use(noCache)
 	}
-	// static resources
-	{
-		r.StaticFS("/assets", http.Dir("web/ui/assets"))
-		r.StaticFS("/scripts", http.Dir("web/ui/scripts"))
-	}
+	r.NoRoute(func(c *gin.Context) {
+		c.HTML(200, "index.html", nil)
+	})
+	r.StaticFS("/assets", http.Dir("ui/dist/assets"))
+	r.StaticFS("/scripts", http.Dir("web/ui/scripts"))
+	r.LoadHTMLFiles("ui/dist/index.html")
+	r.GET("/index", func(c *gin.Context) {
+		c.HTML(200, "index.html", nil)
+	})
 
-	// html pages
-	page := r.Group("/")
-	r.LoadHTMLGlob("web/ui/*.html")
-	{
-		page.GET("/login", func(c *gin.Context) {
-			c.HTML(200, "login.html", gin.H{})
-		})
-		page.GET("/room/:roomId", func(c *gin.Context) {
-			c.HTML(200, "room.html", gin.H{})
-		})
-		page.GET("/home", func(c *gin.Context) {
-			c.HTML(200, "home.html", gin.H{})
-		})
-		page.GET("/register", func(c *gin.Context) {
-			c.HTML(200, "register.html", nil)
-		})
-	}
+	//// html pages
+	//page := r.Group("/")
+	//r.LoadHTMLGlob("web/ui/*.html")
+	//{
+	//	page.GET("/login", func(c *gin.Context) {
+	//		c.HTML(200, "login.html", gin.H{})
+	//	})
+	//	page.GET("/room/:roomId", func(c *gin.Context) {
+	//		c.HTML(200, "room.html", gin.H{})
+	//	})
+	//	page.GET("/home", func(c *gin.Context) {
+	//		c.HTML(200, "home.html", gin.H{})
+	//	})
+	//	page.GET("/register", func(c *gin.Context) {
+	//		c.HTML(200, "register.html", nil)
+	//	})
+	//}
 
 	// web api
 	api := r.Group("/api")
@@ -65,7 +69,7 @@ func setupRouter() *gin.Engine {
 			authorized.GET("/games", gameService.ListGames)
 			authorized.GET("/game/:name", gameService.GetGameInfo)
 		}
-		// only room member can access these apis:
+		// only room host can access these apis:
 		hostApis := authorized.Group("/", roomService.HostAccessible())
 		{
 			hostApis.POST("/room/:roomId/restart", roomService.Restart)
@@ -83,6 +87,7 @@ func setupRouter() *gin.Engine {
 			roomMemberApis.GET("/room/:roomId/members", roomService.ListRoomMembers)
 			roomMemberApis.GET("/room/:roomId/member", roomService.GetRoomMemberSelf)
 			roomMemberApis.GET("/room/:roomId/saves", roomService.ListSaves)
+			roomMemberApis.POST("/room/:roomId/leave", roomService.Leave)
 		}
 	}
 
