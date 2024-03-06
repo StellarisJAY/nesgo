@@ -1,30 +1,69 @@
 <template>
   <a-row style="height: 100vh; background-color: grey">
-    <a-col :span="8">
-      <a-button @click="_=>{membersDrawerOpen=true}"></a-button>
+    <!--left side buttons-->
+    <a-col :span="6">
+      <a-row style="height: 30%; margin-top: 10%">
+        <a-col :span="8" :offset="8">
+          <a-button class="control-btn" id="button-up" disabled><ArrowUpOutlined /></a-button>
+        </a-col>
+      </a-row>
+      <a-row style="height: 30%">
+        <a-col :span="8">
+          <a-button class="control-btn" id="button-left" disabled><ArrowLeftOutlined /></a-button>
+        </a-col>
+        <a-col :span="8" :offset="8">
+          <a-button class="control-btn" id="button-right" disabled><ArrowRightOutlined /></a-button>
+        </a-col>
+      </a-row>
+      <a-row style="height: 30%">
+        <a-col :span="8" :offset="8">
+          <a-button class="control-btn" id="button-down" disabled><ArrowDownOutlined/></a-button>
+        </a-col>
+      </a-row>
     </a-col>
-    <a-col :span="8" style="height: 100vh">
+    <!--video screen and toolbar-->
+    <a-col :span="12" style="height: 100vh">
       <a-card style="height: 100%">
-        <video width="100%" id="video"></video>
+        <a-row style="height: 80%">
+          <video id="video" playsinline webkit-playsinline="true"></video>
+        </a-row>
         <a-row>
           <a-col :span="8">
             <a-button style="width: 90%;" type="primary" @click="connect" :disabled="connectBtnDisabled">连接</a-button>
           </a-col>
           <a-col :span="8" :offset="8">
-            <a-button style="width: 90%;" type="primary">重启</a-button>
+            <a-button style="width: 90%;" type="primary" :disabled="restartBtnDisabled">重启</a-button>
           </a-col>
         </a-row>
         <a-row style="margin-top: 20px">
           <a-col :span="8">
-            <a-button style="width: 90%;" type="primary">保存</a-button>
+            <a-button style="width: 90%;" type="primary" :disabled="saveBtnDisabled">保存</a-button>
           </a-col>
           <a-col :span="8" :offset="8">
-            <a-button style="width: 90%;" type="primary">加载</a-button>
+            <a-button style="width: 90%;" type="primary" :disabled="loadBtnDisabled">加载</a-button>
           </a-col>
         </a-row>
       </a-card>
     </a-col>
-    <a-col :span="8"></a-col>
+    <!--right side buttons-->
+    <a-col :span="6">
+      <a-row style="height: 30%; margin-top: 10%">
+        <a-col :span="8">
+          <a-button class="control-btn" id="button-start" disabled>START</a-button>
+        </a-col>
+        <a-col :span="8" :offset="8">
+          <a-button class="control-btn" id="button-a" disabled>A</a-button>
+        </a-col>
+      </a-row>
+      <a-row style="height: 30%; margin-top: 60%">
+        <a-col :span="8">
+          <a-button class="control-btn" id="button-select" disabled>SELECT</a-button>
+        </a-col>
+        <a-col :span="8" :offset="8">
+          <a-button class="control-btn" id="button-b" disabled>B</a-button>
+        </a-col>
+      </a-row>
+    </a-col>
     <a-drawer
         v-model:open="membersDrawerOpen"
         :root-style="{ color: 'blue' }"
@@ -41,13 +80,16 @@
                   <a-radio value="1">P1</a-radio>
                   <a-radio value="2">P2</a-radio>
                 </a-radio-group>
-                <a-radio-group v-model:value="item.role" :disabled="memberSelf.role!==0" >
+                <a-radio-group v-model:value="item.role" :disabled="memberSelf.role!==0 || item.role===0"
+                               @change="ev=>{onRoleRatioChange(ev, item)}">
                   <a-radio :value="1">玩家</a-radio>
                   <a-radio :value="2">观战</a-radio>
                 </a-radio-group>
               </a-col>
               <a-col :span="6">
-                <a-button type="primary" :hidden="memberSelf.role!==0">踢出</a-button>
+                <a-button type="primary" :hidden="memberSelf.role!==0"
+                          :disabled="item.role===0 || memberSelf.role!==0"
+                          @click="kickMember(item)">踢出</a-button>
               </a-col>
             </a-row>
           </a-list-item>
@@ -64,6 +106,8 @@ import {CrownTwoTone} from '@ant-design/icons-vue';
 import {Card, Button, Drawer, List, Input, RadioGroup, Radio} from "ant-design-vue";
 import {message} from "ant-design-vue";
 import tokenStorage from "../api/token.js";
+import router from "../router/index.js";
+import {ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined} from "@ant-design/icons-vue"
 
 const MessageSDPOffer = 0
 const MessageSDPAnswer = 1
@@ -88,6 +132,10 @@ export default {
     ARadio: Radio,
     ARadioGroup: RadioGroup,
     CrownTwoTone: CrownTwoTone,
+    ArrowUpOutlined,
+    ArrowDownOutlined,
+    ArrowLeftOutlined,
+    ArrowRightOutlined,
   },
     data() {
         return {
@@ -98,6 +146,9 @@ export default {
             },
             rtcSession: {},
             connectBtnDisabled: false,
+            saveBtnDisabled: true,
+            loadBtnDisabled: true,
+            restartBtnDisabled: true,
             selectedGame: "SuperMario.nes",
             configs: {
               controlButtonMapping: {
@@ -126,30 +177,42 @@ export default {
         }
     },
   created() {
-      window.onorientationchange = _=>{
-        if (window.orientation === 180 || window.orientation === 0) {
-          message.info("手机横屏以获取最佳体验")
-        }
-      }
       this.roomId = this.$route["params"]["roomId"]
-      this.listRoomMembers()
       this.getMemberSelf()
   },
+  beforeDestroy() {
+    this.rtcSession.ws.close()
+    this.rtcSession.pc.close()
+  },
   methods: {
+      openRoomMemberDrawer() {
+          this.listRoomMembers().then(_=>this.membersDrawerOpen=true)
+      },
       listRoomMembers() {
-        api.get("/room/" + this.roomId + "/members")
+        return api.get("/room/" + this.roomId + "/members")
             .then(resp=>{
               this.members = resp.data
               this.members.forEach(m=>{
                 m.controls = this.p1p2Ratio(m)
               })
             })
+            .catch(resp=>{
+              if (resp.status === 403) {
+                message.warn("你不是该房间成员")
+                router.push("/home")
+              }
+            })
       },
       getMemberSelf() {
         api.get("/room/" + this.roomId + "/member")
             .then(resp=>{
               this.memberSelf = resp.data
-            })
+            }).catch(resp=>{
+              if (resp.status === 403) {
+                message.warn("你不是该房间成员")
+                router.push("/home")
+              }
+        })
       },
       p1p2Ratio(m) {
         if (m["player1"]) {
@@ -191,7 +254,6 @@ export default {
                 }))
                 pc.addTransceiver("video")
               })
-              .then(_=>this.onConnected())
               .catch(err=>{
                 console.log(err)
               })
@@ -209,12 +271,15 @@ export default {
         const pc = new RTCPeerConnection({
           iceServers: [
             {
+              urls: "stun:192.168.0.107:3478"
+            },
+            {
               urls: this.rtcSession.turnAddress,
               username: this.rtcSession.turnUser,
               credential: this.rtcSession.turnPassword,
             },
           ],
-          iceTransportPolicy: "relay",
+          iceTransportPolicy: "relay"
         })
 
         pc.onicecandidate = this.onICECandidate
@@ -261,17 +326,18 @@ export default {
         console.log("peer conn state: " + pc.connectionState)
         switch (pc.connectionState) {
           case "connected":
+            this.onConnected()
             this.rtcSession.ws.close()
             break
           case "disconnected":
-            pc.close()
-            this.connectBtnDisabled = false
+            this.onDisconnected()
             break
           default:
             break
         }
       },
       onConnected() {
+        message.success("连接成功")
         if (this.memberSelf["role"] !== RoleObserver) {
           window.onkeydown = ev=> {
             const button = this.configs.keyboardMapping[ev.code];
@@ -286,15 +352,67 @@ export default {
               this.sendAction(button, MessageGameButtonReleased)
             }
           }
+          // todo screen buttons
+          // todo enable restart save load buttons
+          this.initControlButtons()
         }
-        // todo screen buttons
-        // todo enable restart save load buttons
       },
+    onDisconnected() {
+      this.disableControlButtons()
+      this.rtcSession.pc.close()
+      this.connectBtnDisabled = false
+    },
     sendAction(code, pressed) {
       this.rtcSession.dataChannel.send(JSON.stringify({
         "type": pressed,
         "data": btoa(code),
       }))
+    },
+
+    onRoleRatioChange(ev, member) {
+        member.role = ev.target.value
+        api.post("/room/" + this.roomId + "/role", {
+            "memberId": member.id,
+            "role": member.role,
+            "kick": false,
+        })
+            .then(resp=>{
+                if (resp.status === 200) {
+                  message.success("修改成功")
+                }
+            })
+    },
+    kickMember(member) {
+        api.post("/room/" + this.roomId + "/member/kick", {
+          "memberId": member.id,
+          "kick": true,
+        }).then(resp=>{
+            if (resp.status === 200) {
+              message.success("成功")
+              this.members = this.members.filter(item=>{
+                return item.id !== member.id
+              })
+            }
+        })
+    },
+    initControlButtons() {
+        const mapping = this.configs.controlButtonMapping
+        for (const k in mapping) {
+          const button = document.getElementById(k);
+          const keyCode = mapping[k]
+          button.disabled = false
+          button.addEventListener("touchstart", _=>this.sendAction(keyCode, MessageGameButtonPressed))
+          button.addEventListener("touchend", _=>this.sendAction(keyCode, MessageGameButtonReleased))
+          button.addEventListener("mousedown", _=>this.sendAction(keyCode, MessageGameButtonPressed))
+          button.addEventListener("mouseup", _=>this.sendAction(keyCode, MessageGameButtonReleased))
+        }
+    },
+    disableControlButtons() {
+      const mapping = this.configs.controlButtonMapping
+      for (const k in mapping) {
+        const button = document.getElementById(k)
+        button.disabled = true
+      }
     }
   }
 }
@@ -302,10 +420,11 @@ export default {
 
 <style scoped>
 #video {
-  position: inherit;
-  margin: auto;
-  top: 0;
-  bottom: 0;
+  width: 100%;
   background-color: black;
+}
+.control-btn {
+  width: 100%;
+  height: 100%;
 }
 </style>
