@@ -373,22 +373,18 @@ func (r *WebRTCRoomSession) renderCallback(p *ppu.PPU) {
 		if !conn.connected.Load() {
 			continue
 		}
-		if err := conn.videoEncoder.Encode(p.Frame()); err != nil {
+		data, release, err := conn.videoEncoder.Encode(p.Frame())
+		if err != nil {
 			log.Println("encoder error:", err)
 			continue
 		}
-		if err := conn.videoEncoder.Flush(); err != nil {
-			log.Println("flush encoder error:", err)
-			continue
-		}
-		data := conn.videoEncoder.FlushBuffer()
 		if err := conn.videoTrack.WriteSample(media.Sample{
 			Data:     data,
 			Duration: 2 * time.Millisecond, // todo 根据帧率设置Duration
 		}); err != nil {
 			log.Println("write video sample error:", err)
-			return
 		}
+		release()
 	}
 }
 
@@ -400,6 +396,7 @@ func (r *WebRTCRoomSession) renderCallback(p *ppu.PPU) {
 // 4. 创建视频编码器， 每个连接使用独立的视频编码器
 // 5. 转移模拟器控制权
 func (r *WebRTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketConn) {
+	const videoCodec = "h264"
 	if _, ok := r.connections[wsConn.Member.UserId]; ok {
 		log.Println("member already connected")
 		_ = wsConn.Conn.Close()
@@ -429,7 +426,7 @@ func (r *WebRTCRoomSession) onNewConnection(ctx context.Context, wsConn *Websock
 		panic(fmt.Errorf("unable to send turn server info, error: %w", err))
 	}
 	// 创建H264视频和opus音频流
-	videoTrack, _ := rtcFactory.VideoTrack("h264")
+	videoTrack, _ := rtcFactory.VideoTrack(videoCodec)
 	if _, err := peer.AddTrack(videoTrack); err != nil {
 		panic(fmt.Errorf("unable to add video track to peer, error: %w", err))
 	}
@@ -472,7 +469,7 @@ func (r *WebRTCRoomSession) onNewConnection(ctx context.Context, wsConn *Websock
 	peer.OnICEConnectionStateChange(roomConnection.onICEStateChange)
 
 	// 创建每个连接独有的视频编码器
-	encoder, err := codec.NewVideoEncoder("h264")
+	encoder, err := codec.NewVideoEncoder(videoCodec)
 	if err != nil {
 		panic(fmt.Errorf("unable to create encoder, error: %w", err))
 	}

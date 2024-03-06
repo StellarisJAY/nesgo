@@ -18,7 +18,7 @@ const (
 
 func NewFrame() *Frame {
 	return &Frame{
-		image.NewYCbCr(image.Rect(0, 0, WIDTH, HEIGHT), image.YCbCrSubsampleRatio444),
+		image.NewYCbCr(image.Rect(0, 0, WIDTH, HEIGHT), image.YCbCrSubsampleRatio420),
 	}
 }
 
@@ -39,4 +39,8 @@ func (f *Frame) YCbCr() *image.YCbCr {
 
 func (f *Frame) Data() []byte {
 	return nil
+}
+
+func (f *Frame) Read() (img image.Image, release func(), err error) {
+	return f.ycbcr, func() {}, nil
 }
