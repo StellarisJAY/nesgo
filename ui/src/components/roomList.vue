@@ -1,5 +1,5 @@
 <template>
-    <a-card>
+    <a-card :bordered="false">
       <template #extra>
         <a-button v-if="joined" type="primary" @click="_=>{createRoomModalOpen = true}">新建房间</a-button>
         <a-row v-else>
@@ -16,11 +16,12 @@
           <a-list-item>
             <a-card :title="item.name">
               <template #extra v-if="joined">
-                <a-button v-if="item.role === 0" @click="deleteRoom(item.id)">删除</a-button>
-                <a-button v-else @click="leaveRoom(item.id)">退出</a-button>
+                <a-button v-if="item.role === 0" @click="deleteRoom(item.id)" danger>删除</a-button>
+                <a-button v-else @click="leaveRoom(item.id)" danger>退出</a-button>
               </template>
-              <template #extra v-else>
-                <a-button @click="tryJoinRoom(item)">进入</a-button>
+              <template #actions>
+                <RouterLink v-if="joined" :to="'/room/' + item.id">进入</RouterLink>
+                <a-button v-else type="link" @click="tryJoinRoom(item)">加入</a-button>
               </template>
               <ul style="text-align: left">
                 <li>房主：{{item["host"]}}</li>
@@ -66,6 +67,7 @@ import { Row, Col } from "ant-design-vue";
 import {message} from "ant-design-vue";
 import api from "../api/request.js";
 import router from "../router/index.js";
+import {RouterLink} from "vue-router";
 
 export default {
     props: {
