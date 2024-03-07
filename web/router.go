@@ -81,6 +81,8 @@ func setupRouter() *gin.Engine {
 			hostApis.POST("/room/:roomId/role", roomService.AlterRole)
 			hostApis.POST("/room/:roomId/delete", roomService.DeleteRoom)
 			hostApis.POST("/room/:roomId/saves/:saveId/delete", roomService.DeleteSave)
+			hostApis.GET("/room/:roomId/fullInfo", roomService.GetRoomFullInfo)
+			hostApis.POST("/room/:roomId/alter", roomService.AlterRoom)
 		}
 		// only room member can access these apis:
 		roomMemberApis := authorized.Group("/", roomService.MemberAccessible())

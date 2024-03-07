@@ -13,6 +13,7 @@ type Room struct {
 	Host     int64  `gorm:"column:host" json:"host"`
 	Name     string `gorm:"column:name" json:"name"`
 	Password string `gorm:"column:password" json:"password"`
+	Private  bool   `gorm:"private" json:"private"`
 }
 
 type Member struct {
@@ -83,6 +84,18 @@ func GetRoomById(id int64) (*Room, error) {
 	} else {
 		return r, nil
 	}
+}
+
+func UpdateRoom(r *Room) error {
+	if err := db.GetDB().Model(r).Updates(map[string]any{
+		"name":     r.Name,
+		"private":  r.Private,
+		"password": r.Password,
+	}).Error; err != nil {
+		return err
+	}
+	_ = model.CacheDelete(CacheKeyForRoom(r.Id))
+	return nil
 }
 
 func ListRoomMembers(roomId int64) ([]*Member, error) {

@@ -30,6 +30,7 @@ type WebRTCRoomSession struct {
 	e                  *emulator.Emulator
 	emulatorCancel     context.CancelFunc
 	game               string
+	videoEncoder       codec.IVideoEncoder
 	audioSampleRate    int
 	audioEncoder       codec.IAudioEncoder
 	audioSampleChan    chan float32 // audioSampleChan 音频输出channel
@@ -70,6 +71,12 @@ type kickMemberRequest struct {
 	future   *future.Future[struct{}]
 }
 
+type alterRoleRequest struct {
+	memberId int64
+	role     byte
+	future   *future.Future[struct{}]
+}
+
 const (
 	SignalNewConnection byte = iota
 	SignalWebsocketClose
@@ -80,6 +87,9 @@ const (
 	SignalLoadSavedGame
 	SignalTransferControl
 	SignalKickMember
+	SignalAlterRole
+
+	VideoCodec = "h264"
 )
 
 var rtcFactory *network.WebRTCFactory
@@ -113,6 +123,11 @@ func NewRTCRoomSession(game string) (*WebRTCRoomSession, error) {
 		return nil, err
 	}
 	rs.e = e
+	encoder, err := codec.NewVideoEncoder(VideoCodec)
+	if err != nil {
+		return nil, err
+	}
+	rs.videoEncoder = encoder
 	rs.audioSampleChan = sampleChan
 	audioEncoder, err := codec.NewAudioEncoder(sampleRate)
 	if err != nil {
@@ -203,6 +218,10 @@ func (r *WebRTCRoomSession) handleSignal(ctx context.Context, signal Signal) {
 		} else {
 			req.future.Success(&struct{}{})
 		}
+	case SignalAlterRole:
+		req := signal.Data.(alterRoleRequest)
+		_ = r.alterRole(req.memberId, req.role)
+		req.future.Success(&struct{}{})
 	}
 }
 
@@ -368,14 +387,14 @@ func (r *WebRTCRoomSession) transferControl(memberId int64, control1, control2 b
 
 func (r *WebRTCRoomSession) renderCallback(p *ppu.PPU) {
 	p.Render()
+	data, release, err := r.videoEncoder.Encode(p.Frame())
+	if err != nil {
+		log.Println("encoder error: ", err)
+	}
+	defer release()
 	for _, conn := range r.connections {
 		// peer conn没有建立连接不编码视频，否则会导致I帧没有发送到客户端
 		if !conn.connected.Load() {
-			continue
-		}
-		data, release, err := conn.videoEncoder.Encode(p.Frame())
-		if err != nil {
-			log.Println("encoder error:", err)
 			continue
 		}
 		if err := conn.videoTrack.WriteSample(media.Sample{
@@ -578,5 +597,27 @@ func (r *WebRTCRoomSession) kickMember(memberId int64) error {
 	}
 	delete(r.connections, memberId)
 	delete(r.members, memberId)
+	return nil
+}
+
+func (r *WebRTCRoomSession) AlterRole(memberId int64, role byte) error {
+	f := future.NewFuture[struct{}]()
+	r.signalChan <- Signal{
+		Type: SignalAlterRole,
+		Data: alterRoleRequest{
+			memberId: memberId,
+			role:     role,
+			future:   f,
+		},
+	}
+	_, err := f.Result()
+	return err
+}
+
+func (r *WebRTCRoomSession) alterRole(memberId int64, role byte) error {
+	m, ok := r.members[memberId]
+	if ok {
+		m.Role = role
+	}
 	return nil
 }

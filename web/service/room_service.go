@@ -53,6 +53,13 @@ type RoomListVO struct {
 	MemberCount int    `json:"memberCount"`
 }
 
+type FullRoomInfoVO struct {
+	Id       int64  `json:"id"`
+	Host     int64  `json:"host"`
+	Password string `json:"password"`
+	Private  bool   `json:"private"`
+}
+
 func NewRoomService() *RoomService {
 	storage, err := fs.NewFileStorage(config.GetConfig().FileStorageType)
 	if err != nil {
@@ -209,7 +216,7 @@ func (rs *RoomService) JoinRoom(c *gin.Context) {
 		return
 	}
 
-	if r.Password == "" || r.Password == password {
+	if !r.Private || r.Password == password {
 		err := room.AddMember(db.GetDB(), &room.Member{
 			RoomId: id,
 			UserId: userId,
@@ -226,31 +233,78 @@ func (rs *RoomService) JoinRoom(c *gin.Context) {
 }
 
 func (rs *RoomService) GetRoomInfo(c *gin.Context) {
-	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, JSONResp{
-			Status:  400,
-			Message: "invalid room id",
-		})
-		return
-	}
+	roomId := c.GetInt64("roomId")
 	roomDO, err := room.GetRoomById(roomId)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(404, JSONResp{
-				Status:  404,
-				Message: "room not found",
-			})
-			return
-		} else {
-			panic(err)
-		}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(404, JSONResp{Status: 404, Message: "room not found"})
+		return
+	} else if err != nil {
+		panic(err)
 	}
+	host, _ := user.GetUserById(roomDO.Host)
+	count, _ := room.GetMemberCount(roomDO.Id)
 	c.JSON(200, JSONResp{
 		Status:  200,
 		Message: "ok",
-		Data:    roomDO,
+		Data: RoomListVO{
+			Id:          roomDO.Id,
+			Name:        roomDO.Name,
+			HostName:    host.Name,
+			Private:     roomDO.Password != "",
+			MemberCount: count,
+		},
 	})
+}
+
+func (rs *RoomService) GetRoomFullInfo(c *gin.Context) {
+	roomId := c.GetInt64("roomId")
+	roomDO, err := room.GetRoomById(roomId)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(404, JSONResp{Status: 404, Message: "room not found"})
+		return
+	} else if err != nil {
+		panic(err)
+	}
+	c.JSON(200, JSONResp{Status: 200, Message: "ok", Data: FullRoomInfoVO{
+		Id:       roomDO.Id,
+		Host:     roomDO.Host,
+		Password: roomDO.Password,
+		Private:  roomDO.Private,
+	}})
+}
+
+type AlterRoomRequest struct {
+	Name    string `json:"name"`
+	Private bool   `json:"private"`
+}
+
+func (rs *RoomService) AlterRoom(c *gin.Context) {
+	roomId := c.GetInt64("roomId")
+	var req AlterRoomRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(200, JSONResp{Status: 400, Message: "Bad request"})
+		return
+	}
+	origin, err := room.GetRoomById(roomId)
+	if err != nil {
+		panic(err)
+	}
+	if req.Name != "" {
+		origin.Name = req.Name
+	}
+	if !origin.Private && req.Private {
+		origin.Password = generatePassword()
+	}
+	origin.Private = req.Private
+	if err := room.UpdateRoom(origin); err != nil {
+		panic(err)
+	}
+	c.JSON(200, JSONResp{200, "ok", FullRoomInfoVO{
+		Id:       roomId,
+		Host:     origin.Host,
+		Password: origin.Password,
+		Private:  origin.Private,
+	}})
 }
 
 func (rs *RoomService) DeleteRoom(c *gin.Context) {
@@ -325,7 +379,7 @@ func roomDOToRoomListVO(rooms []*room.Room) []*RoomListVO {
 		vo := &RoomListVO{
 			Id:      r.Id,
 			Name:    r.Name,
-			Private: r.Password != "",
+			Private: r.Private,
 		}
 		if name, ok := userNames[r.Host]; ok {
 			vo.HostName = name

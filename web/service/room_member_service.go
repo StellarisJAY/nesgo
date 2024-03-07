@@ -145,6 +145,12 @@ func (rs *RoomService) AlterRole(c *gin.Context) {
 	if err := room.UpdateMember(member); err != nil {
 		panic(err)
 	}
+	rs.m.Lock()
+	session, ok := rs.rtcSessions[roomId]
+	rs.m.Unlock()
+	if ok {
+		_ = session.AlterRole(req.MemberId, req.Role)
+	}
 	c.JSON(200, JSONResp{Status: 200, Message: "ok"})
 }
 
