@@ -2,7 +2,6 @@ package cartridge
 
 import (
 	"errors"
-	"log"
 )
 
 var NES = [4]byte{0x4E, 0x45, 0x53, 0x1A}
@@ -108,13 +107,10 @@ func loadPrgAndChrROM(raw []byte) (trainer, prg, chr []byte, chrRAM bool) {
 	}
 	chrStart := programStart + programSize
 	prg = raw[programStart : programStart+programSize]
-	log.Printf("prg rom: %d KiB", programSize>>10)
 	if chrSize == 0 {
-		log.Println("using chr RAM")
 		chrRAM = true
 		return
 	} else {
-		log.Printf("chr rom: %d KiB", chrSize>>10)
 		chr = raw[chrStart : chrStart+chrSize]
 		return
 	}
@@ -131,12 +127,5 @@ func splitPrgAndChr(raw []byte) (trainerStart, prgStart, chrStart uint32, chrRAM
 	}
 	chrStart = prgStart + programSize
 	chrRAM = chrSize == 0
-	log.Printf("prg rom: %d KiB", programSize>>10)
-	if chrRAM {
-		log.Println("using chr RAM")
-	} else {
-		log.Printf("chr rom: %d KiB", chrSize>>10)
-	}
-
 	return
 }
