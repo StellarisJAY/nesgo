@@ -41,7 +41,7 @@ func NewVideoEncoder(codec string) (IVideoEncoder, error) {
 			Width:       ppu.WIDTH,
 			Height:      ppu.HEIGHT,
 			FrameRate:   60,
-			FrameFormat: frame.FormatI420,
+			FrameFormat: frame.FormatI444,
 		},
 	}
 	switch codec {

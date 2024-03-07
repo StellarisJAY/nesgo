@@ -12,7 +12,7 @@ func NewX264Encoder(media prop.Media) (*VideoEncoder, error) {
 	}
 	params.KeyFrameInterval = 60
 	params.Preset = x264.PresetUltrafast
-	params.BitRate = 1000_000
+	params.BitRate = 3000_000
 	r := &FrameReader{}
 	enc, err := params.BuildVideoEncoder(r, media)
 	if err != nil {

@@ -18,7 +18,7 @@ const (
 
 func NewFrame() *Frame {
 	return &Frame{
-		image.NewYCbCr(image.Rect(0, 0, WIDTH, HEIGHT), image.YCbCrSubsampleRatio420),
+		image.NewYCbCr(image.Rect(0, 0, WIDTH, HEIGHT), image.YCbCrSubsampleRatio444),
 	}
 }
 
