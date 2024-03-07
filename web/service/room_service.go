@@ -92,6 +92,7 @@ func (rs *RoomService) CreateRoom(c *gin.Context) {
 		Host:     userId,
 		Name:     form.Name,
 		Password: password,
+		Private:  form.Private,
 	}
 
 	err = db.GetDB().Transaction(func(tx *gorm.DB) error {
@@ -338,7 +339,7 @@ func (rs *RoomService) DeleteRoom(c *gin.Context) {
 	if err != nil {
 		panic(err)
 	}
-	err = save.DeleteSave(db.GetDB(), roomId)
+	err = save.DeleteRoomSaves(db.GetDB(), roomId)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		goto RETURN
 	} else if err != nil {

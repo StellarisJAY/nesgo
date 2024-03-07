@@ -25,13 +25,16 @@
     <a-col :span="10" style="height: 100vh">
       <a-card style="height: 100%">
         <a-row>
-          <a-col :span="8">
+          <a-col :span="6">
             <a-button type="primary" :disabled="saveBtnDisabled" @click="saveGame" style="width: 90%">保存</a-button>
           </a-col>
-          <a-col :span="8">
+          <a-col :span="6">
             <a-button type="primary" :disabled="loadBtnDisabled" @click="openSavedGamesDrawer" style="width: 90%">读档</a-button>
           </a-col>
-          <a-col :span="8">
+          <a-col :span="6">
+            <a-button type="primary" :disabled="chatBtnDisabled" @click="_=>{setChatModal(true)}" style="width: 90%">聊天</a-button>
+          </a-col>
+          <a-col :span="6">
             <a-button type="primary" @click="openRoomMemberDrawer" style="width: 90%">房间</a-button>
           </a-col>
         </a-row>
@@ -128,6 +131,14 @@
         </template>
       </a-list>
     </a-drawer>
+
+    <a-modal title="聊天" v-model:open="chatModalOpen" @cancel="_=>{setChatModal(false)}">
+      <template #footer>
+        <a-button @click="_=>{setChatModal(false)}">取消</a-button>
+        <a-button type="primary" @click="sendChatMessage">发送</a-button>
+      </template>
+      <a-input placeholder="请输入消息..." v-model:value="chatMessage"></a-input>
+    </a-modal>
   </a-row>
 </template>
 
@@ -137,17 +148,18 @@ import { Row, Col } from "ant-design-vue";
 import {CrownTwoTone} from '@ant-design/icons-vue';
 import {Card, Button, Drawer, List, Descriptions, RadioGroup, Radio, Select, Checkbox, InputPassword, Switch} from "ant-design-vue";
 import {message} from "ant-design-vue";
-import {Form, FormItem} from "ant-design-vue";
+import {Form, FormItem, Modal, Input} from "ant-design-vue";
 import tokenStorage from "../api/token.js";
 import router from "../router/index.js";
 import {ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, SaveOutlined} from "@ant-design/icons-vue"
-
+import {notification} from "ant-design-vue";
 const MessageSDPOffer = 0
 const MessageSDPAnswer = 1
 const MessageICECandidate = 2
 const MessageGameButtonPressed = 3
 const MessageGameButtonReleased = 4
 const MessageTurnServerInfo = 5
+const MessageChat = 6
 
 const RoleHost = 0
 const RoleGamer = 1
@@ -178,6 +190,8 @@ export default {
     ASwitch: Switch,
     AForm: Form,
     AFormItem: FormItem,
+    AModal: Modal,
+    AInput: Input,
   },
     data() {
         return {
@@ -191,6 +205,7 @@ export default {
             saveBtnDisabled: true,
             loadBtnDisabled: true,
             restartBtnDisabled: true,
+            chatBtnDisabled: true,
             selectedGame: "SuperMario.nes",
             configs: {
               controlButtonMapping: {
@@ -225,6 +240,8 @@ export default {
               {value: "2", label: "P2"},
             ],
             fullRoomInfo: {},
+            chatModalOpen: false,
+            chatMessage: "",
         }
     },
   created() {
@@ -234,9 +251,10 @@ export default {
           this.getRoomInfoWithPassword()
         }
       })
+      this.listRoomMembers()
       this.listGames()
   },
-  beforeDestroy() {
+  unmounted() {
     this.rtcSession.ws.close()
     this.rtcSession.pc.close()
   },
@@ -297,7 +315,7 @@ export default {
         const message = JSON.parse(ev.data)
         const ws = this.rtcSession.ws
         if (message["type"] === MessageSDPOffer) {
-          const sdpOffer = JSON.parse(atob(message["data"]))
+          const sdpOffer = JSON.parse(message["data"])
           const pc = this.rtcSession.pc
           pc.setRemoteDescription(sdpOffer)
               .then(_ => pc.createAnswer())
@@ -307,7 +325,7 @@ export default {
                 console.log("local sdl:  ", pc.localDescription)
                 ws.send(JSON.stringify({
                   "type": MessageSDPAnswer,
-                  "data": btoa(JSON.stringify(pc.localDescription)),
+                  "data":JSON.stringify(pc.localDescription),
                 }))
                 pc.addTransceiver("video")
               })
@@ -315,7 +333,7 @@ export default {
                 console.log(err)
               })
         }else if (message["type"] === MessageTurnServerInfo) {
-          const turnInfo = JSON.parse(atob(message["data"]))
+          const turnInfo = JSON.parse(message["data"])
           this.rtcSession.turnAddress = turnInfo["address"]
           this.rtcSession.turnUser = turnInfo["username"]
           this.rtcSession.turnPassword = turnInfo["password"]
@@ -354,7 +372,9 @@ export default {
         pc.ondatachannel = ev=>{
           const datachannel = ev.channel
           this.rtcSession.dataChannel = datachannel
+          this.chatBtnDisabled = false
           datachannel.onclose = _=>{
+            this.chatBtnDisabled = true
             window.onkeydown = _=>{}
             window.onkeyup = _ => {}
           }
@@ -362,7 +382,10 @@ export default {
             console.log(err)
           }
           datachannel.onmessage = msg=>{
-            console.log("unexpected dataChannel message:", msg)
+            const message = JSON.parse(msg.data)
+            if (message.type === MessageChat) {
+              this.onChatMessage(JSON.parse(message.data))
+            }
           }
         }
         this.rtcSession.pc = pc
@@ -371,7 +394,7 @@ export default {
         if (ev.candidate !== null) {
           this.rtcSession.ws.send(JSON.stringify({
             "type": MessageICECandidate,
-            "data": btoa(JSON.stringify(ev.candidate))
+            "data": JSON.stringify(ev.candidate)
           }))
           this.rtcSession.pc
               .addIceCandidate(ev.candidate)
@@ -396,19 +419,7 @@ export default {
       onConnected() {
         message.success("连接成功")
         if (this.memberSelf["role"] !== RoleObserver) {
-          window.onkeydown = ev=> {
-            const button = this.configs.keyboardMapping[ev.code];
-            if (button) {
-              this.sendAction(button, MessageGameButtonPressed)
-            }
-          }
-
-          window.onkeyup = ev=> {
-            const button = this.configs.keyboardMapping[ev.code];
-            if (button) {
-              this.sendAction(button, MessageGameButtonReleased)
-            }
-          }
+          this.setKeyboardControl(true)
           // todo screen buttons
           // todo enable restart save load buttons
           this.initControlButtons()
@@ -425,7 +436,7 @@ export default {
     sendAction(code, pressed) {
       this.rtcSession.dataChannel.send(JSON.stringify({
         "type": pressed,
-        "data": btoa(code),
+        "data": code,
       }))
     },
 
@@ -569,6 +580,51 @@ export default {
           this.fullRoomInfo = resp.data
         }
       })
+    },
+    setChatModal(open) {
+      this.setKeyboardControl(!open)
+      this.chatModalOpen = open
+      if (!open) {
+        this.chatMessage = ""
+      }
+    },
+    sendChatMessage() {
+      this.rtcSession.dataChannel.send(JSON.stringify({
+        "type": MessageChat,
+        "data": this.chatMessage}))
+    },
+    onChatMessage(msg) {
+        const m = this.members.find(m=>{return m.id === msg.from})
+        if (!m) {
+          this.listRoomMembers()
+        }
+        notification.open({
+          message: m ? m.name : "ID:"+m.id,
+          description: msg.content,
+          duration: 1,
+          placement: "topRight",
+        })
+    },
+
+    setKeyboardControl(enabled) {
+        if (enabled) {
+          window.onkeydown = ev=> {
+            const button = this.configs.keyboardMapping[ev.code];
+            if (button) {
+              this.sendAction(button, MessageGameButtonPressed)
+            }
+          }
+
+          window.onkeyup = ev=> {
+            const button = this.configs.keyboardMapping[ev.code];
+            if (button) {
+              this.sendAction(button, MessageGameButtonReleased)
+            }
+          }
+        }else {
+          window.onkeydown = _=>{}
+          window.onkeyup = _=>{}
+        }
     }
   }
 }

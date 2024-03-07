@@ -27,7 +27,7 @@ type MessageWithConnInfo struct {
 
 type Message struct {
 	Type byte   `json:"type"`
-	Data []byte `json:"data"`
+	Data string `json:"data"`
 }
 
 const (
@@ -37,6 +37,7 @@ const (
 	MessageGameButtonPressed
 	MessageGameButtonReleased
 	MessageTurnServerInfo
+	MessageChat
 )
 
 type RoomConn struct {
@@ -108,14 +109,14 @@ func (rc *RoomConn) HandleMessage(msg Message) {
 	switch msg.Type {
 	case MessageSDPAnswer:
 		sdp := webrtc.SessionDescription{}
-		_ = json.Unmarshal(msg.Data, &sdp)
+		_ = json.Unmarshal([]byte(msg.Data), &sdp)
 		if err := rc.rtcConn.SetRemoteDescription(sdp); err != nil {
 			log.Println("unable to set remote description, error:", err)
 			rc.Close()
 		}
 	case MessageICECandidate:
 		candidate := webrtc.ICECandidateInit{}
-		_ = json.Unmarshal(msg.Data, &candidate)
+		_ = json.Unmarshal([]byte(msg.Data), &candidate)
 		log.Println("candidate:", candidate)
 		if err := rc.rtcConn.AddICECandidate(candidate); err != nil {
 			log.Println("unable to add ICE candidate, error:", err)
@@ -132,6 +133,11 @@ func (rc *RoomConn) OnDataChannelMessage(rawMsg webrtc.DataChannelMessage, msgCh
 		return
 	}
 	if message.Type == MessageGameButtonPressed || message.Type == MessageGameButtonReleased {
+		msgChan <- MessageWithConnInfo{
+			Message:  message,
+			RoomConn: *rc,
+		}
+	} else if message.Type == MessageChat {
 		msgChan <- MessageWithConnInfo{
 			Message:  message,
 			RoomConn: *rc,
@@ -225,7 +231,7 @@ func (rc *RoomConn) SendTurnServerInfo() error {
 	})
 	return rc.sendMessage(Message{
 		Type: MessageTurnServerInfo,
-		Data: data,
+		Data: string(data),
 	})
 }
 

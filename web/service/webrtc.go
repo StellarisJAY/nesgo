@@ -77,6 +77,11 @@ type alterRoleRequest struct {
 	future   *future.Future[struct{}]
 }
 
+type ChatMessage struct {
+	From    int64  `json:"from"`
+	Content string `json:"content"`
+}
+
 const (
 	SignalNewConnection byte = iota
 	SignalWebsocketClose
@@ -231,6 +236,8 @@ func (r *WebRTCRoomSession) handleDataChannelMessage(msg MessageWithConnInfo) {
 		if msg.wsConn.Member.Role != room.RoleObserver {
 			r.handleGameButtonMsg(msg)
 		}
+	case MessageChat:
+		r.handleChatMessage(msg)
 	default:
 	}
 }
@@ -263,6 +270,30 @@ func (r *WebRTCRoomSession) handleGameButtonMsg(msg MessageWithConnInfo) {
 	case "Select":
 		r.e.SetJoyPadButtonPressed(controlId, bus.Select, pressed)
 	default:
+	}
+}
+
+func (r *WebRTCRoomSession) handleChatMessage(msg MessageWithConnInfo) {
+	m, ok := r.members[msg.MemberId]
+	if !ok {
+		return
+	}
+	chat := ChatMessage{
+		From:    m.UserId,
+		Content: msg.Data,
+	}
+	data, _ := json.Marshal(chat)
+	bytes, _ := json.Marshal(Message{
+		Type: MessageChat,
+		Data: string(data),
+	})
+	for _, conn := range r.connections {
+		if !conn.connected.Load() {
+			continue
+		}
+		if err := conn.dataChannel.SendText(string(bytes)); err != nil {
+			log.Println("send chat message error:", err)
+		}
 	}
 }
 
@@ -473,7 +504,7 @@ func (r *WebRTCRoomSession) onNewConnection(ctx context.Context, wsConn *Websock
 	data, _ := json.Marshal(sdp)
 	if err := roomConnection.sendMessage(Message{
 		Type: MessageSDPOffer,
-		Data: data,
+		Data: string(data),
 	}); err != nil {
 		panic(fmt.Errorf("unable to send sdp offer, error: %w", err))
 	}
