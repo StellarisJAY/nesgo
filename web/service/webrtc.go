@@ -487,13 +487,6 @@ func (r *WebRTCRoomSession) onNewConnection(ctx context.Context, wsConn *Websock
 	})
 	peer.OnICEConnectionStateChange(roomConnection.onICEStateChange)
 
-	// 创建每个连接独有的视频编码器
-	encoder, err := codec.NewVideoEncoder(videoCodec)
-	if err != nil {
-		panic(fmt.Errorf("unable to create encoder, error: %w", err))
-	}
-	roomConnection.videoEncoder = encoder
-
 	controllableMembers := r.filterMembers(isControllableMember)
 	r.members[wsConn.Member.UserId] = wsConn.Member
 	r.connections[wsConn.Member.UserId] = roomConnection

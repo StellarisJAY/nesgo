@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v3"
-	"github.com/stellarisJAY/nesgo/web/codec"
 	"github.com/stellarisJAY/nesgo/web/config"
 	"github.com/stellarisJAY/nesgo/web/model/db"
 	"github.com/stellarisJAY/nesgo/web/model/room"
@@ -41,14 +40,13 @@ const (
 )
 
 type RoomConn struct {
-	MemberId     int64
-	wsConn       *WebsocketConn
-	rtcConn      *webrtc.PeerConnection
-	videoTrack   *webrtc.TrackLocalStaticSample
-	audioTrack   *webrtc.TrackLocalStaticSample
-	videoEncoder codec.IVideoEncoder // 每个连接独占一个视频编码器 和 buffer
-	connected    *atomic.Bool
-	dataChannel  *webrtc.DataChannel
+	MemberId    int64
+	wsConn      *WebsocketConn
+	rtcConn     *webrtc.PeerConnection
+	videoTrack  *webrtc.TrackLocalStaticSample
+	audioTrack  *webrtc.TrackLocalStaticSample
+	connected   *atomic.Bool
+	dataChannel *webrtc.DataChannel
 }
 
 type WebsocketConn struct {
@@ -102,7 +100,6 @@ func (rc *RoomConn) sendMessage(msg Message) error {
 }
 
 func (rc *RoomConn) Close() {
-	rc.videoEncoder.Close()
 	_ = rc.wsConn.Conn.Close()
 	_ = rc.rtcConn.Close()
 }
