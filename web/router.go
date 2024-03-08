@@ -29,30 +29,7 @@ func setupRouter() *gin.Engine {
 		c.HTML(200, "index.html", nil)
 	})
 	r.StaticFS("/assets", http.Dir("ui/dist/assets"))
-	r.StaticFS("/scripts", http.Dir("web/ui/scripts"))
 	r.LoadHTMLFiles("ui/dist/index.html")
-	r.GET("/index", func(c *gin.Context) {
-		c.HTML(200, "index.html", nil)
-	})
-
-	//// html pages
-	//page := r.Group("/")
-	//r.LoadHTMLGlob("web/ui/*.html")
-	//{
-	//	page.GET("/login", func(c *gin.Context) {
-	//		c.HTML(200, "login.html", gin.H{})
-	//	})
-	//	page.GET("/room/:roomId", func(c *gin.Context) {
-	//		c.HTML(200, "room.html", gin.H{})
-	//	})
-	//	page.GET("/home", func(c *gin.Context) {
-	//		c.HTML(200, "home.html", gin.H{})
-	//	})
-	//	page.GET("/register", func(c *gin.Context) {
-	//		c.HTML(200, "register.html", nil)
-	//	})
-	//}
-
 	// web api
 	api := r.Group("/api")
 	{
