@@ -5,41 +5,43 @@ import (
 	"github.com/stellarisJAY/nesgo/web/model"
 	"github.com/stellarisJAY/nesgo/web/model/db"
 	"github.com/stellarisJAY/nesgo/web/util"
-	"log"
+	"gorm.io/gorm"
 )
 
 type Room struct {
 	Id       int64  `gorm:"column:id;primary key;AUTO_INCREMENT" json:"id"`
-	Owner    int64  `gorm:"column:owner" json:"owner"`
+	Host     int64  `gorm:"column:host" json:"host"`
 	Name     string `gorm:"column:name" json:"name"`
 	Password string `gorm:"column:password" json:"password"`
+	Private  bool   `gorm:"private" json:"private"`
 }
 
 type Member struct {
-	RoomId     int64 `gorm:"column:room_id;primary key" json:"roomId"`
-	UserId     int64 `gorm:"column:user_id;primary key" json:"userId"`
-	MemberType byte  `gorm:"column:member_type" json:"memberType"`
+	RoomId int64 `gorm:"column:room_id;primary key" json:"roomId"`
+	UserId int64 `gorm:"column:user_id;primary key" json:"userId"`
+	Role   byte  `gorm:"column:role" json:"role"`
 }
 
 type UserMember struct {
-	Id         int64  `gorm:"column:id" json:"id"`
-	Name       string `gorm:"column:name" json:"name"`
-	AvatarURL  string `gorm:"column:avatar_url" json:"avatarURL"`
-	MemberType byte   `gorm:"column:member_type" json:"memberType"`
+	Id        int64  `gorm:"column:id" json:"id"`
+	Name      string `gorm:"column:name" json:"name"`
+	AvatarURL string `gorm:"column:avatar_url" json:"avatarURL"`
+	Role      byte   `gorm:"column:role" json:"role"`
 }
 
 type JoinedRoom struct {
-	Id         int64  `gorm:"column:id;primary key;AUTO_INCREMENT" json:"id"`
-	Owner      int64  `gorm:"column:owner" json:"owner"`
-	Name       string `gorm:"column:name" json:"name"`
-	Password   string `gorm:"column:password" json:"password"`
-	MemberType byte   `gorm:"column:member_type" json:"memberType"`
+	Id       int64  `gorm:"column:id;primary key;AUTO_INCREMENT" json:"id"`
+	Host     int64  `gorm:"column:host" json:"host"`
+	Name     string `gorm:"column:name" json:"name"`
+	Password string `gorm:"column:password" json:"password"`
+	Role     byte   `gorm:"column:role" json:"role"`
 }
 
 const (
-	MemberTypeOwner byte = iota
-	MemberTypeGamer
-	MemberTypeWatcher
+	RoleHost byte = iota
+	RoleGamer
+	RoleObserver
+	MaxMemberCount = 4
 )
 
 func init() {
@@ -49,19 +51,17 @@ func init() {
 	}
 }
 
-func CreateRoom(room *Room) error {
-	d := db.GetDB()
-	if err := d.Create(room).Error; err != nil {
+func CreateRoom(db *gorm.DB, room *Room) error {
+	if err := db.Create(room).Error; err != nil {
 		return err
 	}
-	log.Println(room.Id)
 	return nil
 }
 
-func GetRoomByNameAndOwner(name string, owner int64) (*Room, error) {
+func GetRoomByNameAndHost(name string, host int64) (*Room, error) {
 	d := db.GetDB()
 	var r Room
-	if err := d.Where("name=? AND owner=?", name, owner).
+	if err := d.Where("name=? AND host=?", name, host).
 		First(&r).
 		Error; err != nil {
 		return nil, err
@@ -86,6 +86,18 @@ func GetRoomById(id int64) (*Room, error) {
 	}
 }
 
+func UpdateRoom(r *Room) error {
+	if err := db.GetDB().Model(r).Updates(map[string]any{
+		"name":     r.Name,
+		"private":  r.Private,
+		"password": r.Password,
+	}).Error; err != nil {
+		return err
+	}
+	_ = model.CacheDelete(CacheKeyForRoom(r.Id))
+	return nil
+}
+
 func ListRoomMembers(roomId int64) ([]*Member, error) {
 	d := db.GetDB()
 	var members []*Member
@@ -96,8 +108,8 @@ func ListRoomMembers(roomId int64) ([]*Member, error) {
 	return members, nil
 }
 
-func AddMember(member *Member) error {
-	return db.GetDB().Create(&member).Error
+func AddMember(db *gorm.DB, member *Member) error {
+	return db.Create(&member).Error
 }
 
 func GetMember(roomId, userId int64) (*Member, error) {
@@ -114,7 +126,7 @@ func GetMember(roomId, userId int64) (*Member, error) {
 func GetMemberFull(roomId, userId int64) (*UserMember, error) {
 	var um UserMember
 	if err := db.GetDB().
-		Select("id,name,avatar_url,member_type").
+		Select("id,name,avatar_url,role").
 		Table("users").
 		Joins("inner join members on users.id = members.user_id").
 		Where("user_id=? AND room_id=?", userId, roomId).
@@ -127,7 +139,7 @@ func GetMemberFull(roomId, userId int64) (*UserMember, error) {
 func GetJoinedRooms(userId int64, page, pageSize int) ([]*JoinedRoom, error) {
 	var joinedRooms []*JoinedRoom
 	if err := db.GetDB().
-		Select("id, owner, name, member_type, password").
+		Select("id, host, name, role, password").
 		Table("rooms").
 		Joins("inner join members on rooms.id=members.room_id").
 		Where("members.user_id=?", userId).
@@ -176,6 +188,26 @@ func UpdateMember(member *Member) error {
 		Where("room_id=? AND user_id=?", member.RoomId, member.UserId).
 		Updates(member).
 		Error
+}
+
+func SearchRoom(name string) ([]*Room, error) {
+	var rooms []*Room
+	if err := db.GetDB().
+		Model(&Room{}).
+		Where("name LIKE ?", name+"%").
+		Find(&rooms).
+		Error; err != nil {
+		return nil, err
+	}
+	return rooms, nil
+}
+
+func DeleteRoom(db *gorm.DB, roomId int64) error {
+	return db.Where("id=?", roomId).Delete(&Room{}).Error
+}
+
+func DeleteRoomMembers(db *gorm.DB, roomId int64) error {
+	return db.Where("room_id=?", roomId).Delete(&Member{}).Error
 }
 
 func CacheKeyForRoom(roomId int64) string {

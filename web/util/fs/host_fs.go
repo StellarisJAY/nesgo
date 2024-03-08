@@ -38,6 +38,10 @@ func (h *HostFileSystemStorage) Load(path string) ([]byte, error) {
 	return data, nil
 }
 
+func (h *HostFileSystemStorage) Delete(path string) error {
+	return os.Remove(filepath.Join(h.dir, path))
+}
+
 func (h *HostFileSystemStorage) Type() string {
 	return "host"
 }

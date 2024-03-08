@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media"
-	"github.com/stellarisJAY/nesgo/bus"
-	"github.com/stellarisJAY/nesgo/config"
 	"github.com/stellarisJAY/nesgo/emulator"
-	"github.com/stellarisJAY/nesgo/ppu"
+	"github.com/stellarisJAY/nesgo/emulator/bus"
+	"github.com/stellarisJAY/nesgo/emulator/config"
+	"github.com/stellarisJAY/nesgo/emulator/ppu"
 	"github.com/stellarisJAY/nesgo/web/codec"
 	"github.com/stellarisJAY/nesgo/web/model/room"
 	"github.com/stellarisJAY/nesgo/web/network"
@@ -30,6 +30,7 @@ type WebRTCRoomSession struct {
 	e                  *emulator.Emulator
 	emulatorCancel     context.CancelFunc
 	game               string
+	videoEncoder       codec.IVideoEncoder
 	audioSampleRate    int
 	audioEncoder       codec.IAudioEncoder
 	audioSampleChan    chan float32 // audioSampleChan 音频输出channel
@@ -54,6 +55,7 @@ type saveGameRequest struct {
 
 type loadSavedGameRequest struct {
 	data     []byte
+	game     string
 	respChan chan error
 }
 
@@ -62,6 +64,22 @@ type transferControlRequest struct {
 	control1 bool
 	control2 bool
 	future   *future.Future[struct{}]
+}
+
+type kickMemberRequest struct {
+	memberId int64
+	future   *future.Future[struct{}]
+}
+
+type alterRoleRequest struct {
+	memberId int64
+	role     byte
+	future   *future.Future[struct{}]
+}
+
+type ChatMessage struct {
+	From    int64  `json:"from"`
+	Content string `json:"content"`
 }
 
 const (
@@ -73,6 +91,10 @@ const (
 	SignalSaveGame
 	SignalLoadSavedGame
 	SignalTransferControl
+	SignalKickMember
+	SignalAlterRole
+
+	VideoCodec = "h264"
 )
 
 var rtcFactory *network.WebRTCFactory
@@ -106,6 +128,11 @@ func NewRTCRoomSession(game string) (*WebRTCRoomSession, error) {
 		return nil, err
 	}
 	rs.e = e
+	encoder, err := codec.NewVideoEncoder(VideoCodec)
+	if err != nil {
+		return nil, err
+	}
+	rs.videoEncoder = encoder
 	rs.audioSampleChan = sampleChan
 	audioEncoder, err := codec.NewAudioEncoder(sampleRate)
 	if err != nil {
@@ -177,7 +204,7 @@ func (r *WebRTCRoomSession) handleSignal(ctx context.Context, signal Signal) {
 		}
 	case SignalLoadSavedGame:
 		req := signal.Data.(*loadSavedGameRequest)
-		if err := r.loadSavedGame(req.data); err != nil {
+		if err := r.loadSavedGame(req.game, req.data); err != nil {
 			req.respChan <- err
 		} else {
 			close(req.respChan)
@@ -189,15 +216,28 @@ func (r *WebRTCRoomSession) handleSignal(ctx context.Context, signal Signal) {
 		} else {
 			req.future.Success(&struct{}{})
 		}
+	case SignalKickMember:
+		req := signal.Data.(kickMemberRequest)
+		if err := r.kickMember(req.memberId); err != nil {
+			req.future.Fail(err)
+		} else {
+			req.future.Success(&struct{}{})
+		}
+	case SignalAlterRole:
+		req := signal.Data.(alterRoleRequest)
+		_ = r.alterRole(req.memberId, req.role)
+		req.future.Success(&struct{}{})
 	}
 }
 
 func (r *WebRTCRoomSession) handleDataChannelMessage(msg MessageWithConnInfo) {
 	switch msg.Type {
 	case MessageGameButtonReleased, MessageGameButtonPressed:
-		if msg.wsConn.Member.MemberType != room.MemberTypeWatcher {
+		if msg.wsConn.Member.Role != room.RoleObserver {
 			r.handleGameButtonMsg(msg)
 		}
+	case MessageChat:
+		r.handleChatMessage(msg)
 	default:
 	}
 }
@@ -230,6 +270,30 @@ func (r *WebRTCRoomSession) handleGameButtonMsg(msg MessageWithConnInfo) {
 	case "Select":
 		r.e.SetJoyPadButtonPressed(controlId, bus.Select, pressed)
 	default:
+	}
+}
+
+func (r *WebRTCRoomSession) handleChatMessage(msg MessageWithConnInfo) {
+	m, ok := r.members[msg.MemberId]
+	if !ok {
+		return
+	}
+	chat := ChatMessage{
+		From:    m.UserId,
+		Content: msg.Data,
+	}
+	data, _ := json.Marshal(chat)
+	bytes, _ := json.Marshal(Message{
+		Type: MessageChat,
+		Data: string(data),
+	})
+	for _, conn := range r.connections {
+		if !conn.connected.Load() {
+			continue
+		}
+		if err := conn.dataChannel.SendText(string(bytes)); err != nil {
+			log.Println("send chat message error:", err)
+		}
 	}
 }
 
@@ -296,16 +360,21 @@ func (r *WebRTCRoomSession) save() ([]byte, error) {
 	return r.e.GetSaveData()
 }
 
-func (r *WebRTCRoomSession) LoadSavedGame(data []byte) error {
+func (r *WebRTCRoomSession) LoadSavedGame(game string, data []byte) error {
 	respChan := make(chan error)
 	r.signalChan <- Signal{
 		Type: SignalLoadSavedGame,
-		Data: &loadSavedGameRequest{data, respChan},
+		Data: &loadSavedGameRequest{data, game, respChan},
 	}
 	return <-respChan
 }
 
-func (r *WebRTCRoomSession) loadSavedGame(data []byte) error {
+func (r *WebRTCRoomSession) loadSavedGame(game string, data []byte) error {
+	if r.game != game {
+		if err := r.restart(game); err != nil {
+			return err
+		}
+	}
 	r.e.Pause()
 	defer r.e.Resume()
 	return r.e.Load(data)
@@ -330,8 +399,8 @@ func (r *WebRTCRoomSession) transferControl(memberId int64, control1, control2 b
 	if _, ok := r.members[memberId]; !ok {
 		return errors.New("member not connected")
 	}
-	if r.members[memberId].MemberType == room.MemberTypeWatcher {
-		return errors.New("watcher can't not gain control")
+	if r.members[memberId].Role == room.RoleObserver {
+		return errors.New("observer can't not gain control")
 	} else {
 		if control1 {
 			r.controller1 = memberId
@@ -349,37 +418,35 @@ func (r *WebRTCRoomSession) transferControl(memberId int64, control1, control2 b
 
 func (r *WebRTCRoomSession) renderCallback(p *ppu.PPU) {
 	p.Render()
+	data, release, err := r.videoEncoder.Encode(p.Frame())
+	if err != nil {
+		log.Println("encoder error: ", err)
+	}
+	defer release()
 	for _, conn := range r.connections {
 		// peer conn没有建立连接不编码视频，否则会导致I帧没有发送到客户端
 		if !conn.connected.Load() {
 			continue
 		}
-		if err := conn.videoEncoder.Encode(p.Frame()); err != nil {
-			log.Println("encoder error:", err)
-			continue
-		}
-		if err := conn.videoEncoder.Flush(); err != nil {
-			log.Println("flush encoder error:", err)
-			continue
-		}
-		data := conn.videoEncoder.FlushBuffer()
 		if err := conn.videoTrack.WriteSample(media.Sample{
 			Data:     data,
 			Duration: 2 * time.Millisecond, // todo 根据帧率设置Duration
 		}); err != nil {
 			log.Println("write video sample error:", err)
-			return
 		}
+		release()
 	}
 }
 
 // onNewConnection 新websocket连接建立后， 创建webrtc连接
 // 1. 创建webrtc连接，创建视频音频流track
+// 1.5 创建turn服务器凭证，保存在redis中，将用户名密码对发送给客户端
 // 2. 创建SDP Offer， 并发送给客户端，完成SDP协商
 // 3. 创建DataChannel，设置Message回调和连接状态回调
 // 4. 创建视频编码器， 每个连接使用独立的视频编码器
 // 5. 转移模拟器控制权
 func (r *WebRTCRoomSession) onNewConnection(ctx context.Context, wsConn *WebsocketConn) {
+	const videoCodec = "h264"
 	if _, ok := r.connections[wsConn.Member.UserId]; ok {
 		log.Println("member already connected")
 		_ = wsConn.Conn.Close()
@@ -405,9 +472,11 @@ func (r *WebRTCRoomSession) onNewConnection(ctx context.Context, wsConn *Websock
 			_ = peer.Close()
 		}
 	}()
-
+	if err := roomConnection.SendTurnServerInfo(); err != nil {
+		panic(fmt.Errorf("unable to send turn server info, error: %w", err))
+	}
 	// 创建H264视频和opus音频流
-	videoTrack, _ := rtcFactory.VideoTrack("h264")
+	videoTrack, _ := rtcFactory.VideoTrack(videoCodec)
 	if _, err := peer.AddTrack(videoTrack); err != nil {
 		panic(fmt.Errorf("unable to add video track to peer, error: %w", err))
 	}
@@ -435,7 +504,7 @@ func (r *WebRTCRoomSession) onNewConnection(ctx context.Context, wsConn *Websock
 	data, _ := json.Marshal(sdp)
 	if err := roomConnection.sendMessage(Message{
 		Type: MessageSDPOffer,
-		Data: data,
+		Data: string(data),
 	}); err != nil {
 		panic(fmt.Errorf("unable to send sdp offer, error: %w", err))
 	}
@@ -449,18 +518,11 @@ func (r *WebRTCRoomSession) onNewConnection(ctx context.Context, wsConn *Websock
 	})
 	peer.OnICEConnectionStateChange(roomConnection.onICEStateChange)
 
-	// 创建每个连接独有的视频编码器
-	encoder, err := codec.NewVideoEncoder("h264")
-	if err != nil {
-		panic(fmt.Errorf("unable to create encoder, error: %w", err))
-	}
-	roomConnection.videoEncoder = encoder
-
 	controllableMembers := r.filterMembers(isControllableMember)
 	r.members[wsConn.Member.UserId] = wsConn.Member
 	r.connections[wsConn.Member.UserId] = roomConnection
 	// 如果当前没有可控制游戏的玩家，且当前连接是可控制游戏的玩家，转移控制权
-	if r.controller1 == 0 && len(controllableMembers) == 0 && wsConn.Member.MemberType == room.MemberTypeOwner {
+	if r.controller1 == 0 && len(controllableMembers) == 0 && wsConn.Member.Role == room.RoleHost {
 		_ = r.transferControl(wsConn.Member.UserId, true, false)
 	}
 
@@ -526,5 +588,60 @@ func (r *WebRTCRoomSession) filterMembers(filterFunc func(room.Member) bool) []*
 }
 
 func isControllableMember(m room.Member) bool {
-	return m.MemberType != room.MemberTypeWatcher
+	return m.Role != room.RoleObserver
+}
+
+func (r *WebRTCRoomSession) Close() {
+	r.cancel()
+}
+
+func (r *WebRTCRoomSession) onClose() {
+	r.emulatorCancel()
+	for _, conn := range r.connections {
+		conn.Close()
+	}
+}
+
+func (r *WebRTCRoomSession) KickMember(memberId int64) error {
+	f := future.NewFuture[struct{}]()
+	r.signalChan <- Signal{
+		Type: SignalKickMember,
+		Data: kickMemberRequest{
+			memberId: memberId,
+			future:   f,
+		},
+	}
+	_, err := f.Result()
+	return err
+}
+
+func (r *WebRTCRoomSession) kickMember(memberId int64) error {
+	if conn, ok := r.connections[memberId]; ok {
+		conn.Close()
+	}
+	delete(r.connections, memberId)
+	delete(r.members, memberId)
+	return nil
+}
+
+func (r *WebRTCRoomSession) AlterRole(memberId int64, role byte) error {
+	f := future.NewFuture[struct{}]()
+	r.signalChan <- Signal{
+		Type: SignalAlterRole,
+		Data: alterRoleRequest{
+			memberId: memberId,
+			role:     role,
+			future:   f,
+		},
+	}
+	_, err := f.Result()
+	return err
+}
+
+func (r *WebRTCRoomSession) alterRole(memberId int64, role byte) error {
+	m, ok := r.members[memberId]
+	if ok {
+		m.Role = role
+	}
+	return nil
 }

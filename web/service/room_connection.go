@@ -3,14 +3,21 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/pion/webrtc/v3"
-	"github.com/stellarisJAY/nesgo/web/codec"
+	"github.com/stellarisJAY/nesgo/web/config"
+	"github.com/stellarisJAY/nesgo/web/model/db"
 	"github.com/stellarisJAY/nesgo/web/model/room"
 	"log"
+	"net"
 	"net/http"
+	"path"
 	"sync/atomic"
+	"time"
 )
 
 type MessageWithConnInfo struct {
@@ -20,7 +27,7 @@ type MessageWithConnInfo struct {
 
 type Message struct {
 	Type byte   `json:"type"`
-	Data []byte `json:"data"`
+	Data string `json:"data"`
 }
 
 const (
@@ -29,17 +36,20 @@ const (
 	MessageICECandidate
 	MessageGameButtonPressed
 	MessageGameButtonReleased
+	MessageTurnServerInfo
+	MessageChat
+	MessagePing
+	MessagePong
 )
 
 type RoomConn struct {
-	MemberId     int64
-	wsConn       *WebsocketConn
-	rtcConn      *webrtc.PeerConnection
-	videoTrack   *webrtc.TrackLocalStaticSample
-	audioTrack   *webrtc.TrackLocalStaticSample
-	videoEncoder codec.IVideoEncoder // 每个连接独占一个视频编码器 和 buffer
-	connected    *atomic.Bool
-	dataChannel  *webrtc.DataChannel
+	MemberId    int64
+	wsConn      *WebsocketConn
+	rtcConn     *webrtc.PeerConnection
+	videoTrack  *webrtc.TrackLocalStaticSample
+	audioTrack  *webrtc.TrackLocalStaticSample
+	connected   *atomic.Bool
+	dataChannel *webrtc.DataChannel
 }
 
 type WebsocketConn struct {
@@ -47,15 +57,18 @@ type WebsocketConn struct {
 	Conn   *websocket.Conn
 }
 
-type ControlTransferredNotification struct {
-	Control1 int64 `json:"control1"`
-	Control2 int64 `json:"control2"`
+type TurnServerInfo struct {
+	Addr     string `json:"address"`
+	Realm    string `json:"realm"`
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
-type RoomMemberChangeNotification struct {
-	MemberId   int64 `json:"id"`
-	MemberType byte  `json:"memberType"`
-	Kick       bool  `json:"kick"`
+type TurnServerClaim struct {
+	jwt.Claims
+	SrcIp        string
+	TurnUsername string
+	TurnPassword string
 }
 
 func (rc *RoomConn) Handle(ctx context.Context) {
@@ -98,14 +111,14 @@ func (rc *RoomConn) HandleMessage(msg Message) {
 	switch msg.Type {
 	case MessageSDPAnswer:
 		sdp := webrtc.SessionDescription{}
-		_ = json.Unmarshal(msg.Data, &sdp)
+		_ = json.Unmarshal([]byte(msg.Data), &sdp)
 		if err := rc.rtcConn.SetRemoteDescription(sdp); err != nil {
 			log.Println("unable to set remote description, error:", err)
 			rc.Close()
 		}
 	case MessageICECandidate:
 		candidate := webrtc.ICECandidateInit{}
-		_ = json.Unmarshal(msg.Data, &candidate)
+		_ = json.Unmarshal([]byte(msg.Data), &candidate)
 		log.Println("candidate:", candidate)
 		if err := rc.rtcConn.AddICECandidate(candidate); err != nil {
 			log.Println("unable to add ICE candidate, error:", err)
@@ -126,6 +139,19 @@ func (rc *RoomConn) OnDataChannelMessage(rawMsg webrtc.DataChannelMessage, msgCh
 			Message:  message,
 			RoomConn: *rc,
 		}
+	} else if message.Type == MessageChat {
+		msgChan <- MessageWithConnInfo{
+			Message:  message,
+			RoomConn: *rc,
+		}
+	} else if message.Type == MessagePing {
+		pong, _ := json.Marshal(&Message{
+			Type: MessagePong,
+			Data: message.Data,
+		})
+		if err := rc.dataChannel.SendText(string(pong)); err != nil {
+			log.Println("send pong message error:", err)
+		}
 	}
 }
 
@@ -135,8 +161,12 @@ func (rc *RoomConn) onPeerConnectionState(state webrtc.PeerConnectionState, sign
 	case webrtc.PeerConnectionStateConnected:
 		rc.connected.Store(true)
 		signalChan <- Signal{SignalPeerConnected, rc}
-	case webrtc.PeerConnectionStateDisconnected:
+	case webrtc.PeerConnectionStateDisconnected, webrtc.PeerConnectionStateFailed:
 		signalChan <- Signal{SignalPeerDisconnected, rc}
+		key := getRedisTurnAuthKey(rc.getTurnUsername(), "nesgo", rc.ip())
+		if err := db.GetRedis().Del(key).Err(); err != nil {
+			log.Println("delete turn authorization error:", err)
+		}
 		rc.connected.Store(false)
 		rc.Close()
 	default:
@@ -156,9 +186,9 @@ func (rs *RoomService) ConnectRTCRoomSession(c *gin.Context) {
 	session, ok := rs.rtcSessions[roomId]
 	rs.m.Unlock()
 	if !ok {
-		// Only owner can create session
-		if member.MemberType != room.MemberTypeOwner {
-			c.JSON(200, JSONResp{Status: http.StatusForbidden, Message: "only owner can start game session"})
+		// Only host can create session
+		if member.Role != room.RoleHost {
+			c.JSON(200, JSONResp{Status: http.StatusForbidden, Message: "only host can start game session"})
 			return
 		}
 		game := c.Query("game")
@@ -189,4 +219,45 @@ func (rs *RoomService) ConnectRTCRoomSession(c *gin.Context) {
 			Conn:   conn,
 		},
 	}
+}
+
+func (rc *RoomConn) SendTurnServerInfo() error {
+	username := config.GetConfig().TurnServer.LongTermUser
+	password := config.GetConfig().TurnServer.LongTermPassword
+	// 如果没有配置long-term用户，创建临时用户，并保存到redis
+	if username == "" {
+		username = rc.getTurnUsername()
+		key := getRedisTurnAuthKey(username, "nesgo", rc.ip())
+		password = generateTurnPassword()
+		if err := db.GetRedis().Set(key, password, 30*time.Second).Err(); err != nil {
+			return err
+		}
+	}
+	data, _ := json.Marshal(TurnServerInfo{
+		Addr:     config.GetConfig().TurnServer.Addr,
+		Realm:    "nesgo",
+		Username: username,
+		Password: password,
+	})
+	return rc.sendMessage(Message{
+		Type: MessageTurnServerInfo,
+		Data: string(data),
+	})
+}
+
+func getRedisTurnAuthKey(username string, realm string, ipAddr string) string {
+	return path.Join("turn", realm, username, ipAddr)
+}
+
+func (rc *RoomConn) getTurnUsername() string {
+	return fmt.Sprintf("turn-user-%d", rc.MemberId)
+}
+
+func (rc *RoomConn) ip() string {
+	return rc.wsConn.Conn.RemoteAddr().(*net.TCPAddr).IP.String()
+}
+
+func generateTurnPassword() string {
+	u, _ := uuid.NewUUID()
+	return u.String()
 }

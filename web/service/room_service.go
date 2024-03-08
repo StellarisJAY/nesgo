@@ -4,11 +4,12 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/stellarisJAY/nesgo/web/config"
+	"github.com/stellarisJAY/nesgo/web/model/db"
 	"github.com/stellarisJAY/nesgo/web/model/room"
+	"github.com/stellarisJAY/nesgo/web/model/save"
 	"github.com/stellarisJAY/nesgo/web/model/user"
 	"github.com/stellarisJAY/nesgo/web/util/fs"
 	"gorm.io/gorm"
-	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -35,21 +36,28 @@ type CreateRoomResp struct {
 type RoomVO struct {
 	Id       int64  `json:"id"`
 	Name     string `json:"name"`
-	Owner    int64  `json:"owner"`
+	Host     int64  `json:"host"`
 	Password string `json:"password"`
 }
 
 type ListJoinedRoomVO struct {
-	MemberType byte `json:"memberType"`
+	Role byte `json:"role"`
 	RoomListVO
 }
 
 type RoomListVO struct {
 	Id          int64  `json:"id"`
 	Name        string `json:"name"`
-	OwnerName   string `json:"owner"`
+	HostName    string `json:"host"`
 	Private     bool   `json:"private"`
 	MemberCount int    `json:"memberCount"`
+}
+
+type FullRoomInfoVO struct {
+	Id       int64  `json:"id"`
+	Host     int64  `json:"host"`
+	Password string `json:"password"`
+	Private  bool   `json:"private"`
 }
 
 func NewRoomService() *RoomService {
@@ -65,50 +73,52 @@ func NewRoomService() *RoomService {
 }
 
 func (rs *RoomService) CreateRoom(c *gin.Context) {
-	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+	userId := c.GetInt64("uid")
 	var form CreateRoomForm
 	if err := c.ShouldBindJSON(&form); err != nil {
-		c.JSON(http.StatusBadRequest, JSONResp{
-			Status:  http.StatusBadRequest,
-			Message: "bad request form",
-		})
+		c.JSON(http.StatusBadRequest, JSONResp{Status: http.StatusBadRequest, Message: "bad request form"})
 		return
 	}
-	_, err := room.GetRoomByNameAndOwner(form.Name, userId)
+	_, err := room.GetRoomByNameAndHost(form.Name, userId)
 	if err == nil {
-		c.JSON(200, JSONResp{
-			Status:  http.StatusBadRequest,
-			Message: "room name already inuse",
-		})
+		c.JSON(200, JSONResp{Status: http.StatusBadRequest, Message: "room name already inuse"})
 		return
+	}
+	password := ""
+	if form.Private {
+		password = generatePassword()
 	}
 	r := room.Room{
-		Owner:    userId,
+		Host:     userId,
 		Name:     form.Name,
-		Password: generatePassword(),
+		Password: password,
+		Private:  form.Private,
 	}
-	if err := room.CreateRoom(&r); err != nil {
-		panic(err)
-	}
-	if err := room.AddMember(&room.Member{
-		RoomId:     r.Id,
-		UserId:     userId,
-		MemberType: room.MemberTypeOwner,
-	}); err != nil {
+
+	err = db.GetDB().Transaction(func(tx *gorm.DB) error {
+		if err := room.CreateRoom(tx, &r); err != nil {
+			return err
+		}
+		if err := room.AddMember(tx, &room.Member{
+			RoomId: r.Id,
+			UserId: userId,
+			Role:   room.RoleHost,
+		}); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
 		panic(err)
 	}
 	c.JSON(200, JSONResp{
 		Status:  200,
 		Message: "ok",
-		Data: CreateRoomResp{
-			RoomId:   r.Id,
-			Password: r.Password,
-		},
 	})
 }
 
 func (rs *RoomService) ListJoinedRooms(c *gin.Context) {
-	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+	userId := c.GetInt64("uid")
 	page, pageSize, err := getPageQuery(c)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "invalid page query params"})
@@ -122,23 +132,22 @@ func (rs *RoomService) ListJoinedRooms(c *gin.Context) {
 	joinedRoomVOs := make([]*ListJoinedRoomVO, 0, len(rooms))
 	for _, r := range rooms {
 		joinedRoomVO := &ListJoinedRoomVO{
-			MemberType: r.MemberType,
+			Role: r.Role,
 		}
 		joinedRoomVO.Name = r.Name
-		log.Println(r.Password == "")
 		joinedRoomVO.Private = r.Password != ""
 		joinedRoomVO.Id = r.Id
-		if name, ok := userNames[r.Owner]; ok {
-			joinedRoomVO.OwnerName = name
+		if name, ok := userNames[r.Host]; ok {
+			joinedRoomVO.HostName = name
 		} else {
-			if u, err := user.GetUserById(r.Owner); err != nil {
+			if u, err := user.GetUserById(r.Host); err != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
 					continue
 				}
 				panic(err)
 			} else {
-				joinedRoomVO.OwnerName = u.Name
-				userNames[r.Owner] = u.Name
+				joinedRoomVO.HostName = u.Name
+				userNames[r.Host] = u.Name
 			}
 		}
 		count, err := room.GetMemberCount(r.Id)
@@ -164,42 +173,12 @@ func (rs *RoomService) ListAllRooms(c *gin.Context) {
 	rooms, err := room.ListAllRooms(page, pageSize)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(200, JSONResp{
-				Status:  200,
-				Message: "ok",
-				Data:    []*RoomListVO{},
-			})
+			c.JSON(200, JSONResp{Status: 200, Message: "ok", Data: []*RoomListVO{}})
 			return
 		}
 		panic(err)
 	}
-	userNames := make(map[int64]string)
-	roomVOs := make([]*RoomListVO, 0, len(rooms))
-	for _, r := range rooms {
-		vo := &RoomListVO{
-			Id:      r.Id,
-			Name:    r.Name,
-			Private: r.Password != "",
-		}
-		if name, ok := userNames[r.Owner]; ok {
-			vo.OwnerName = name
-		} else {
-			u, err := user.GetUserById(r.Owner)
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				continue
-			} else if err != nil {
-				panic(err)
-			}
-			vo.OwnerName = u.Name
-			userNames[r.Owner] = u.Name
-		}
-		count, err := room.GetMemberCount(r.Id)
-		if err != nil {
-			panic(err)
-		}
-		vo.MemberCount = count
-		roomVOs = append(roomVOs, vo)
-	}
+	roomVOs := roomDOToRoomListVO(rooms)
 	c.JSON(200, JSONResp{
 		Status:  200,
 		Message: "ok",
@@ -208,7 +187,7 @@ func (rs *RoomService) ListAllRooms(c *gin.Context) {
 }
 
 func (rs *RoomService) JoinRoom(c *gin.Context) {
-	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+	userId := c.GetInt64("uid")
 	roomId := c.Param("roomId")
 	password := c.Query("password")
 	if roomId == "" {
@@ -221,98 +200,208 @@ func (rs *RoomService) JoinRoom(c *gin.Context) {
 		return
 	}
 	r, err := room.GetRoomById(id)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(200, JSONResp{
-				Status:  404,
-				Message: "room not found",
-			})
-			return
-		}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(200, JSONResp{Status: 404, Message: "room not found"})
+		return
+	} else if err != nil {
 		panic(err)
 	}
-	if r.Password == "" || r.Password == password {
-		err := room.AddMember(&room.Member{
-			RoomId:     id,
-			UserId:     userId,
-			MemberType: room.MemberTypeWatcher,
+
+	count, err := room.GetMemberCount(id)
+	if err != nil {
+		panic(err)
+	}
+
+	if count == room.MaxMemberCount {
+		c.JSON(200, JSONResp{Status: 400, Message: "room already full"})
+		return
+	}
+
+	if !r.Private || r.Password == password {
+		err := room.AddMember(db.GetDB(), &room.Member{
+			RoomId: id,
+			UserId: userId,
+			Role:   room.RoleObserver,
 		})
 		if err != nil {
 			panic(err)
 		}
-		log.Println("inserted new member")
-		c.JSON(200, JSONResp{
-			Status:  200,
-			Message: "Success",
-		})
+		c.JSON(200, JSONResp{Status: 200, Message: "Success"})
 	} else {
-		c.JSON(200, JSONResp{
-			Status:  500,
-			Message: "wrong password",
-		})
+		c.JSON(200, JSONResp{Status: 403, Message: "wrong password"})
 		return
 	}
-}
-
-func (rs *RoomService) RoomPage(c *gin.Context) {
-	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
-	userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, JSONResp{
-			Status:  400,
-			Message: "invalid room id",
-		})
-		return
-	}
-	roomDO, err := room.GetRoomById(roomId)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(404, JSONResp{
-				Status:  404,
-				Message: "room not found",
-			})
-			return
-		} else {
-			panic(err)
-		}
-	}
-	if _, ok := rs.IsRoomMember(roomId, userId); !ok {
-		c.JSON(200, JSONResp{
-			Status:  http.StatusForbidden,
-			Message: "not a member of this room",
-		})
-		return
-	}
-
-	c.HTML(200, "room.html", roomDO)
 }
 
 func (rs *RoomService) GetRoomInfo(c *gin.Context) {
-	roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, JSONResp{
-			Status:  400,
-			Message: "invalid room id",
-		})
-		return
-	}
+	roomId := c.GetInt64("roomId")
 	roomDO, err := room.GetRoomById(roomId)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(404, JSONResp{
-				Status:  404,
-				Message: "room not found",
-			})
-			return
-		} else {
-			panic(err)
-		}
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(404, JSONResp{Status: 404, Message: "room not found"})
+		return
+	} else if err != nil {
+		panic(err)
 	}
+	host, _ := user.GetUserById(roomDO.Host)
+	count, _ := room.GetMemberCount(roomDO.Id)
 	c.JSON(200, JSONResp{
 		Status:  200,
 		Message: "ok",
-		Data:    roomDO,
+		Data: RoomListVO{
+			Id:          roomDO.Id,
+			Name:        roomDO.Name,
+			HostName:    host.Name,
+			Private:     roomDO.Password != "",
+			MemberCount: count,
+		},
 	})
+}
+
+func (rs *RoomService) GetRoomFullInfo(c *gin.Context) {
+	roomId := c.GetInt64("roomId")
+	roomDO, err := room.GetRoomById(roomId)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(404, JSONResp{Status: 404, Message: "room not found"})
+		return
+	} else if err != nil {
+		panic(err)
+	}
+	c.JSON(200, JSONResp{Status: 200, Message: "ok", Data: FullRoomInfoVO{
+		Id:       roomDO.Id,
+		Host:     roomDO.Host,
+		Password: roomDO.Password,
+		Private:  roomDO.Private,
+	}})
+}
+
+type AlterRoomRequest struct {
+	Name    string `json:"name"`
+	Private bool   `json:"private"`
+}
+
+func (rs *RoomService) AlterRoom(c *gin.Context) {
+	roomId := c.GetInt64("roomId")
+	var req AlterRoomRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(200, JSONResp{Status: 400, Message: "Bad request"})
+		return
+	}
+	origin, err := room.GetRoomById(roomId)
+	if err != nil {
+		panic(err)
+	}
+	if req.Name != "" {
+		origin.Name = req.Name
+	}
+	if !origin.Private && req.Private {
+		origin.Password = generatePassword()
+	}
+	origin.Private = req.Private
+	if err := room.UpdateRoom(origin); err != nil {
+		panic(err)
+	}
+	c.JSON(200, JSONResp{200, "ok", FullRoomInfoVO{
+		Id:       roomId,
+		Host:     origin.Host,
+		Password: origin.Password,
+		Private:  origin.Private,
+	}})
+}
+
+func (rs *RoomService) DeleteRoom(c *gin.Context) {
+	roomId := c.GetInt64("roomId")
+
+	rs.m.Lock()
+	session, ok := rs.rtcSessions[roomId]
+	if ok {
+		delete(rs.rtcSessions, roomId)
+		session.Close()
+	}
+	rs.m.Unlock()
+
+	err := db.GetDB().Transaction(func(tx *gorm.DB) error {
+		if err := room.DeleteRoomMembers(tx, roomId); err != nil {
+			return err
+		}
+		if err := room.DeleteRoom(tx, roomId); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	saves, err := save.ListSaves(roomId, 1, 10)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		goto RETURN
+	}
+	if err != nil {
+		panic(err)
+	}
+	err = save.DeleteRoomSaves(db.GetDB(), roomId)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		goto RETURN
+	} else if err != nil {
+		panic(err)
+	}
+	for _, s := range saves {
+		_ = rs.fileStorage.Delete(s.Path)
+	}
+RETURN:
+	c.JSON(200, JSONResp{Status: 200, Message: "ok"})
+}
+
+func (rs *RoomService) Search(c *gin.Context) {
+	search := c.Query("search")
+	if search == "" || len(search) >= 32 {
+		c.JSON(200, JSONResp{Status: 400, Message: "invalid search text format"})
+		return
+	}
+	rooms, err := room.SearchRoom(search)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		c.JSON(200, JSONResp{Status: 200, Message: "ok"})
+		return
+	} else if err != nil {
+		panic(err)
+	}
+	roomVOs := roomDOToRoomListVO(rooms)
+	c.JSON(200, JSONResp{
+		Status:  200,
+		Message: "ok",
+		Data:    roomVOs,
+	})
+}
+
+func roomDOToRoomListVO(rooms []*room.Room) []*RoomListVO {
+	userNames := make(map[int64]string)
+	roomVOs := make([]*RoomListVO, 0, len(rooms))
+	for _, r := range rooms {
+		vo := &RoomListVO{
+			Id:      r.Id,
+			Name:    r.Name,
+			Private: r.Private,
+		}
+		if name, ok := userNames[r.Host]; ok {
+			vo.HostName = name
+		} else {
+			u, err := user.GetUserById(r.Host)
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				continue
+			} else if err != nil {
+				panic(err)
+			}
+			vo.HostName = u.Name
+			userNames[r.Host] = u.Name
+		}
+		count, err := room.GetMemberCount(r.Id)
+		if err != nil {
+			panic(err)
+		}
+		vo.MemberCount = count
+		roomVOs = append(roomVOs, vo)
+	}
+	return roomVOs
 }
 
 const charset = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"

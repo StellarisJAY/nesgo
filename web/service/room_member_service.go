@@ -11,17 +11,17 @@ import (
 )
 
 type RoomMemberVO struct {
-	Id         int64  `json:"id"`
-	Name       string `json:"name"`
-	MemberType byte   `json:"memberType"`
-	Player1    bool   `json:"player1"`
-	Player2    bool   `json:"player2"`
+	Id      int64  `json:"id"`
+	Name    string `json:"name"`
+	Role    byte   `json:"role"`
+	Player1 bool   `json:"player1"`
+	Player2 bool   `json:"player2"`
 }
 
 type AlterRoomMemberRequest struct {
 	RoomId         int64 `json:"roomId"`
 	MemberId       int64 `json:"memberId" binding:"required"`
-	MemberType     byte  `json:"memberType"`
+	Role           byte  `json:"role"`
 	Kick           bool  `json:"kick"`
 	SetController1 bool  `json:"setController1"`
 	SetController2 bool  `json:"setController2"`
@@ -51,11 +51,11 @@ func (rs *RoomService) ListRoomMembers(c *gin.Context) {
 			continue
 		}
 		result = append(result, &RoomMemberVO{
-			Id:         member.UserId,
-			Name:       u.Name,
-			MemberType: member.MemberType,
-			Player1:    ok && session.controller1 == member.UserId,
-			Player2:    ok && session.controller2 == member.UserId,
+			Id:      member.UserId,
+			Name:    u.Name,
+			Role:    member.Role,
+			Player1: ok && session.controller1 == member.UserId,
+			Player2: ok && session.controller2 == member.UserId,
 		})
 	}
 	c.JSON(200, JSONResp{
@@ -65,13 +65,13 @@ func (rs *RoomService) ListRoomMembers(c *gin.Context) {
 	})
 }
 
-func (rs *RoomService) GetMemberType(c *gin.Context) {
+func (rs *RoomService) GetRole(c *gin.Context) {
 	m, _ := c.Get("optMember")
 	member := m.(*room.Member)
 	c.JSON(200, JSONResp{
 		Status:  200,
 		Message: "ok",
-		Data:    member.MemberType,
+		Data:    member.Role,
 	})
 }
 
@@ -114,22 +114,22 @@ func (rs *RoomService) KickMember(c *gin.Context) {
 	c.JSON(200, JSONResp{Status: 200, Message: "ok"})
 }
 
-func (rs *RoomService) AlterMemberType(c *gin.Context) {
+func (rs *RoomService) AlterRole(c *gin.Context) {
 	roomId := c.GetInt64("roomId")
 	m, _ := c.Get("optMember")
-	owner := m.(*room.Member)
+	host := m.(*room.Member)
 	var req AlterRoomMemberRequest
 	err := c.ShouldBindJSON(&req)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, JSONResp{Status: 400, Message: err.Error()})
 		return
 	}
-	if req.MemberId == owner.UserId {
-		c.JSON(200, JSONResp{Status: 400, Message: "can not reset owner's type"})
+	if req.MemberId == host.UserId {
+		c.JSON(200, JSONResp{Status: 400, Message: "can not reset host's type"})
 		return
 	}
-	if req.MemberType == room.MemberTypeOwner {
-		c.JSON(200, JSONResp{Status: 400, Message: "can not set member type to owner"})
+	if req.Role == room.RoleHost {
+		c.JSON(200, JSONResp{Status: 400, Message: "can not set member type to host"})
 		return
 	}
 	member, ok := rs.IsRoomMember(roomId, req.MemberId)
@@ -137,23 +137,29 @@ func (rs *RoomService) AlterMemberType(c *gin.Context) {
 		c.JSON(200, JSONResp{Status: 404, Message: "member not found"})
 		return
 	}
-	if member.MemberType == req.MemberType {
+	if member.Role == req.Role {
 		c.JSON(200, JSONResp{Status: 200, Message: "ok"})
 		return
 	}
-	member.MemberType = req.MemberType
+	member.Role = req.Role
 	if err := room.UpdateMember(member); err != nil {
 		panic(err)
+	}
+	rs.m.Lock()
+	session, ok := rs.rtcSessions[roomId]
+	rs.m.Unlock()
+	if ok {
+		_ = session.AlterRole(req.MemberId, req.Role)
 	}
 	c.JSON(200, JSONResp{Status: 200, Message: "ok"})
 }
 
 // RoomMemberVerifier this middleware checks operator's identity.
 // Passes {"roomId":roomId, "optMember":*Member} to Next
-func (rs *RoomService) RoomMemberVerifier(accessibleMemberType []byte) func(*gin.Context) {
+func (rs *RoomService) RoomMemberVerifier(accessRoles []byte) func(*gin.Context) {
 	return func(c *gin.Context) {
 		roomId, err := strconv.ParseInt(c.Param("roomId"), 10, 64)
-		userId, _ := strconv.ParseInt(c.Param("uid"), 10, 64)
+		userId := c.GetInt64("uid")
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, JSONResp{
 				Status:  400,
@@ -170,8 +176,8 @@ func (rs *RoomService) RoomMemberVerifier(accessibleMemberType []byte) func(*gin
 			return
 		}
 		accessible := false
-		for _, mType := range accessibleMemberType {
-			if mType == m.MemberType {
+		for _, mType := range accessRoles {
+			if mType == m.Role {
 				accessible = true
 				break
 			}
@@ -189,10 +195,35 @@ func (rs *RoomService) RoomMemberVerifier(accessibleMemberType []byte) func(*gin
 	}
 }
 
-func (rs *RoomService) OwnerAccessible() func(*gin.Context) {
-	return rs.RoomMemberVerifier([]byte{room.MemberTypeOwner})
+func (rs *RoomService) Leave(c *gin.Context) {
+	roomId := c.GetInt64("roomId")
+	m, _ := c.Get("optMember")
+	member := m.(*room.Member)
+
+	if member.Role == room.RoleHost {
+		c.JSON(200, JSONResp{Status: 400, Message: "host can not leave room"})
+		return
+	}
+
+	rs.m.Lock()
+	session, ok := rs.rtcSessions[roomId]
+	rs.m.Unlock()
+	if ok {
+		if err := session.KickMember(member.UserId); err != nil {
+			panic(err)
+		}
+	}
+	err := room.DeleteMember(roomId, member.UserId)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		panic(err)
+	}
+	c.JSON(200, JSONResp{Status: 200, Message: "ok"})
+}
+
+func (rs *RoomService) HostAccessible() func(*gin.Context) {
+	return rs.RoomMemberVerifier([]byte{room.RoleHost})
 }
 
 func (rs *RoomService) MemberAccessible() func(*gin.Context) {
-	return rs.RoomMemberVerifier([]byte{room.MemberTypeOwner, room.MemberTypeWatcher, room.MemberTypeGamer})
+	return rs.RoomMemberVerifier([]byte{room.RoleHost, room.RoleObserver, room.RoleGamer})
 }

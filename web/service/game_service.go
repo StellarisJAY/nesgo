@@ -3,7 +3,7 @@ package service
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
-	"github.com/stellarisJAY/nesgo/cartridge"
+	"github.com/stellarisJAY/nesgo/emulator/cartridge"
 	"github.com/stellarisJAY/nesgo/web/model/game"
 )
 

@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
-	"github.com/stellarisJAY/nesgo/bus"
-	"github.com/stellarisJAY/nesgo/cpu"
-	"github.com/stellarisJAY/nesgo/ppu"
+	"github.com/stellarisJAY/nesgo/emulator/bus"
+	"github.com/stellarisJAY/nesgo/emulator/cartridge"
+	"github.com/stellarisJAY/nesgo/emulator/cpu"
+	"github.com/stellarisJAY/nesgo/emulator/ppu"
 	"time"
 )
 
@@ -14,6 +15,7 @@ type Snapshot struct {
 	Processor cpu.Snapshot
 	PPU       ppu.Snapshot
 	Bus       bus.Snapshot
+	Cartridge []byte
 	Timestamp time.Time
 }
 
@@ -43,12 +45,17 @@ func (e *RawEmulator) PushSnapshot() {
 
 func (e *RawEmulator) createSnapshot() Snapshot {
 	e.lastSnapshotTime = time.Now()
+	data, err := cartridge.Save(e.cartridge)
+	if err != nil {
+		panic(err)
+	}
 	// 必须保证每个组件MakeSnapshot时没有线程安全问题
 	return Snapshot{
 		Processor: e.processor.MakeSnapshot(),
 		PPU:       e.ppu.MakeSnapshot(),
 		Bus:       e.bus.MakeSnapshot(),
 		Timestamp: e.lastSnapshotTime,
+		Cartridge: data,
 	}
 }
 

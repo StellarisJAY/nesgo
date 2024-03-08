@@ -4,8 +4,8 @@ package main
 
 import (
 	"context"
-	"github.com/stellarisJAY/nesgo/config"
 	"github.com/stellarisJAY/nesgo/emulator"
+	"github.com/stellarisJAY/nesgo/emulator/config"
 )
 
 func main() {
