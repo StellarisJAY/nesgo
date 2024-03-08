@@ -38,6 +38,8 @@ const (
 	MessageGameButtonReleased
 	MessageTurnServerInfo
 	MessageChat
+	MessagePing
+	MessagePong
 )
 
 type RoomConn struct {
@@ -141,6 +143,14 @@ func (rc *RoomConn) OnDataChannelMessage(rawMsg webrtc.DataChannelMessage, msgCh
 		msgChan <- MessageWithConnInfo{
 			Message:  message,
 			RoomConn: *rc,
+		}
+	} else if message.Type == MessagePing {
+		pong, _ := json.Marshal(&Message{
+			Type: MessagePong,
+			Data: message.Data,
+		})
+		if err := rc.dataChannel.SendText(string(pong)); err != nil {
+			log.Println("send pong message error:", err)
 		}
 	}
 }

@@ -184,6 +184,7 @@ const tourSteps = [
     </a-modal>
     <a-tour :steps="tourSteps" :open="tourOpen" @close="_=>{tourOpen=false}"></a-tour>
   </a-row>
+  <p id="rtt">RTT: {{rtt}}ms</p>
 </template>
 
 <script>
@@ -205,6 +206,8 @@ const MessageGameButtonPressed = 3
 const MessageGameButtonReleased = 4
 const MessageTurnServerInfo = 5
 const MessageChat = 6
+const MessagePing = 7
+const MessagePong = 8
 
 const RoleHost = 0
 const RoleGamer = 1
@@ -288,6 +291,8 @@ export default {
             fullRoomInfo: {},
             chatModalOpen: false,
             chatMessage: "",
+            pingInterval: 0,
+            rtt: 0,
         }
     },
   created() {
@@ -420,6 +425,7 @@ export default {
           this.rtcSession.dataChannel = datachannel
           this.chatBtnDisabled = false
           datachannel.onclose = _=>{
+            clearInterval(this.pingInterval)
             this.chatBtnDisabled = true
             window.onkeydown = _=>{}
             window.onkeyup = _ => {}
@@ -431,8 +437,12 @@ export default {
             const message = JSON.parse(msg.data)
             if (message.type === MessageChat) {
               this.onChatMessage(JSON.parse(message.data))
+            }else if (message.type === MessagePong) {
+              const now = new Date().getTime()
+              this.rtt  = now - Number(message.data)
             }
           }
+          this.pingInterval = setInterval(_=>{this.ping()}, 3000);
         }
         this.rtcSession.pc = pc
       },
@@ -671,6 +681,14 @@ export default {
           window.onkeydown = _=>{}
           window.onkeyup = _=>{}
         }
+    },
+
+    ping() {
+        const timestamp = new Date().getTime()
+        this.rtcSession.dataChannel.send(JSON.stringify({
+          "type": MessagePing,
+          "data": String(timestamp),
+        }))
     }
   }
 }
@@ -684,5 +702,10 @@ export default {
 .control-btn {
   width: 100%;
   height: 100%;
+}
+#rtt {
+  position: absolute;
+  right: 0;
+  top: 0;
 }
 </style>
