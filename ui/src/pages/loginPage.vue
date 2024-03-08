@@ -18,6 +18,11 @@
                         <a-input-password v-model:value="formState.password" />
                     </a-form-item>
                     <a-row>
+                      <a-col :offset="4" :span="16" style="text-align: center">
+                        新用户？点击<RouterLink to="/register">此处</RouterLink>注册
+                      </a-col>
+                    </a-row>
+                    <a-row>
                         <a-col :offset="4" :span="16">
                             <a-button type="primary" id="loginButton" html-type="submit">登录</a-button>
                         </a-col>
@@ -36,6 +41,7 @@ import api from '../api/request';
 import tokenStorage from '../api/token';
 import { message } from 'ant-design-vue';
 import router from '../router';
+import {RouterLink} from "vue-router";
 
 export default {
     components: {
@@ -47,6 +53,7 @@ export default {
         AFormItem: Form.Item,
         AInput: Input,
         AInputPassword: Input.Password,
+        RouterLink,
     },
     data() {
         return {

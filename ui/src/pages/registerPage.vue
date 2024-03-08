@@ -5,7 +5,7 @@
             <a-card :bordered="false">
                 <a-row>
                     <a-col :offset="4" :span="16">
-                        <h1>NESGO</h1>
+                        <h1>新用户注册</h1>
                     </a-col>
                 </a-row>
                 <a-form layout="vertical" :model="formState" name="basic" :label-col="{ span: 4 }" autocomplete="off"
@@ -21,6 +21,11 @@
                     <a-form-item label="确认密码" name="confirm" :rules="rules.confirmPass">
                         <a-input-password v-model:value="formState.confirmPassword" />
                     </a-form-item>
+                    <a-row>
+                      <a-col :span="16" :offset="4" style="text-align: center">
+                        已经拥有账号？点击<RouterLink to="/login">此处</RouterLink>登录
+                      </a-col>
+                    </a-row>
                     <a-row>
                         <a-col :offset="4" :span="16">
                             <a-button type="primary" style="width: 100%;" html-type="submit">注册</a-button>
@@ -39,6 +44,7 @@ import { Button, Form, Input } from 'ant-design-vue';
 import api from '../api/request';
 import { message } from 'ant-design-vue';
 import router from '../router';
+import {RouterLink} from "vue-router";
 
 export default {
     components: {
@@ -50,6 +56,7 @@ export default {
         AFormItem: Form.Item,
         AInput: Input,
         AInputPassword: Input.Password,
+      RouterLink,
     },
     data() {
         return {
