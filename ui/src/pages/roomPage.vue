@@ -86,7 +86,10 @@ const tourSteps = [
         </a-row>
         <a-row>
           <a-col :span="6">
-            <a-button ref="refConnBtn" style="width: 90%;" type="primary" @click="connect" :disabled="connectBtnDisabled">连接</a-button>
+            <a-button ref="refConnBtn" style="width: 90%;" type="primary" @click="connect" :disabled="connectBtnDisabled">
+              <a-spin v-if="loading" :spinning="loading"></a-spin>
+              <p v-else>连接</p>
+            </a-button>
           </a-col>
           <a-col :span="6">
             <a-button ref="refRestart" style="width: 90%;" type="primary" :disabled="restartBtnDisabled" @click="restart">重启</a-button>
@@ -168,8 +171,8 @@ const tourSteps = [
               <a-descriptions-item label="游戏">{{item["game"]}}</a-descriptions-item>
               <a-descriptions-item label="时间">{{item["createdAt"]}}</a-descriptions-item>
             </a-descriptions>
-            <a-button type="primary" @click="loadSavedGame(item.id)">加载</a-button>
-            <a-button danger @click="deleteSavedGame(item.id)">删除</a-button>
+            <a-button type="primary" @click="loadSavedGame(item.id)" :disabled="memberSelf.role!==0">加载</a-button>
+            <a-button danger @click="deleteSavedGame(item.id)" :disabled="memberSelf.role!==0">删除</a-button>
           </a-list-item>
         </template>
       </a-list>
@@ -197,7 +200,7 @@ import {Form, FormItem, Modal, Input} from "ant-design-vue";
 import tokenStorage from "../api/token.js";
 import router from "../router/index.js";
 import {ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, SaveOutlined} from "@ant-design/icons-vue"
-import {notification, Tour} from "ant-design-vue";
+import {notification, Tour, Spin} from "ant-design-vue";
 
 const MessageSDPOffer = 0
 const MessageSDPAnswer = 1
@@ -241,6 +244,7 @@ export default {
     AModal: Modal,
     AInput: Input,
     ATour: Tour,
+    ASpin: Spin,
   },
     data() {
         return {
@@ -293,6 +297,7 @@ export default {
             chatMessage: "",
             pingInterval: 0,
             rtt: 0,
+            loading: false,
         }
     },
   created() {
@@ -345,6 +350,7 @@ export default {
       },
 
       connect() {
+        this.loading = true
         this.connectBtnDisabled = true
         const ws = api.webSocket("/room/"+this.roomId+"/rtc?auth=" + tokenStorage.getToken() + "&game="+this.selectedGame)
         ws.onclose = ev => {
@@ -473,18 +479,16 @@ export default {
         }
       },
       onConnected() {
+        this.loading = false
         message.success("连接成功")
-        if (this.memberSelf["role"] !== RoleObserver) {
-          this.setKeyboardControl(true)
-          // todo screen buttons
-          // todo enable restart save load buttons
-          this.initControlButtons()
-        }
+        this.setKeyboardControl(true)
+        this.initControlButtons()
         this.saveBtnDisabled = this.memberSelf["role"] !== RoleHost
         this.loadBtnDisabled = false
         this.restartBtnDisabled = this.memberSelf["role"] !== RoleHost
       },
     onDisconnected() {
+      this.loading = false
       this.disableControlButtons()
       this.rtcSession.pc.close()
       this.connectBtnDisabled = false
