@@ -1,3 +1,46 @@
+<script setup>
+import {ref} from "vue";
+const tourOpen = ref(true)
+const refConnBtn = ref(null)
+const refSelector = ref(null)
+const refRestart = ref(null)
+const refSaveBtn= ref(null)
+const refLoadBtn = ref(null)
+const refRoomBtn = ref(null)
+const tourSteps = [
+  {
+    title: "选择游戏",
+    description: "点击此处选择需要加载的游戏",
+    target: ()=>refSelector.value && refSelector.value.$el,
+  },
+  {
+    title: "连接",
+    description: "点击按钮连接到模拟器",
+    target: ()=>refConnBtn.value && refConnBtn.value.$el,
+  },
+  {
+    title: "重启",
+    description: "重启可以用于切换游戏，但会清除当前游戏进度，如有需要请先保存当前游戏。",
+    target: ()=>refRestart.value && refRestart.value.$el,
+  },
+  {
+    title: "保存游戏",
+    description: "点击此处保存游戏进度，请注意存档数量上限。",
+    target: ()=>refSaveBtn.value && refSaveBtn.value.$el,
+  },
+  {
+    title: "读取存档",
+    description: "显示存档列表，跨游戏读取存档会重启模拟器，如有需要请先保存当前游戏。",
+    target: ()=>refLoadBtn.value && refLoadBtn.value.$el,
+  },
+  {
+    title: "房间管理",
+    description: "点击此处弹出房间面板，房主可通过此面板修改房间信息以及玩家权限。",
+    target: ()=>refRoomBtn.value && refRoomBtn.value.$el,
+  }
+]
+</script>
+
 <template>
   <a-row style="height: 100vh; background-color: grey">
     <!--left side buttons-->
@@ -26,16 +69,16 @@
       <a-card style="height: 100%">
         <a-row>
           <a-col :span="6">
-            <a-button type="primary" :disabled="saveBtnDisabled" @click="saveGame" style="width: 90%">保存</a-button>
+            <a-button ref="refSaveBtn" type="primary" :disabled="saveBtnDisabled" @click="saveGame" style="width: 90%">保存</a-button>
           </a-col>
           <a-col :span="6">
-            <a-button type="primary" :disabled="loadBtnDisabled" @click="openSavedGamesDrawer" style="width: 90%">读档</a-button>
+            <a-button ref="refLoadBtn" type="primary" :disabled="loadBtnDisabled" @click="openSavedGamesDrawer" style="width: 90%">读档</a-button>
           </a-col>
           <a-col :span="6">
             <a-button type="primary" :disabled="chatBtnDisabled" @click="_=>{setChatModal(true)}" style="width: 90%">聊天</a-button>
           </a-col>
           <a-col :span="6">
-            <a-button type="primary" @click="openRoomMemberDrawer" style="width: 90%">房间</a-button>
+            <a-button ref="refRoomBtn" type="primary" @click="openRoomMemberDrawer" style="width: 90%">房间</a-button>
           </a-col>
         </a-row>
         <a-row style="height: 80%">
@@ -43,14 +86,14 @@
         </a-row>
         <a-row>
           <a-col :span="6">
-            <a-button style="width: 90%;" type="primary" @click="connect" :disabled="connectBtnDisabled">连接</a-button>
+            <a-button ref="refConnBtn" style="width: 90%;" type="primary" @click="connect" :disabled="connectBtnDisabled">连接</a-button>
           </a-col>
           <a-col :span="6">
-            <a-button style="width: 90%;" type="primary" :disabled="restartBtnDisabled" @click="restart">重启</a-button>
+            <a-button ref="refRestart" style="width: 90%;" type="primary" :disabled="restartBtnDisabled" @click="restart">重启</a-button>
           </a-col>
           <a-col>
             <a-select
-                ref="select"
+                ref="refSelector"
                 v-model:value="selectedGame"
                 :options="configs.existingGames"
             ></a-select>
@@ -139,6 +182,7 @@
       </template>
       <a-input placeholder="请输入消息..." v-model:value="chatMessage"></a-input>
     </a-modal>
+    <a-tour :steps="tourSteps" :open="tourOpen" @close="_=>{tourOpen=false}"></a-tour>
   </a-row>
 </template>
 
@@ -152,7 +196,8 @@ import {Form, FormItem, Modal, Input} from "ant-design-vue";
 import tokenStorage from "../api/token.js";
 import router from "../router/index.js";
 import {ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, SaveOutlined} from "@ant-design/icons-vue"
-import {notification} from "ant-design-vue";
+import {notification, Tour} from "ant-design-vue";
+
 const MessageSDPOffer = 0
 const MessageSDPAnswer = 1
 const MessageICECandidate = 2
@@ -192,6 +237,7 @@ export default {
     AFormItem: FormItem,
     AModal: Modal,
     AInput: Input,
+    ATour: Tour,
   },
     data() {
         return {
