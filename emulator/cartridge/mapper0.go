@@ -6,12 +6,12 @@ import (
 
 // Mapper0 not switchable prg and chr rom
 type Mapper0 struct {
-	program          []byte // program 程序代码
-	chr              []byte // chr 图形数据
-	mirroring        byte   // mirroring
-	batteryBackedRAM []byte
-	trainer          []byte
-	chrRAM           bool
+	program   []byte // program 程序代码
+	Chr       []byte // Chr 图形数据
+	mirroring byte   // mirroring
+	PrgRAM    []byte
+	trainer   []byte
+	ChrRAM    bool
 }
 
 func newMapper0(raw []byte, mirroring byte) *Mapper0 {
@@ -27,12 +27,12 @@ func newMapper0(raw []byte, mirroring byte) *Mapper0 {
 		chr = chrROM
 	}
 	return &Mapper0{
-		program:          prgROM,
-		chr:              chr,
-		mirroring:        mirroring,
-		trainer:          trainer,
-		batteryBackedRAM: prgRAM,
-		chrRAM:           chrRAM,
+		program:   prgROM,
+		Chr:       chr,
+		mirroring: mirroring,
+		trainer:   trainer,
+		PrgRAM:    prgRAM,
+		ChrRAM:    chrRAM,
 	}
 }
 
@@ -76,17 +76,17 @@ func (r *Mapper0) readTrainer(addr uint16) byte {
 }
 
 func (r *Mapper0) readPrgRAM(addr uint16) byte {
-	if len(r.batteryBackedRAM) == 0 {
+	if len(r.PrgRAM) == 0 {
 		return 0
 	}
 	addr = addr - 0x6000
-	return r.batteryBackedRAM[addr]
+	return r.PrgRAM[addr]
 }
 
 func (r *Mapper0) writePrgRAM(addr uint16, val byte) {
-	if len(r.batteryBackedRAM) != 0 {
+	if len(r.PrgRAM) != 0 {
 		addr = addr - 0x6000
-		r.batteryBackedRAM[addr] = val
+		r.PrgRAM[addr] = val
 	}
 }
 
@@ -95,16 +95,16 @@ func (r *Mapper0) GetMirroring() byte {
 }
 
 func (r *Mapper0) GetChrROM() []byte {
-	return r.chr
+	return r.Chr
 }
 
 func (r *Mapper0) GetChrBank(bank byte) []byte {
 	offset := uint16(bank) * 0x1000
-	return r.chr[offset : offset+4096]
+	return r.Chr[offset : offset+4096]
 }
 
 func (r *Mapper0) WriteCHR(addr uint16, val byte) {
-	if r.chrRAM {
-		r.chr[addr] = val
+	if r.ChrRAM {
+		r.Chr[addr] = val
 	}
 }

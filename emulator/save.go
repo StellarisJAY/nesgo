@@ -5,6 +5,7 @@ import (
 	_ "crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"github.com/stellarisJAY/nesgo/emulator/cartridge"
 	"log"
 	"os"
 	"path/filepath"
@@ -57,6 +58,9 @@ func (e *RawEmulator) Load(savedGame []byte) error {
 		e.processor.Reverse(s.Processor)
 		e.bus.Reverse(s.Bus)
 		_ = e.ppu.Reverse(s.PPU)
+		if err := cartridge.Load(e.cartridge, s.Cartridge); err != nil {
+			return err
+		}
 		return nil
 	} else {
 		return fmt.Errorf("verify checksum failed, corrupted save data")

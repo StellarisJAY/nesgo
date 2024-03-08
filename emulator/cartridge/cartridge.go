@@ -1,6 +1,8 @@
 package cartridge
 
 import (
+	"bytes"
+	"encoding/gob"
 	"errors"
 )
 
@@ -92,6 +94,20 @@ func makeCartridge(raw []byte) (Cartridge, *Info, error) {
 	default:
 		return nil, info, ErrUnsupportedMapper
 	}
+}
+
+func Save(c Cartridge) ([]byte, error) {
+	buffer := bytes.NewBuffer([]byte{})
+	encoder := gob.NewEncoder(buffer)
+	if err := encoder.Encode(c); err != nil {
+		return nil, err
+	}
+	return buffer.Bytes(), nil
+}
+
+func Load(c Cartridge, data []byte) error {
+	decoder := gob.NewDecoder(bytes.NewReader(data))
+	return decoder.Decode(c)
 }
 
 // loadPrgAndChrROM 分割prg和chr rom，返回trainer，prg，chr
