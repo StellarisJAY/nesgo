@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package gaming.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "backend/api/gaming/service/v1;v1";
+
+service Gaming {
+  rpc OpenGameConnection(OpenGameConnectionRequest) returns (OpenGameConnectionResponse) {}
+  rpc SDPAnswer(SDPAnswerRequest) returns (SDPAnswerResponse) {}
+  rpc ICECandidate(ICECandidateRequest) returns (ICECandidateResponse) {}
+
+  rpc PauseEmulator(PauseEmulatorRequest) returns (PauseEmulatorResponse) {}
+  rpc RestartEmulator(RestartEmulatorRequest) returns (RestartEmulatorResponse) {}
+}
+
+message OpenGameConnectionRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string game = 3;
+  string token = 4;
+}
+
+message OpenGameConnectionResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string sdpOffer = 3;
+}
+
+message SDPAnswerRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string sdpAnswer = 3;
+}
+
+message SDPAnswerResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message ICECandidateRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string candidate = 3;
+}
+
+message ICECandidateResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message PauseEmulatorRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message PauseEmulatorResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message RestartEmulatorRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string game = 3;
+}
+
+message RestartEmulatorResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+

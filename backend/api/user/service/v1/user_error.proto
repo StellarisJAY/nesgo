@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package user.v1;
+import "errors/errors.proto";
+
+option go_package = "backend/api/user/service/v1;v1";
+
+enum UserServiceErrorReason {
+  option (errors.default_code) = 500;
+
+  UNKNOWN_ERROR = 0;
+  USERNAME_CONFLICT = 2 [(errors.code) = 409];
+  USER_NOT_FOUND = 3 [(errors.code) = 404];
+  VERIFY_PASSWORD_FAILED = 4 [(errors.code) = 401];
+}

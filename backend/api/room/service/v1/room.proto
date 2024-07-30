@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package room.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "backend/api/room/service/v1;v1";
+
+service Room {
+  rpc CreateRoom(CreateRoomRequest) returns (CreateRoomResponse) {}
+  rpc GetRoom(GetRoomRequest) returns (GetRoomResponse) {}
+  rpc ListRoomMembers(ListRoomMemberRequest) returns (ListRoomMemberResponse) {}
+  rpc ListRooms(ListRoomsRequest) returns (ListRoomsResponse) {}
+  rpc JoinRoomSession(JoinRoomSessionRequest) returns (JoinRoomSessionResponse) {}
+}
+
+message CreateRoomRequest {
+  string name = 1;
+  bool private = 2;
+}
+
+message CreateRoomResponse {
+  int64 id = 1;
+  bool private = 2;
+  string password = 3;
+}
+
+message GetRoomRequest {
+  int64 id = 1;
+}
+
+message GetRoomResponse {
+  int64 id = 1;
+  bool private = 2;
+  string password = 3;
+  int64 host = 4;
+  int32 memberCount = 5;
+}
+
+message ListRoomMemberRequest {
+  int64 id = 1;
+}
+
+message RoomMember {
+  int64 id = 1;
+  string name = 2;
+  uint32 role = 3;
+}
+
+message ListRoomMemberResponse {
+  repeated RoomMember members = 1;
+  int32 count = 2;
+}
+
+message ListRoomsRequest {
+  int32 page = 1;
+  int32 pageSize = 2;
+  bool joined = 3;
+  int64 userId = 4;
+}
+
+message ListRoomsResponse {
+  repeated GetRoomResponse rooms = 1;
+  int32 total = 2;
+  int32 totalPages = 3;
+}
+
+message JoinRoomSessionRequest {
+  int64 id = 1;
+}
+
+message JoinRoomSessionResponse {
+  int64 sessionId = 1;
+  string serviceAddress = 2;
+  string token = 3;
+}

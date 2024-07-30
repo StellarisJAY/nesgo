@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package user.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "backend/api/user/service/v1;v1";
+
+service User {
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}
+  rpc GetUser(GetUserRequest) returns (GetUserResponse) {}
+  rpc GetUserByName(GetUserByNameRequest) returns (GetUserByNameResponse) {}
+  rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {}
+  rpc VerifyPassword(VerifyPasswordRequest) returns (VerifyPasswordResponse) {}
+}
+
+message GetUserRequest {
+  int64 id = 1;
+}
+
+message GetUserResponse {
+  int64 id = 1;
+  string name = 2;
+}
+
+message GetUserByNameRequest {
+  string name = 1;
+}
+
+message GetUserByNameResponse {
+  int64 id = 1;
+  string name = 2;
+}
+
+message CreateUserRequest {
+  string name = 1;
+  string password = 2;
+}
+
+message CreateUserResponse {
+  int64 id = 1;
+  string name = 2;
+}
+
+message UpdateUserRequest {
+  int64  id = 1;
+  string name = 2;
+  string password = 3;
+}
+
+message UpdateUserResponse {
+  int64  id = 1;
+  string name = 2;
+}
+
+message VerifyPasswordRequest {
+  string name = 1;
+  string password = 2;
+}
+
+message VerifyPasswordResponse {}

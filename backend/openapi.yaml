@@ -1,0 +1,160 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: WebApi API
+    version: 0.0.1
+paths:
+    /v1/login:
+        post:
+            tags:
+                - WebApi
+            operationId: WebApi_Login
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.LoginRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.LoginResponse'
+    /v1/register:
+        post:
+            tags:
+                - WebApi
+            operationId: WebApi_Register
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.RegisterRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.RegisterResponse'
+    /v1/rooms/joined:
+        get:
+            tags:
+                - WebApi
+            operationId: WebApi_ListMyRooms
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.ListMyRoomResponse'
+    /v1/user/{id}:
+        get:
+            tags:
+                - WebApi
+            operationId: WebApi_GetUser
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.GetUserResponse'
+components:
+    schemas:
+        nesgo.webapi.v1.GetUserResponse:
+            type: object
+            properties:
+                code:
+                    type: integer
+                    format: int32
+                message:
+                    type: string
+                data:
+                    $ref: '#/components/schemas/nesgo.webapi.v1.User'
+        nesgo.webapi.v1.ListMyRoomResponse:
+            type: object
+            properties:
+                rooms:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/nesgo.webapi.v1.Room'
+                total:
+                    type: integer
+                    format: int32
+                totalPage:
+                    type: integer
+                    format: int32
+        nesgo.webapi.v1.LoginRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                password:
+                    type: string
+        nesgo.webapi.v1.LoginResponse:
+            type: object
+            properties:
+                token:
+                    type: string
+        nesgo.webapi.v1.RegisterRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                password:
+                    type: string
+        nesgo.webapi.v1.RegisterResponse:
+            type: object
+            properties: {}
+        nesgo.webapi.v1.Room:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                host:
+                    type: string
+                hostName:
+                    type: string
+                private:
+                    type: boolean
+                members:
+                    type: integer
+                    format: int32
+                role:
+                    type: integer
+                    format: int32
+        nesgo.webapi.v1.User:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+tags:
+    - name: WebApi

@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package nesgo.webapi.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "backend/api/app/webapi/v1;v1";
+
+service WebApi {
+  rpc Register(RegisterRequest) returns (RegisterResponse) {
+    option (google.api.http) = {
+      post: "/v1/register"
+      body: "*"
+    };
+  }
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/v1/login"
+      body: "*"
+    };
+  }
+  rpc ListMyRooms(ListMyRoomsRequest) returns (ListMyRoomResponse) {
+    option (google.api.http) = {
+      get: "/v1/rooms/joined"
+    };
+  }
+  rpc GetUser(GetUserRequest) returns (GetUserResponse) {
+    option (google.api.http) = {
+      get: "/v1/user/{id}"
+    };
+  }
+}
+
+message RegisterRequest {
+  string name = 1;
+  string password = 2;
+}
+
+message RegisterResponse {}
+
+message LoginRequest {
+  string name = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string token = 1;
+}
+
+message GetUserRequest {
+  int64 id = 1;
+}
+
+message GetUserResponse {
+  int32 code = 1;
+  string message = 2;
+  User data = 3;
+}
+
+message Room {
+  int64 id = 1;
+  string name = 2;
+  int64 host = 3;
+  string hostName = 4;
+  bool private = 5;
+  int32 members = 6;
+  int32 role = 7;
+}
+
+message User {
+  int64 id = 1;
+  string name = 2;
+}
+
+message ListMyRoomsRequest {
+  int32 page = 1;
+  int32 pageSize = 2;
+}
+
+message ListMyRoomResponse {
+  repeated Room rooms = 1;
+  int32 total = 2;
+  int32 totalPage = 3;
+}

@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package room.v1;
+import "errors/errors.proto";
+
+option go_package = "backend/api/room/service/v1;v1";
+
+enum UserServiceErrorReason {
+  option (errors.default_code) = 500;
+
+  UNKNOWN_ERROR = 0;
+  ROOM_NOT_FOUND = 2 [(errors.code) = 404];
+  ROOM_NOT_ACCESSIBLE = 3 [(errors.code) = 403];
+}
