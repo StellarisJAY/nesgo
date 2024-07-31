@@ -1,6 +1,7 @@
 package data
 
 import (
+	consulAPI "github.com/hashicorp/consul/api"
 	"github.com/stellarisjay/nesgo/backend/app/gaming/internal/conf"
 
 	"github.com/go-kratos/kratos/v2/log"
@@ -8,17 +9,27 @@ import (
 )
 
 // ProviderSet is data providers.
-var ProviderSet = wire.NewSet(NewData)
+var ProviderSet = wire.NewSet(NewData, NewRoomSessionRepo)
 
 // Data .
 type Data struct {
-	// TODO wrapped database client
+	consul *consulAPI.Client
 }
 
 // NewData .
-func NewData(c *conf.Data, logger log.Logger) (*Data, func(), error) {
-	cleanup := func() {
-		log.NewHelper(logger).Info("closing the data resources")
+func NewData(c *conf.Registry, logger log.Logger) (*Data, func(), error) {
+	logHelper := log.NewHelper(log.With(logger, "module", "data"))
+	client, err := consulAPI.NewClient(&consulAPI.Config{
+		Address: c.Consul.Address,
+		Scheme:  c.Consul.Scheme,
+	})
+	if err != nil {
+		panic(err)
 	}
-	return &Data{}, cleanup, nil
+	cleanup := func() {
+		logHelper.Info("closing the data resources")
+	}
+	return &Data{
+		consul: client,
+	}, cleanup, nil
 }

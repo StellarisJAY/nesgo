@@ -46,3 +46,39 @@ func IsRoomNotAccessible(err error) bool {
 func ErrorRoomNotAccessible(format string, args ...interface{}) *errors.Error {
 	return errors.New(403, UserServiceErrorReason_ROOM_NOT_ACCESSIBLE.String(), fmt.Sprintf(format, args...))
 }
+
+func IsCreateRoomFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_CREATE_ROOM_FAILED.String() && e.Code == 400
+}
+
+func ErrorCreateRoomFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(400, UserServiceErrorReason_CREATE_ROOM_FAILED.String(), fmt.Sprintf(format, args...))
+}
+
+func IsGetRoomFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_GET_ROOM_FAILED.String() && e.Code == 500
+}
+
+func ErrorGetRoomFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_GET_ROOM_FAILED.String(), fmt.Sprintf(format, args...))
+}
+
+func IsJoinRoomFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_JOIN_ROOM_FAILED.String() && e.Code == 500
+}
+
+func ErrorJoinRoomFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_JOIN_ROOM_FAILED.String(), fmt.Sprintf(format, args...))
+}

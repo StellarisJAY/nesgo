@@ -11,12 +11,13 @@ service Room {
   rpc GetRoom(GetRoomRequest) returns (GetRoomResponse) {}
   rpc ListRoomMembers(ListRoomMemberRequest) returns (ListRoomMemberResponse) {}
   rpc ListRooms(ListRoomsRequest) returns (ListRoomsResponse) {}
-  rpc JoinRoomSession(JoinRoomSessionRequest) returns (JoinRoomSessionResponse) {}
+  rpc JoinRoom(JoinRoomRequest) returns (JoinRoomResponse) {}
 }
 
 message CreateRoomRequest {
   string name = 1;
   bool private = 2;
+  int64 host = 3;
 }
 
 message CreateRoomResponse {
@@ -35,6 +36,7 @@ message GetRoomResponse {
   string password = 3;
   int64 host = 4;
   int32 memberCount = 5;
+  string name = 6;
 }
 
 message ListRoomMemberRequest {
@@ -65,12 +67,11 @@ message ListRoomsResponse {
   int32 totalPages = 3;
 }
 
-message JoinRoomSessionRequest {
+message JoinRoomRequest {
   int64 id = 1;
+  int64 userId = 2;
+  string password = 3;
 }
 
-message JoinRoomSessionResponse {
-  int64 sessionId = 1;
-  string serviceAddress = 2;
-  string token = 3;
+message JoinRoomResponse {
 }

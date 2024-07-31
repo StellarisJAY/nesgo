@@ -19,17 +19,19 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Gaming_OpenGameConnection_FullMethodName = "/gaming.v1.Gaming/OpenGameConnection"
-	Gaming_SDPAnswer_FullMethodName          = "/gaming.v1.Gaming/SDPAnswer"
-	Gaming_ICECandidate_FullMethodName       = "/gaming.v1.Gaming/ICECandidate"
-	Gaming_PauseEmulator_FullMethodName      = "/gaming.v1.Gaming/PauseEmulator"
-	Gaming_RestartEmulator_FullMethodName    = "/gaming.v1.Gaming/RestartEmulator"
+	Gaming_GetOrCreateRoomSession_FullMethodName = "/gaming.v1.Gaming/GetOrCreateRoomSession"
+	Gaming_OpenGameConnection_FullMethodName     = "/gaming.v1.Gaming/OpenGameConnection"
+	Gaming_SDPAnswer_FullMethodName              = "/gaming.v1.Gaming/SDPAnswer"
+	Gaming_ICECandidate_FullMethodName           = "/gaming.v1.Gaming/ICECandidate"
+	Gaming_PauseEmulator_FullMethodName          = "/gaming.v1.Gaming/PauseEmulator"
+	Gaming_RestartEmulator_FullMethodName        = "/gaming.v1.Gaming/RestartEmulator"
 )
 
 // GamingClient is the client API for Gaming service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type GamingClient interface {
+	GetOrCreateRoomSession(ctx context.Context, in *GetOrCreateRoomSessionRequest, opts ...grpc.CallOption) (*GetOrCreateRoomSessionResponse, error)
 	OpenGameConnection(ctx context.Context, in *OpenGameConnectionRequest, opts ...grpc.CallOption) (*OpenGameConnectionResponse, error)
 	SDPAnswer(ctx context.Context, in *SDPAnswerRequest, opts ...grpc.CallOption) (*SDPAnswerResponse, error)
 	ICECandidate(ctx context.Context, in *ICECandidateRequest, opts ...grpc.CallOption) (*ICECandidateResponse, error)
@@ -43,6 +45,16 @@ type gamingClient struct {
 
 func NewGamingClient(cc grpc.ClientConnInterface) GamingClient {
 	return &gamingClient{cc}
+}
+
+func (c *gamingClient) GetOrCreateRoomSession(ctx context.Context, in *GetOrCreateRoomSessionRequest, opts ...grpc.CallOption) (*GetOrCreateRoomSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetOrCreateRoomSessionResponse)
+	err := c.cc.Invoke(ctx, Gaming_GetOrCreateRoomSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *gamingClient) OpenGameConnection(ctx context.Context, in *OpenGameConnectionRequest, opts ...grpc.CallOption) (*OpenGameConnectionResponse, error) {
@@ -99,6 +111,7 @@ func (c *gamingClient) RestartEmulator(ctx context.Context, in *RestartEmulatorR
 // All implementations must embed UnimplementedGamingServer
 // for forward compatibility.
 type GamingServer interface {
+	GetOrCreateRoomSession(context.Context, *GetOrCreateRoomSessionRequest) (*GetOrCreateRoomSessionResponse, error)
 	OpenGameConnection(context.Context, *OpenGameConnectionRequest) (*OpenGameConnectionResponse, error)
 	SDPAnswer(context.Context, *SDPAnswerRequest) (*SDPAnswerResponse, error)
 	ICECandidate(context.Context, *ICECandidateRequest) (*ICECandidateResponse, error)
@@ -114,6 +127,9 @@ type GamingServer interface {
 // pointer dereference when methods are called.
 type UnimplementedGamingServer struct{}
 
+func (UnimplementedGamingServer) GetOrCreateRoomSession(context.Context, *GetOrCreateRoomSessionRequest) (*GetOrCreateRoomSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetOrCreateRoomSession not implemented")
+}
 func (UnimplementedGamingServer) OpenGameConnection(context.Context, *OpenGameConnectionRequest) (*OpenGameConnectionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method OpenGameConnection not implemented")
 }
@@ -148,6 +164,24 @@ func RegisterGamingServer(s grpc.ServiceRegistrar, srv GamingServer) {
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&Gaming_ServiceDesc, srv)
+}
+
+func _Gaming_GetOrCreateRoomSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetOrCreateRoomSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).GetOrCreateRoomSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_GetOrCreateRoomSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).GetOrCreateRoomSession(ctx, req.(*GetOrCreateRoomSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Gaming_OpenGameConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -247,6 +281,10 @@ var Gaming_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "gaming.v1.Gaming",
 	HandlerType: (*GamingServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetOrCreateRoomSession",
+			Handler:    _Gaming_GetOrCreateRoomSession_Handler,
+		},
 		{
 			MethodName: "OpenGameConnection",
 			Handler:    _Gaming_OpenGameConnection_Handler,

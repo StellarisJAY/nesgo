@@ -11,4 +11,7 @@ enum UserServiceErrorReason {
   UNKNOWN_ERROR = 0;
   ROOM_NOT_FOUND = 2 [(errors.code) = 404];
   ROOM_NOT_ACCESSIBLE = 3 [(errors.code) = 403];
+  CREATE_ROOM_FAILED = 4 [(errors.code) = 400];
+  GET_ROOM_FAILED = 5;
+  JOIN_ROOM_FAILED = 6;
 }
