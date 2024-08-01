@@ -24,6 +24,7 @@ const (
 	Room_ListRoomMembers_FullMethodName = "/room.v1.Room/ListRoomMembers"
 	Room_ListRooms_FullMethodName       = "/room.v1.Room/ListRooms"
 	Room_JoinRoom_FullMethodName        = "/room.v1.Room/JoinRoom"
+	Room_GetRoomSession_FullMethodName  = "/room.v1.Room/GetRoomSession"
 )
 
 // RoomClient is the client API for Room service.
@@ -35,6 +36,7 @@ type RoomClient interface {
 	ListRoomMembers(ctx context.Context, in *ListRoomMemberRequest, opts ...grpc.CallOption) (*ListRoomMemberResponse, error)
 	ListRooms(ctx context.Context, in *ListRoomsRequest, opts ...grpc.CallOption) (*ListRoomsResponse, error)
 	JoinRoom(ctx context.Context, in *JoinRoomRequest, opts ...grpc.CallOption) (*JoinRoomResponse, error)
+	GetRoomSession(ctx context.Context, in *GetRoomSessionRequest, opts ...grpc.CallOption) (*GetRoomSessionResponse, error)
 }
 
 type roomClient struct {
@@ -95,6 +97,16 @@ func (c *roomClient) JoinRoom(ctx context.Context, in *JoinRoomRequest, opts ...
 	return out, nil
 }
 
+func (c *roomClient) GetRoomSession(ctx context.Context, in *GetRoomSessionRequest, opts ...grpc.CallOption) (*GetRoomSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRoomSessionResponse)
+	err := c.cc.Invoke(ctx, Room_GetRoomSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RoomServer is the server API for Room service.
 // All implementations must embed UnimplementedRoomServer
 // for forward compatibility.
@@ -104,6 +116,7 @@ type RoomServer interface {
 	ListRoomMembers(context.Context, *ListRoomMemberRequest) (*ListRoomMemberResponse, error)
 	ListRooms(context.Context, *ListRoomsRequest) (*ListRoomsResponse, error)
 	JoinRoom(context.Context, *JoinRoomRequest) (*JoinRoomResponse, error)
+	GetRoomSession(context.Context, *GetRoomSessionRequest) (*GetRoomSessionResponse, error)
 	mustEmbedUnimplementedRoomServer()
 }
 
@@ -128,6 +141,9 @@ func (UnimplementedRoomServer) ListRooms(context.Context, *ListRoomsRequest) (*L
 }
 func (UnimplementedRoomServer) JoinRoom(context.Context, *JoinRoomRequest) (*JoinRoomResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method JoinRoom not implemented")
+}
+func (UnimplementedRoomServer) GetRoomSession(context.Context, *GetRoomSessionRequest) (*GetRoomSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRoomSession not implemented")
 }
 func (UnimplementedRoomServer) mustEmbedUnimplementedRoomServer() {}
 func (UnimplementedRoomServer) testEmbeddedByValue()              {}
@@ -240,6 +256,24 @@ func _Room_JoinRoom_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Room_GetRoomSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRoomSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RoomServer).GetRoomSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Room_GetRoomSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RoomServer).GetRoomSession(ctx, req.(*GetRoomSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Room_ServiceDesc is the grpc.ServiceDesc for Room service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +300,10 @@ var Room_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "JoinRoom",
 			Handler:    _Room_JoinRoom_Handler,
+		},
+		{
+			MethodName: "GetRoomSession",
+			Handler:    _Room_GetRoomSession_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

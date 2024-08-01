@@ -3,8 +3,8 @@ package data
 import (
 	"context"
 	"github.com/go-kratos/kratos/v2/log"
-	userAPI "github.com/stellarisjay/nesgo/backend/api/user/service/v1"
-	"github.com/stellarisjay/nesgo/backend/app/webapi/internal/biz"
+	userAPI "github.com/stellarisJAY/nesgo/backend/api/user/service/v1"
+	"github.com/stellarisJAY/nesgo/backend/app/webapi/internal/biz"
 )
 
 type userRepo struct {

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-redis/redis"
-	"github.com/stellarisjay/nesgo/backend/app/user/internal/biz"
+	"github.com/stellarisJAY/nesgo/backend/app/user/internal/biz"
 	"gorm.io/gorm"
 )
 

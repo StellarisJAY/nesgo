@@ -1,11 +1,10 @@
 package server
 
 import (
-	"github.com/go-kratos/kratos/contrib/registry/consul/v2"
 	"github.com/go-kratos/kratos/v2/registry"
 	"github.com/google/wire"
 	consulAPI "github.com/hashicorp/consul/api"
-	"github.com/stellarisjay/nesgo/backend/app/room/internal/conf"
+	"github.com/stellarisJAY/nesgo/backend/app/room/internal/conf"
 )
 
 // ProviderSet is server providers.

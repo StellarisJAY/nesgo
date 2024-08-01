@@ -1,4 +1,4 @@
-//go:build web
+//go:build !sdl
 
 package main
 
@@ -10,6 +10,7 @@ import (
 )
 
 func main() {
+	config.InitConfigs()
 	server := web.NewServer()
 	if config.GetEmulatorConfig().Debug {
 		go func() {

@@ -4,9 +4,9 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
-	v1 "github.com/stellarisjay/nesgo/backend/api/app/webapi/v1"
-	"github.com/stellarisjay/nesgo/backend/app/webapi/internal/conf"
-	"github.com/stellarisjay/nesgo/backend/app/webapi/internal/service"
+	v1 "github.com/stellarisJAY/nesgo/backend/api/app/webapi/v1"
+	"github.com/stellarisJAY/nesgo/backend/app/webapi/internal/conf"
+	"github.com/stellarisJAY/nesgo/backend/app/webapi/internal/service"
 )
 
 // NewGRPCServer new a gRPC server.

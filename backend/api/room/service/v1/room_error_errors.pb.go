@@ -82,3 +82,15 @@ func IsJoinRoomFailed(err error) bool {
 func ErrorJoinRoomFailed(format string, args ...interface{}) *errors.Error {
 	return errors.New(500, UserServiceErrorReason_JOIN_ROOM_FAILED.String(), fmt.Sprintf(format, args...))
 }
+
+func IsCreateRoomSessionFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_CREATE_ROOM_SESSION_FAILED.String() && e.Code == 500
+}
+
+func ErrorCreateRoomSessionFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_CREATE_ROOM_SESSION_FAILED.String(), fmt.Sprintf(format, args...))
+}

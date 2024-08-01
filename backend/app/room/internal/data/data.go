@@ -2,7 +2,8 @@ package data
 
 import (
 	"github.com/go-redis/redis"
-	"github.com/stellarisjay/nesgo/backend/app/room/internal/conf"
+	consulAPI "github.com/hashicorp/consul/api"
+	"github.com/stellarisJAY/nesgo/backend/app/room/internal/conf"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 
@@ -17,11 +18,12 @@ var ProviderSet = wire.NewSet(NewData, NewRoomRepo)
 type Data struct {
 	db     *gorm.DB
 	rdb    *redis.Client
+	consul *consulAPI.Client
 	logger *log.Helper
 }
 
 // NewData .
-func NewData(c *conf.Data, logger log.Logger) (*Data, func(), error) {
+func NewData(c *conf.Data, r *conf.Registry, logger log.Logger) (*Data, func(), error) {
 	logHelper := log.NewHelper(log.With(logger, "module", "data"))
 	db, err := gorm.Open(mysql.Open(c.Database.Source))
 	if err != nil {
@@ -43,6 +45,14 @@ func NewData(c *conf.Data, logger log.Logger) (*Data, func(), error) {
 	rdb := redis.NewClient(&redis.Options{
 		Addr: c.Redis.Addr,
 	})
+
+	client, err := consulAPI.NewClient(&consulAPI.Config{
+		Address: r.Consul.Address,
+	})
+	if err != nil {
+		panic(err)
+	}
+
 	cleanup := func() {
 		logHelper.Info("closing the data resources")
 		_ = rdb.Close()
@@ -50,6 +60,7 @@ func NewData(c *conf.Data, logger log.Logger) (*Data, func(), error) {
 	return &Data{
 		db:     db,
 		rdb:    rdb,
+		consul: client,
 		logger: logHelper,
 	}, cleanup, nil
 }

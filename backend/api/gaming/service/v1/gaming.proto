@@ -7,7 +7,7 @@ import "google/api/annotations.proto";
 option go_package = "backend/api/gaming/service/v1;v1";
 
 service Gaming {
-  rpc GetOrCreateRoomSession(GetOrCreateRoomSessionRequest) returns (GetOrCreateRoomSessionResponse) {}
+  rpc CreateGameInstance(CreateGameInstanceRequest) returns (CreateGameInstanceResponse) {}
   rpc OpenGameConnection(OpenGameConnectionRequest) returns (OpenGameConnectionResponse) {}
   rpc SDPAnswer(SDPAnswerRequest) returns (SDPAnswerResponse) {}
   rpc ICECandidate(ICECandidateRequest) returns (ICECandidateResponse) {}
@@ -16,14 +16,13 @@ service Gaming {
   rpc RestartEmulator(RestartEmulatorRequest) returns (RestartEmulatorResponse) {}
 }
 
-message GetOrCreateRoomSessionRequest {
+message CreateGameInstanceRequest {
   int64 roomId = 1;
+  string game = 2;
 }
 
-message GetOrCreateRoomSessionResponse {
+message CreateGameInstanceResponse {
   int64 roomId = 1;
-  string endpoint = 2;
-  string token = 3;
 }
 
 message OpenGameConnectionRequest {

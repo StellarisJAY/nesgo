@@ -12,6 +12,7 @@ service Room {
   rpc ListRoomMembers(ListRoomMemberRequest) returns (ListRoomMemberResponse) {}
   rpc ListRooms(ListRoomsRequest) returns (ListRoomsResponse) {}
   rpc JoinRoom(JoinRoomRequest) returns (JoinRoomResponse) {}
+  rpc GetRoomSession(GetRoomSessionRequest) returns (GetRoomSessionResponse) {}
 }
 
 message CreateRoomRequest {
@@ -74,4 +75,15 @@ message JoinRoomRequest {
 }
 
 message JoinRoomResponse {
+}
+
+message GetRoomSessionRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string selectedGame = 3;
+}
+
+message GetRoomSessionResponse {
+  int64 roomId = 1;
+  string endpoint = 2;
 }

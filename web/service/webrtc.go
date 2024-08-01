@@ -6,6 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/pion/webrtc/v3"
+	"log"
+	"path/filepath"
+	"sync/atomic"
+	"time"
+
+	_ "github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media"
 	"github.com/stellarisJAY/nesgo/emulator"
 	"github.com/stellarisJAY/nesgo/emulator/bus"
@@ -15,10 +21,6 @@ import (
 	"github.com/stellarisJAY/nesgo/web/model/room"
 	"github.com/stellarisJAY/nesgo/web/network"
 	"github.com/stellarisJAY/nesgo/web/util/future"
-	"log"
-	"path/filepath"
-	"sync/atomic"
-	"time"
 )
 
 type WebRTCRoomSession struct {

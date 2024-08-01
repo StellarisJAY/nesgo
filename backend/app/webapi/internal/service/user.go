@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"github.com/stellarisjay/nesgo/backend/api/app/webapi/v1"
+	"github.com/stellarisJAY/nesgo/backend/api/app/webapi/v1"
 )
 
 func (ws *WebApiService) GetUser(ctx context.Context, request *v1.GetUserRequest) (*v1.GetUserResponse, error) {

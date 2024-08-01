@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package gaming.v1;
+import "errors/errors.proto";
+
+option go_package = "backend/api/gaming/service/v1;v1";
+
+enum UserServiceErrorReason {
+  option (errors.default_code) = 500;
+
+  UNKNOWN_ERROR = 0;
+  ROOM_SESSION_NOT_ACCESSIBLE = 1;
+  GET_ROOM_SESSION_FAILED = 2;
+}

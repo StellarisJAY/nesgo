@@ -9,11 +9,11 @@ package main
 import (
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/stellarisjay/nesgo/backend/app/room/internal/biz"
-	"github.com/stellarisjay/nesgo/backend/app/room/internal/conf"
-	"github.com/stellarisjay/nesgo/backend/app/room/internal/data"
-	"github.com/stellarisjay/nesgo/backend/app/room/internal/server"
-	"github.com/stellarisjay/nesgo/backend/app/room/internal/service"
+	"github.com/stellarisJAY/nesgo/backend/app/room/internal/biz"
+	"github.com/stellarisJAY/nesgo/backend/app/room/internal/conf"
+	"github.com/stellarisJAY/nesgo/backend/app/room/internal/data"
+	"github.com/stellarisJAY/nesgo/backend/app/room/internal/server"
+	"github.com/stellarisJAY/nesgo/backend/app/room/internal/service"
 )
 
 import (

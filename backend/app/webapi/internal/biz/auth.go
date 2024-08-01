@@ -3,7 +3,7 @@ package biz
 import (
 	"context"
 	"github.com/go-kratos/kratos/v2/log"
-	v1 "github.com/stellarisjay/nesgo/backend/api/app/webapi/v1"
+	v1 "github.com/stellarisJAY/nesgo/backend/api/app/webapi/v1"
 )
 
 type AuthUseCase struct {

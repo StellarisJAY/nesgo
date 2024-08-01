@@ -5,7 +5,7 @@ import (
 	"github.com/go-kratos/kratos/v2/registry"
 	"github.com/google/wire"
 	consulAPI "github.com/hashicorp/consul/api"
-	"github.com/stellarisjay/nesgo/backend/app/user/internal/conf"
+	"github.com/stellarisJAY/nesgo/backend/app/user/internal/conf"
 )
 
 // ProviderSet is server providers.

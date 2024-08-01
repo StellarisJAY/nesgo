@@ -5,8 +5,8 @@ import (
 	"github.com/pion/mediadevices/pkg/codec"
 	"github.com/pion/mediadevices/pkg/frame"
 	"github.com/pion/mediadevices/pkg/prop"
+	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/codec/opus"
 	"github.com/stellarisJAY/nesgo/emulator/ppu"
-	"github.com/stellarisjay/nesgo/backend/app/gaming/pkg/codec/opus"
 	"image"
 	"log"
 )

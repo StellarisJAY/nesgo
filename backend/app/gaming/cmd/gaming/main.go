@@ -2,36 +2,35 @@ package main
 
 import (
 	"flag"
-	"os"
-
-	"github.com/stellarisjay/nesgo/backend/app/gaming/internal/conf"
-
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/config"
 	"github.com/go-kratos/kratos/v2/config/file"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
+	"github.com/go-kratos/kratos/v2/registry"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
+	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/conf"
 	_ "go.uber.org/automaxprocs"
+	"os"
 )
 
 // go build -ldflags "-X main.Version=x.y.z"
 var (
 	// Name is the name of the compiled software.
-	Name string
+	Name string = "nesgo.service.gaming"
 	// Version is the version of the compiled software.
-	Version string
+	Version string = "1.0.0"
 	// flagconf is the config flag.
 	flagconf string
 
-	id, _ = os.Hostname()
+	id = Name
 )
 
 func init() {
 	flag.StringVar(&flagconf, "conf", "../../configs", "config path, eg: -conf config.yaml")
 }
 
-func newApp(logger log.Logger, gs *grpc.Server) *kratos.App {
+func newApp(logger log.Logger, gs *grpc.Server, r registry.Registrar) *kratos.App {
 	return kratos.New(
 		kratos.ID(id),
 		kratos.Name(Name),
@@ -41,6 +40,7 @@ func newApp(logger log.Logger, gs *grpc.Server) *kratos.App {
 		kratos.Server(
 			gs,
 		),
+		kratos.Registrar(r),
 	)
 }
 
@@ -71,7 +71,7 @@ func main() {
 		panic(err)
 	}
 
-	app, cleanup, err := wireApp(bc.Server, bc.Data, logger)
+	app, cleanup, err := wireApp(bc.Server, bc.Data, bc.Registry, logger)
 	if err != nil {
 		panic(err)
 	}

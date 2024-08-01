@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/stellarisjay/nesgo/backend/api/user/service/v1"
-	"github.com/stellarisjay/nesgo/backend/app/user/internal/biz"
+	"github.com/stellarisJAY/nesgo/backend/api/user/service/v1"
+	"github.com/stellarisJAY/nesgo/backend/app/user/internal/biz"
 )
 
 type UserService struct {

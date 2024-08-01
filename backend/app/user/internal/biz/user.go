@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"github.com/go-kratos/kratos/v2/errors"
 	"github.com/go-kratos/kratos/v2/log"
-	v1 "github.com/stellarisjay/nesgo/backend/api/user/service/v1"
+	v1 "github.com/stellarisJAY/nesgo/backend/api/user/service/v1"
 	"gorm.io/gorm"
 )
 

@@ -6,7 +6,7 @@ import (
 	"github.com/go-kratos/kratos/v2/registry"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/google/wire"
-	userAPI "github.com/stellarisjay/nesgo/backend/api/user/service/v1"
+	userAPI "github.com/stellarisJAY/nesgo/backend/api/user/service/v1"
 )
 
 // ProviderSet is data providers.

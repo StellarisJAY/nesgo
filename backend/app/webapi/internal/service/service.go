@@ -3,8 +3,8 @@ package service
 import (
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"
-	v1 "github.com/stellarisjay/nesgo/backend/api/app/webapi/v1"
-	"github.com/stellarisjay/nesgo/backend/app/webapi/internal/biz"
+	v1 "github.com/stellarisJAY/nesgo/backend/api/app/webapi/v1"
+	"github.com/stellarisJAY/nesgo/backend/app/webapi/internal/biz"
 )
 
 // ProviderSet is service providers.

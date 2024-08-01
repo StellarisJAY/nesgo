@@ -6,13 +6,12 @@
 package main
 
 import (
-	"github.com/stellarisjay/nesgo/backend/app/webapi/internal/biz"
-	"github.com/stellarisjay/nesgo/backend/app/webapi/internal/conf"
-	"github.com/stellarisjay/nesgo/backend/app/webapi/internal/data"
-	"github.com/stellarisjay/nesgo/backend/app/webapi/internal/server"
-	"github.com/stellarisjay/nesgo/backend/app/webapi/internal/service"
+	"github.com/stellarisJAY/nesgo/backend/app/webapi/internal/biz"
+	"github.com/stellarisJAY/nesgo/backend/app/webapi/internal/conf"
+	"github.com/stellarisJAY/nesgo/backend/app/webapi/internal/data"
+	"github.com/stellarisJAY/nesgo/backend/app/webapi/internal/server"
+	"github.com/stellarisJAY/nesgo/backend/app/webapi/internal/service"
 
-	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"
 )
