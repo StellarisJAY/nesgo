@@ -35,14 +35,38 @@ func ErrorRoomSessionNotAccessible(format string, args ...interface{}) *errors.E
 	return errors.New(500, UserServiceErrorReason_ROOM_SESSION_NOT_ACCESSIBLE.String(), fmt.Sprintf(format, args...))
 }
 
-func IsGetRoomSessionFailed(err error) bool {
+func IsCreateGameInstanceFailed(err error) bool {
 	if err == nil {
 		return false
 	}
 	e := errors.FromError(err)
-	return e.Reason == UserServiceErrorReason_GET_ROOM_SESSION_FAILED.String() && e.Code == 500
+	return e.Reason == UserServiceErrorReason_CREATE_GAME_INSTANCE_FAILED.String() && e.Code == 500
 }
 
-func ErrorGetRoomSessionFailed(format string, args ...interface{}) *errors.Error {
-	return errors.New(500, UserServiceErrorReason_GET_ROOM_SESSION_FAILED.String(), fmt.Sprintf(format, args...))
+func ErrorCreateGameInstanceFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_CREATE_GAME_INSTANCE_FAILED.String(), fmt.Sprintf(format, args...))
+}
+
+func IsGameFileNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_GAME_FILE_NOT_FOUND.String() && e.Code == 500
+}
+
+func ErrorGameFileNotFound(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_GAME_FILE_NOT_FOUND.String(), fmt.Sprintf(format, args...))
+}
+
+func IsSavedGameNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_SAVED_GAME_NOT_FOUND.String() && e.Code == 500
+}
+
+func ErrorSavedGameNotFound(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_SAVED_GAME_NOT_FOUND.String(), fmt.Sprintf(format, args...))
 }

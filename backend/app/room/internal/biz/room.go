@@ -140,7 +140,7 @@ func (uc *RoomUseCase) JoinRoom(ctx context.Context, userId int64, roomId int64,
 	return nil
 }
 
-func (uc *RoomUseCase) GetRoomSession(ctx context.Context, roomId, userId int64) (*RoomSession, error) {
+func (uc *RoomUseCase) GetRoomSession(ctx context.Context, roomId, userId int64, game string) (*RoomSession, error) {
 	session, err := uc.rr.GetRoomSession(ctx, roomId)
 	if session != nil {
 		return session, nil

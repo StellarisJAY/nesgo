@@ -2,11 +2,14 @@ package biz
 
 import (
 	"context"
+	"errors"
 	"github.com/go-kratos/kratos/v2/log"
+	v1 "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/codec"
 	"github.com/stellarisJAY/nesgo/emulator"
 	"github.com/stellarisJAY/nesgo/emulator/config"
 	"github.com/stellarisJAY/nesgo/emulator/ppu"
+	"go.mongodb.org/mongo-driver/mongo/gridfs"
 )
 
 type GameInstance struct {
@@ -37,6 +40,7 @@ type GameInstanceRepo interface {
 
 type GameFileRepo interface {
 	GetGameData(ctx context.Context, game string) ([]byte, error)
+	UploadGameData(ctx context.Context, game string, data []byte) error
 	GetSavedGame(ctx context.Context, id int64) (*GameSave, error)
 	SaveGame(ctx context.Context, save *GameSave) error
 }
@@ -57,10 +61,12 @@ func NewGameInstanceUseCase(repo GameInstanceRepo, gameFileRepo GameFileRepo, lo
 
 func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId int64, game string) (*GameInstance, error) {
 	gameData, err := uc.gameFileRepo.GetGameData(ctx, game)
-	if err != nil {
-		return nil, err
+	if errors.Is(err, gridfs.ErrFileNotFound) {
+		return nil, v1.ErrorGameFileNotFound("game file not found")
 	}
-
+	if err != nil {
+		return nil, v1.ErrorCreateGameInstanceFailed("gem game file failed: %v", err)
+	}
 	instance := GameInstance{
 		RoomId: roomId,
 		game:   game,
@@ -79,16 +85,16 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 	}
 	e, err := emulator.NewEmulatorWithGameData(gameData, emulatorConfig, renderCallback, instance.audioSampleChan, instance.audioSampleRate)
 	if err != nil {
-		return nil, err
+		return nil, v1.ErrorCreateGameInstanceFailed("create emulator failed: %v", err)
 	}
 	instance.e = e
 	videoEncoder, err := codec.NewVideoEncoder("h264")
 	if err != nil {
-		return nil, err
+		return nil, v1.ErrorCreateGameInstanceFailed("create video encoder failed: %v", err)
 	}
 	audioEncoder, err := codec.NewAudioEncoder(instance.audioSampleRate)
 	if err != nil {
-		return nil, err
+		return nil, v1.ErrorGameFileNotFound("create audio encoder failed: %v", err)
 	}
 	instance.videoEncoder = videoEncoder
 	instance.audioEncoder = audioEncoder
@@ -96,7 +102,7 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 	emulatorCtx, cancel := context.WithCancel(context.Background())
 	instance.emulatorCancel = cancel
 	go instance.e.LoadAndRun(emulatorCtx, false)
-
+	instance.e.Pause()
 	_ = uc.repo.CreateGameInstance(ctx, &instance)
 	return &instance, nil
 }
