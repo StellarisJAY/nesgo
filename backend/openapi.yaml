@@ -3,10 +3,39 @@
 
 openapi: 3.0.3
 info:
-    title: WebApi API
+    title: ""
     version: 0.0.1
 paths:
-    /v1/login:
+    /api/v1/admin/games:
+        get:
+            tags:
+                - Admin
+            operationId: Admin_ListGames
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.admin.v1.ListGamesResponse'
+        delete:
+            tags:
+                - Admin
+            operationId: Admin_DeleteGameFiles
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.admin.v1.DeleteGameFileRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.admin.v1.DeleteGameFileResponse'
+    /api/v1/login:
         post:
             tags:
                 - WebApi
@@ -24,7 +53,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.LoginResponse'
-    /v1/register:
+    /api/v1/register:
         post:
             tags:
                 - WebApi
@@ -42,7 +71,25 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.RegisterResponse'
-    /v1/rooms/joined:
+    /api/v1/room/session:
+        get:
+            tags:
+                - WebApi
+            operationId: WebApi_GetRoomSession
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.GetRoomSessionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.GetRoomSessionResponse'
+    /api/v1/rooms/joined:
         get:
             tags:
                 - WebApi
@@ -65,7 +112,7 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.ListMyRoomResponse'
-    /v1/user/{id}:
+    /api/v1/user/{id}:
         get:
             tags:
                 - WebApi
@@ -85,6 +132,49 @@ paths:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.GetUserResponse'
 components:
     schemas:
+        nesgo.admin.v1.DeleteGameFileRequest:
+            type: object
+            properties:
+                games:
+                    type: array
+                    items:
+                        type: string
+        nesgo.admin.v1.DeleteGameFileResponse:
+            type: object
+            properties:
+                deleted:
+                    type: integer
+                    format: int32
+        nesgo.admin.v1.GameFileMetadata:
+            type: object
+            properties:
+                name:
+                    type: string
+                mapper:
+                    type: string
+                mirroring:
+                    type: string
+        nesgo.admin.v1.ListGamesResponse:
+            type: object
+            properties:
+                games:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/nesgo.admin.v1.GameFileMetadata'
+        nesgo.webapi.v1.GetRoomSessionRequest:
+            type: object
+            properties:
+                roomId:
+                    type: string
+                userId:
+                    type: string
+        nesgo.webapi.v1.GetRoomSessionResponse:
+            type: object
+            properties:
+                roomId:
+                    type: string
+                endpoint:
+                    type: string
         nesgo.webapi.v1.GetUserResponse:
             type: object
             properties:
@@ -157,4 +247,5 @@ components:
                 name:
                     type: string
 tags:
+    - name: Admin
     - name: WebApi
