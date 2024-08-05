@@ -19,12 +19,14 @@ var _ = binding.EncodeURL
 
 const _ = http.SupportPackageIsVersion1
 
+const OperationWebApiGetRoomSession = "/nesgo.webapi.v1.WebApi/GetRoomSession"
 const OperationWebApiGetUser = "/nesgo.webapi.v1.WebApi/GetUser"
 const OperationWebApiListMyRooms = "/nesgo.webapi.v1.WebApi/ListMyRooms"
 const OperationWebApiLogin = "/nesgo.webapi.v1.WebApi/Login"
 const OperationWebApiRegister = "/nesgo.webapi.v1.WebApi/Register"
 
 type WebApiHTTPServer interface {
+	GetRoomSession(context.Context, *GetRoomSessionRequest) (*GetRoomSessionResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	ListMyRooms(context.Context, *ListMyRoomsRequest) (*ListMyRoomResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
@@ -33,10 +35,11 @@ type WebApiHTTPServer interface {
 
 func RegisterWebApiHTTPServer(s *http.Server, srv WebApiHTTPServer) {
 	r := s.Route("/")
-	r.POST("/v1/register", _WebApi_Register0_HTTP_Handler(srv))
-	r.POST("/v1/login", _WebApi_Login0_HTTP_Handler(srv))
-	r.GET("/v1/rooms/joined", _WebApi_ListMyRooms0_HTTP_Handler(srv))
-	r.GET("/v1/user/{id}", _WebApi_GetUser0_HTTP_Handler(srv))
+	r.POST("/api/v1/register", _WebApi_Register0_HTTP_Handler(srv))
+	r.POST("/api/v1/login", _WebApi_Login0_HTTP_Handler(srv))
+	r.GET("/api/v1/rooms/joined", _WebApi_ListMyRooms0_HTTP_Handler(srv))
+	r.GET("/api/v1/user/{id}", _WebApi_GetUser0_HTTP_Handler(srv))
+	r.GET("/api/v1/room/session", _WebApi_GetRoomSession0_HTTP_Handler(srv))
 }
 
 func _WebApi_Register0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
@@ -124,7 +127,30 @@ func _WebApi_GetUser0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) 
 	}
 }
 
+func _WebApi_GetRoomSession0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetRoomSessionRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiGetRoomSession)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetRoomSession(ctx, req.(*GetRoomSessionRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetRoomSessionResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type WebApiHTTPClient interface {
+	GetRoomSession(ctx context.Context, req *GetRoomSessionRequest, opts ...http.CallOption) (rsp *GetRoomSessionResponse, err error)
 	GetUser(ctx context.Context, req *GetUserRequest, opts ...http.CallOption) (rsp *GetUserResponse, err error)
 	ListMyRooms(ctx context.Context, req *ListMyRoomsRequest, opts ...http.CallOption) (rsp *ListMyRoomResponse, err error)
 	Login(ctx context.Context, req *LoginRequest, opts ...http.CallOption) (rsp *LoginResponse, err error)
@@ -139,9 +165,22 @@ func NewWebApiHTTPClient(client *http.Client) WebApiHTTPClient {
 	return &WebApiHTTPClientImpl{client}
 }
 
+func (c *WebApiHTTPClientImpl) GetRoomSession(ctx context.Context, in *GetRoomSessionRequest, opts ...http.CallOption) (*GetRoomSessionResponse, error) {
+	var out GetRoomSessionResponse
+	pattern := "/api/v1/room/session"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationWebApiGetRoomSession))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *WebApiHTTPClientImpl) GetUser(ctx context.Context, in *GetUserRequest, opts ...http.CallOption) (*GetUserResponse, error) {
 	var out GetUserResponse
-	pattern := "/v1/user/{id}"
+	pattern := "/api/v1/user/{id}"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationWebApiGetUser))
 	opts = append(opts, http.PathTemplate(pattern))
@@ -154,7 +193,7 @@ func (c *WebApiHTTPClientImpl) GetUser(ctx context.Context, in *GetUserRequest, 
 
 func (c *WebApiHTTPClientImpl) ListMyRooms(ctx context.Context, in *ListMyRoomsRequest, opts ...http.CallOption) (*ListMyRoomResponse, error) {
 	var out ListMyRoomResponse
-	pattern := "/v1/rooms/joined"
+	pattern := "/api/v1/rooms/joined"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationWebApiListMyRooms))
 	opts = append(opts, http.PathTemplate(pattern))
@@ -167,7 +206,7 @@ func (c *WebApiHTTPClientImpl) ListMyRooms(ctx context.Context, in *ListMyRoomsR
 
 func (c *WebApiHTTPClientImpl) Login(ctx context.Context, in *LoginRequest, opts ...http.CallOption) (*LoginResponse, error) {
 	var out LoginResponse
-	pattern := "/v1/login"
+	pattern := "/api/v1/login"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationWebApiLogin))
 	opts = append(opts, http.PathTemplate(pattern))
@@ -180,7 +219,7 @@ func (c *WebApiHTTPClientImpl) Login(ctx context.Context, in *LoginRequest, opts
 
 func (c *WebApiHTTPClientImpl) Register(ctx context.Context, in *RegisterRequest, opts ...http.CallOption) (*RegisterResponse, error) {
 	var out RegisterResponse
-	pattern := "/v1/register"
+	pattern := "/api/v1/register"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationWebApiRegister))
 	opts = append(opts, http.PathTemplate(pattern))

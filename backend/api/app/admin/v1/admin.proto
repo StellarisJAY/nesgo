@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package nesgo.admin.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "backend/api/app/admin/v1;v1";
+
+service Admin {
+  rpc UploadGame(UploadFileRequest) returns (UploadFileResponse) {}
+  rpc ListGames(ListGamesRequest) returns (ListGamesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/admin/games"
+    };
+  }
+  rpc DeleteGameFiles(DeleteGameFileRequest) returns (DeleteGameFileResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/admin/games",
+      body: "*"
+    };
+  }
+}
+
+message UploadFileRequest {
+  string name = 1;
+  bytes data = 2;
+}
+
+message UploadFileResponse {
+
+}
+
+message ListGamesRequest {
+
+}
+
+message GameFileMetadata {
+  string name = 1;
+  string mapper = 2;
+  string mirroring = 3;
+}
+
+message ListGamesResponse {
+  repeated GameFileMetadata games = 1;
+}
+
+message DeleteGameFileRequest {
+  repeated string games = 1;
+}
+
+message DeleteGameFileResponse {
+  int32 deleted = 1;
+}

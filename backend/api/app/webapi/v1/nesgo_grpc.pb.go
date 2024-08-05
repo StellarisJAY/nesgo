@@ -19,10 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	WebApi_Register_FullMethodName    = "/nesgo.webapi.v1.WebApi/Register"
-	WebApi_Login_FullMethodName       = "/nesgo.webapi.v1.WebApi/Login"
-	WebApi_ListMyRooms_FullMethodName = "/nesgo.webapi.v1.WebApi/ListMyRooms"
-	WebApi_GetUser_FullMethodName     = "/nesgo.webapi.v1.WebApi/GetUser"
+	WebApi_Register_FullMethodName       = "/nesgo.webapi.v1.WebApi/Register"
+	WebApi_Login_FullMethodName          = "/nesgo.webapi.v1.WebApi/Login"
+	WebApi_ListMyRooms_FullMethodName    = "/nesgo.webapi.v1.WebApi/ListMyRooms"
+	WebApi_GetUser_FullMethodName        = "/nesgo.webapi.v1.WebApi/GetUser"
+	WebApi_GetRoomSession_FullMethodName = "/nesgo.webapi.v1.WebApi/GetRoomSession"
 )
 
 // WebApiClient is the client API for WebApi service.
@@ -33,6 +34,7 @@ type WebApiClient interface {
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	ListMyRooms(ctx context.Context, in *ListMyRoomsRequest, opts ...grpc.CallOption) (*ListMyRoomResponse, error)
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
+	GetRoomSession(ctx context.Context, in *GetRoomSessionRequest, opts ...grpc.CallOption) (*GetRoomSessionResponse, error)
 }
 
 type webApiClient struct {
@@ -83,6 +85,16 @@ func (c *webApiClient) GetUser(ctx context.Context, in *GetUserRequest, opts ...
 	return out, nil
 }
 
+func (c *webApiClient) GetRoomSession(ctx context.Context, in *GetRoomSessionRequest, opts ...grpc.CallOption) (*GetRoomSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRoomSessionResponse)
+	err := c.cc.Invoke(ctx, WebApi_GetRoomSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WebApiServer is the server API for WebApi service.
 // All implementations must embed UnimplementedWebApiServer
 // for forward compatibility.
@@ -91,6 +103,7 @@ type WebApiServer interface {
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	ListMyRooms(context.Context, *ListMyRoomsRequest) (*ListMyRoomResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
+	GetRoomSession(context.Context, *GetRoomSessionRequest) (*GetRoomSessionResponse, error)
 	mustEmbedUnimplementedWebApiServer()
 }
 
@@ -112,6 +125,9 @@ func (UnimplementedWebApiServer) ListMyRooms(context.Context, *ListMyRoomsReques
 }
 func (UnimplementedWebApiServer) GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUser not implemented")
+}
+func (UnimplementedWebApiServer) GetRoomSession(context.Context, *GetRoomSessionRequest) (*GetRoomSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRoomSession not implemented")
 }
 func (UnimplementedWebApiServer) mustEmbedUnimplementedWebApiServer() {}
 func (UnimplementedWebApiServer) testEmbeddedByValue()                {}
@@ -206,6 +222,24 @@ func _WebApi_GetUser_Handler(srv interface{}, ctx context.Context, dec func(inte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WebApi_GetRoomSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRoomSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).GetRoomSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_GetRoomSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).GetRoomSession(ctx, req.(*GetRoomSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WebApi_ServiceDesc is the grpc.ServiceDesc for WebApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -228,6 +262,10 @@ var WebApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUser",
 			Handler:    _WebApi_GetUser_Handler,
+		},
+		{
+			MethodName: "GetRoomSession",
+			Handler:    _WebApi_GetRoomSession_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

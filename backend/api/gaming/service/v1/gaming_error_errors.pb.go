@@ -70,3 +70,51 @@ func IsSavedGameNotFound(err error) bool {
 func ErrorSavedGameNotFound(format string, args ...interface{}) *errors.Error {
 	return errors.New(500, UserServiceErrorReason_SAVED_GAME_NOT_FOUND.String(), fmt.Sprintf(format, args...))
 }
+
+func IsUploadFileFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_UPLOAD_FILE_FAILED.String() && e.Code == 500
+}
+
+func ErrorUploadFileFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_UPLOAD_FILE_FAILED.String(), fmt.Sprintf(format, args...))
+}
+
+func IsInvalidGameFile(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_INVALID_GAME_FILE.String() && e.Code == 500
+}
+
+func ErrorInvalidGameFile(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_INVALID_GAME_FILE.String(), fmt.Sprintf(format, args...))
+}
+
+func IsListGameFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_LIST_GAME_FAILED.String() && e.Code == 500
+}
+
+func ErrorListGameFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_LIST_GAME_FAILED.String(), fmt.Sprintf(format, args...))
+}
+
+func IsDeleteGameFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_DELETE_GAME_FAILED.String() && e.Code == 500
+}
+
+func ErrorDeleteGameFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_DELETE_GAME_FAILED.String(), fmt.Sprintf(format, args...))
+}

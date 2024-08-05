@@ -16,6 +16,8 @@ service Gaming {
   rpc RestartEmulator(RestartEmulatorRequest) returns (RestartEmulatorResponse) {}
 
   rpc UploadGame(UploadGameRequest) returns (UploadGameResponse) {}
+  rpc ListGames(ListGamesRequest) returns (ListGamesResponse) {}
+  rpc DeleteGameFile(DeleteGameFileRequest) returns (DeleteGameFileResponse) {}
 }
 
 message CreateGameInstanceRequest {
@@ -90,5 +92,27 @@ message UploadGameRequest {
 
 message UploadGameResponse {
 
+}
+
+message ListGamesRequest {
+
+}
+
+message GameFileMetadata {
+  string name = 1;
+  string mapper = 2;
+  string mirroring = 3;
+}
+
+message ListGamesResponse {
+  repeated GameFileMetadata games = 1;
+}
+
+message DeleteGameFileRequest {
+  repeated string games = 1;
+}
+
+message DeleteGameFileResponse {
+  int32 deleted = 1;
 }
 

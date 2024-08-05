@@ -9,24 +9,30 @@ option go_package = "backend/api/app/webapi/v1;v1";
 service WebApi {
   rpc Register(RegisterRequest) returns (RegisterResponse) {
     option (google.api.http) = {
-      post: "/v1/register"
+      post: "/api/v1/register"
       body: "*"
     };
   }
   rpc Login(LoginRequest) returns (LoginResponse) {
     option (google.api.http) = {
-      post: "/v1/login"
+      post: "/api/v1/login"
       body: "*"
     };
   }
   rpc ListMyRooms(ListMyRoomsRequest) returns (ListMyRoomResponse) {
     option (google.api.http) = {
-      get: "/v1/rooms/joined"
+      get: "/api/v1/rooms/joined"
     };
   }
   rpc GetUser(GetUserRequest) returns (GetUserResponse) {
     option (google.api.http) = {
-      get: "/v1/user/{id}"
+      get: "/api/v1/user/{id}"
+    };
+  }
+  rpc GetRoomSession(GetRoomSessionRequest) returns (GetRoomSessionResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/room/session"
+      body: "*"
     };
   }
 }
@@ -81,4 +87,14 @@ message ListMyRoomResponse {
   repeated Room rooms = 1;
   int32 total = 2;
   int32 totalPage = 3;
+}
+
+message GetRoomSessionRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message GetRoomSessionResponse {
+  int64 roomId = 1;
+  string endpoint = 2;
 }

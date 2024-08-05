@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package nesgo.admin.v1;
+import "errors/errors.proto";
+
+option go_package = "backend/api/app/admin/v1;v1";
+
+enum NesgoAdminErrorReasons {
+  option (errors.default_code) = 500;
+
+  UNKNOWN_ERROR = 0;
+  UPLOAD_FILE_ERROR = 1;
+}
