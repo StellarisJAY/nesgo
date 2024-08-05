@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/go-kratos/kratos/v2/transport/grpc"
 	consulAPI "github.com/hashicorp/consul/api"
+	gamingAPI "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
 	"github.com/stellarisJAY/nesgo/backend/app/room/internal/biz"
 	"math/rand"
 	"time"
@@ -151,42 +153,58 @@ func roomSessionLockKey(roomId int64) string {
 	return fmt.Sprintf("nesgo/room/session/lock/%d", roomId)
 }
 
-func (r *roomRepo) GetOrCreateRoomSession(ctx context.Context, roomId int64) (*biz.RoomSession, error) {
+func (r *roomRepo) GetOrCreateRoomSession(ctx context.Context, roomId int64) (*biz.RoomSession, bool, error) {
 	key := roomSessionKey(roomId)
 	lockKey := roomSessionLockKey(roomId)
 
 	lock, err := r.data.consul.LockKey(lockKey)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	_, err = lock.Lock(ctx.Done())
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	defer lock.Unlock()
 
 	pair, _, err := r.data.consul.KV().Get(key, nil)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	session := &biz.RoomSession{}
 	if pair != nil {
 		err = json.Unmarshal(pair.Value, session)
-		return session, err
+		return session, true, err
 	}
 
 	serviceEntries, _, err := r.data.consul.Health().Service("nesgo.service.gaming", "", true, nil)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	// TODO better select strategy
 	selected := serviceEntries[rand.Intn(len(serviceEntries))]
 	session.Endpoint = fmt.Sprintf("%s:%d", selected.Service.Address, selected.Service.Port)
+	// connect to selected endpoint, send createGameInstance rpc
+	conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(session.Endpoint))
+	if err != nil {
+		return nil, false, err
+	}
+	defer conn.Close()
+	gamingCli := gamingAPI.NewGamingClient(conn)
+	_, err = gamingCli.CreateGameInstance(ctx, &gamingAPI.CreateGameInstanceRequest{
+		RoomId: roomId,
+		Game:   "SuperMario.nes", // TODO Select Game
+	})
+	if err != nil {
+		return nil, false, err
+	}
+	// store endpoint
 	value, _ := json.Marshal(session)
 	_, err = r.data.consul.KV().Put(&consulAPI.KVPair{Key: key, Value: value}, nil)
-	return session, err
+
+	return session, false, err
 }
 
 func (r *roomRepo) GetRoomSession(ctx context.Context, roomId int64) (*biz.RoomSession, error) {

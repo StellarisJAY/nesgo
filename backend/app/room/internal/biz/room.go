@@ -50,7 +50,7 @@ type RoomRepo interface {
 	ListJoinedRooms(ctx context.Context, userId int64, page int, pageSize int) ([]*JoinedRoom, int, error)
 	GetRoomMember(ctx context.Context, roomId int64, userId int64) (*RoomMember, error)
 	AddRoomMember(ctx context.Context, member *RoomMember) error
-	GetOrCreateRoomSession(ctx context.Context, roomId int64) (*RoomSession, error)
+	GetOrCreateRoomSession(ctx context.Context, roomId int64) (*RoomSession, bool, error)
 	GetRoomSession(ctx context.Context, roomId int64) (*RoomSession, error)
 }
 
@@ -148,7 +148,7 @@ func (uc *RoomUseCase) GetRoomSession(ctx context.Context, roomId, userId int64,
 	if err != nil {
 		return nil, v1.ErrorGetRoomFailed("consul kv error: %v", err)
 	}
-	session, err = uc.rr.GetOrCreateRoomSession(ctx, roomId)
+	session, _, err = uc.rr.GetOrCreateRoomSession(ctx, roomId)
 	if err != nil {
 		return nil, v1.ErrorGetRoomFailed("create session error: %v", err)
 	}
