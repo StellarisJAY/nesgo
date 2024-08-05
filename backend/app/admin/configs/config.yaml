@@ -1,10 +1,10 @@
 server:
   http:
-    addr: 0.0.0.0:8040
+    addr: 0.0.0.0:8050
     timeout: 1s
   grpc:
-    addr: 0.0.0.0:9040
-    timeout: 5s
+    addr: 0.0.0.0:9050
+    timeout: 1s
 data:
   database:
     driver: mysql
@@ -13,8 +13,7 @@ data:
     addr: 127.0.0.1:6379
     read_timeout: 0.2s
     write_timeout: 0.2s
-  mongo:
-    addr: mongodb://localhost:27017
 registry:
   consul:
     address: localhost:8500
+    scheme: http

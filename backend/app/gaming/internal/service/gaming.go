@@ -11,11 +11,13 @@ type GamingService struct {
 	v1.UnimplementedGamingServer
 	logger *log.Helper
 	gi     *biz.GameInstanceUseCase
+	gf     *biz.GameFileUseCase
 }
 
-func NewGamingService(gi *biz.GameInstanceUseCase, logger log.Logger) *GamingService {
+func NewGamingService(gi *biz.GameInstanceUseCase, gf *biz.GameFileUseCase, logger log.Logger) *GamingService {
 	return &GamingService{
 		gi:     gi,
+		gf:     gf,
 		logger: log.NewHelper(log.With(logger, "module", "service/gaming_service")),
 	}
 }
@@ -56,5 +58,33 @@ func (g *GamingService) RestartEmulator(ctx context.Context, request *v1.Restart
 }
 
 func (g *GamingService) UploadGame(ctx context.Context, request *v1.UploadGameRequest) (*v1.UploadGameResponse, error) {
-	panic("implement me")
+	err := g.gf.UploadGameFile(ctx, request.Name, request.Data)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.UploadGameResponse{}, nil
+}
+
+func (g *GamingService) ListGames(ctx context.Context, _ *v1.ListGamesRequest) (*v1.ListGamesResponse, error) {
+	games, err := g.gf.ListGames(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*v1.GameFileMetadata, 0, len(games))
+	for _, game := range games {
+		result = append(result, &v1.GameFileMetadata{
+			Name:      game.Name,
+			Mapper:    game.Mapper,
+			Mirroring: game.Mirroring,
+		})
+	}
+	return &v1.ListGamesResponse{Games: result}, nil
+}
+
+func (g *GamingService) DeleteGameFile(ctx context.Context, request *v1.DeleteGameFileRequest) (*v1.DeleteGameFileResponse, error) {
+	deleted, err := g.gf.DeleteGames(ctx, request.Games)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.DeleteGameFileResponse{Deleted: int32(deleted)}, nil
 }

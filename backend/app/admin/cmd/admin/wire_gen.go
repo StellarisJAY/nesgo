@@ -9,11 +9,11 @@ package main
 import (
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/biz"
-	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/conf"
-	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/data"
-	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/server"
-	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/service"
+	"github.com/stellarisJAY/nesgo/backend/app/admin/internal/biz"
+	"github.com/stellarisJAY/nesgo/backend/app/admin/internal/conf"
+	"github.com/stellarisJAY/nesgo/backend/app/admin/internal/data"
+	"github.com/stellarisJAY/nesgo/backend/app/admin/internal/server"
+	"github.com/stellarisJAY/nesgo/backend/app/admin/internal/service"
 )
 
 import (
@@ -24,18 +24,18 @@ import (
 
 // wireApp init kratos application.
 func wireApp(confServer *conf.Server, confData *conf.Data, registry *conf.Registry, logger log.Logger) (*kratos.App, func(), error) {
-	gameInstanceRepo := data.NewGameInstanceRepo(logger)
-	dataData, cleanup, err := data.NewData(confData, logger)
+	discovery := server.NewDiscovery(registry)
+	dataData, cleanup, err := data.NewData(registry, discovery, logger)
 	if err != nil {
 		return nil, nil, err
 	}
 	gameFileRepo := data.NewGameFileRepo(dataData, logger)
-	gameInstanceUseCase := biz.NewGameInstanceUseCase(gameInstanceRepo, gameFileRepo, logger)
 	gameFileUseCase := biz.NewGameFileUseCase(gameFileRepo, logger)
-	gamingService := service.NewGamingService(gameInstanceUseCase, gameFileUseCase, logger)
-	grpcServer := server.NewGRPCServer(confServer, gamingService)
+	adminService := service.NewAdminService(gameFileUseCase, logger)
+	grpcServer := server.NewGRPCServer(confServer, adminService, logger)
 	registrar := server.NewRegistrar(registry)
-	app := newApp(logger, grpcServer, registrar)
+	httpServer := server.NewHTTPServer(confServer, adminService, logger)
+	app := newApp(logger, grpcServer, registrar, httpServer)
 	return app, func() {
 		cleanup()
 	}, nil

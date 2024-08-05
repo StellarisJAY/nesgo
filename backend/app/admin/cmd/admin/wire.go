@@ -6,13 +6,13 @@
 package main
 
 import (
-	"github.com/go-kratos/kratos/v2"
-	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/biz"
-	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/conf"
-	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/data"
-	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/server"
-	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/service"
+	"github.com/stellarisJAY/nesgo/backend/app/admin/internal/biz"
+	"github.com/stellarisJAY/nesgo/backend/app/admin/internal/conf"
+	"github.com/stellarisJAY/nesgo/backend/app/admin/internal/data"
+	"github.com/stellarisJAY/nesgo/backend/app/admin/internal/server"
+	"github.com/stellarisJAY/nesgo/backend/app/admin/internal/service"
 
+	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"
 )

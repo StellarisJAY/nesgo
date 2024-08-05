@@ -21,13 +21,8 @@ type Data struct {
 // NewData .
 func NewData(c *conf.Data, logger log.Logger) (*Data, func(), error) {
 	logHelper := log.NewHelper(log.With(logger, "module", "data"))
-	conn, err := mongo.Connect(context.Background(), &options.ClientOptions{
-		Hosts: []string{c.Mongo.Addr},
-		Auth: &options.Credential{
-			Username: c.Mongo.Username,
-			Password: c.Mongo.Password,
-		},
-	})
+	clientOpts := options.Client().ApplyURI("mongodb://localhost:27017")
+	conn, err := mongo.Connect(context.Background(), clientOpts)
 	if err != nil {
 		panic(err)
 	}

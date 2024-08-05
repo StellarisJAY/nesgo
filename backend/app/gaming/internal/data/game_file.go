@@ -3,11 +3,19 @@ package data
 import (
 	"bytes"
 	"context"
+	"errors"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/biz"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"sync"
+	"time"
+)
+
+const (
+	gameFileBucketName = "game_file"
 )
 
 type gameFileRepo struct {
@@ -36,8 +44,7 @@ func (g *gameFileRepo) GetGameData(ctx context.Context, game string) ([]byte, er
 	g.cacheMutex.Lock()
 	defer g.cacheMutex.Unlock()
 	db := g.data.mongo.Database("nesgo")
-	bucketName := "game_file"
-	bucket, err := gridfs.NewBucket(db, options.GridFSBucket().SetName(bucketName))
+	bucket, err := gridfs.NewBucket(db, options.GridFSBucket().SetName(gameFileBucketName))
 	if err != nil {
 		return nil, err
 	}
@@ -51,15 +58,70 @@ func (g *gameFileRepo) GetGameData(ctx context.Context, game string) ([]byte, er
 	return gameData, nil
 }
 
-func (g *gameFileRepo) UploadGameData(ctx context.Context, game string, data []byte) error {
+func (g *gameFileRepo) UploadGameData(ctx context.Context, game string, data []byte, metadata *biz.GameFileMetadata) error {
 	db := g.data.mongo.Database("nesgo")
-	bucketName := "game_file"
-	bucket, err := gridfs.NewBucket(db, options.GridFSBucket().SetName(bucketName))
+	bucket, err := gridfs.NewBucket(db, options.GridFSBucket().SetName(gameFileBucketName))
 	if err != nil {
 		return err
 	}
-	_, err = bucket.UploadFromStream(game, bytes.NewReader(data))
-	return err
+	err = bucket.GetFilesCollection().FindOne(ctx, bson.M{"filename": game}).Err()
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		start := time.Now()
+		_, err = bucket.UploadFromStream(game, bytes.NewBuffer(data), options.GridFSUpload().SetMetadata(metadata))
+		g.logger.Infof("uploaded game ,time: %dms", time.Now().Sub(start).Milliseconds())
+		return err
+	} else {
+		return err
+	}
+}
+
+func (g *gameFileRepo) ListGames(ctx context.Context) ([]*biz.GameFileMetadata, error) {
+	db := g.data.mongo.Database("nesgo")
+	bucket, err := gridfs.NewBucket(db, options.GridFSBucket().SetName(gameFileBucketName))
+	if err != nil {
+		return nil, err
+	}
+	cursor, err := bucket.GetFilesCollection().Find(ctx, bson.M{})
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return []*biz.GameFileMetadata{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var result []*biz.GameFileMetadata
+	for cursor.Next(ctx) {
+		metadata := new(biz.GameFileMetadata)
+		err = cursor.Current.Lookup("metadata").Unmarshal(&metadata)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, metadata)
+	}
+	return result, nil
+}
+
+func (g *gameFileRepo) DeleteGames(ctx context.Context, games []string) (int, error) {
+	db := g.data.mongo.Database("nesgo")
+	bucket, err := gridfs.NewBucket(db, options.GridFSBucket().SetName(gameFileBucketName))
+	if err != nil {
+		return 0, err
+	}
+	cursor, err := bucket.GetFilesCollection().Find(ctx, bson.M{"filename": bson.M{"$in": games}})
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return 0, nil
+	}
+	count := 0
+	for cursor.Next(ctx) {
+		id := cursor.Current.Lookup("_id").ObjectID()
+		err = bucket.DeleteContext(ctx, id)
+		if err != nil {
+			return 0, err
+		}
+		count++
+	}
+	return count, nil
 }
 
 func (g *gameFileRepo) GetSavedGame(ctx context.Context, id int64) (*biz.GameSave, error) {

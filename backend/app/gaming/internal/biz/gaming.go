@@ -32,6 +32,12 @@ type GameSave struct {
 	Data   string `json:"data"`
 }
 
+type GameFileMetadata struct {
+	Name      string `json:"name"`
+	Mapper    string `json:"mapper"`
+	Mirroring string `json:"mirroring"`
+}
+
 type GameInstanceRepo interface {
 	CreateGameInstance(ctx context.Context, game *GameInstance) error
 	DeleteGameInstance(ctx context.Context, roomId int64) error
@@ -40,7 +46,9 @@ type GameInstanceRepo interface {
 
 type GameFileRepo interface {
 	GetGameData(ctx context.Context, game string) ([]byte, error)
-	UploadGameData(ctx context.Context, game string, data []byte) error
+	UploadGameData(ctx context.Context, game string, data []byte, metadata *GameFileMetadata) error
+	ListGames(ctx context.Context) ([]*GameFileMetadata, error)
+	DeleteGames(ctx context.Context, games []string) (int, error)
 	GetSavedGame(ctx context.Context, id int64) (*GameSave, error)
 	SaveGame(ctx context.Context, save *GameSave) error
 }
@@ -78,7 +86,7 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 		MuteApu:     false,
 		Debug:       false,
 	}
-	instance.audioSampleRate = 44100
+	instance.audioSampleRate = 48000
 	instance.audioSampleChan = make(chan float32, instance.audioSampleRate)
 	renderCallback := func(ppu *ppu.PPU) {
 		instance.RenderCallback(ppu, uc.logger)
@@ -101,6 +109,7 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 
 	emulatorCtx, cancel := context.WithCancel(context.Background())
 	instance.emulatorCancel = cancel
+	uc.logger.Infof("emulator created, roomId: %d", roomId)
 	go instance.e.LoadAndRun(emulatorCtx, false)
 	instance.e.Pause()
 	_ = uc.repo.CreateGameInstance(ctx, &instance)

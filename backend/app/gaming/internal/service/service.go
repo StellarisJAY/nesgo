@@ -1,24 +1,8 @@
 package service
 
 import (
-	"github.com/go-kratos/kratos/contrib/registry/consul/v2"
-	"github.com/go-kratos/kratos/v2/registry"
 	"github.com/google/wire"
-	consulAPI "github.com/hashicorp/consul/api"
-	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/conf"
 )
 
 // ProviderSet is service providers.
-var ProviderSet = wire.NewSet(NewRegistrar, NewGamingService)
-
-func NewRegistrar(c *conf.Registry) registry.Registrar {
-	config := consulAPI.DefaultConfig()
-	config.Address = c.Consul.Address
-	config.Scheme = c.Consul.Scheme
-	client, err := consulAPI.NewClient(config)
-	if err != nil {
-		panic(err)
-	}
-	r := consul.New(client, consul.WithHealthCheck(true))
-	return r
-}
+var ProviderSet = wire.NewSet(NewGamingService)
