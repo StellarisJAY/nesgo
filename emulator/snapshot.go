@@ -31,18 +31,6 @@ func init() {
 	GlobalSerializers["gob"] = GobSnapshotSerializer{}
 }
 
-func (e *RawEmulator) PushSnapshot() {
-	if time.Now().After(e.lastSnapshotTime.Add(snapshotInterval)) {
-		s := e.createSnapshot()
-		e.m.Lock()
-		defer e.m.Unlock()
-		e.snapshots = append(e.snapshots, s)
-		if len(e.snapshots) > maxSnapshots {
-			e.snapshots = e.snapshots[1:]
-		}
-	}
-}
-
 func (e *RawEmulator) createSnapshot() Snapshot {
 	e.lastSnapshotTime = time.Now()
 	data, err := cartridge.Save(e.cartridge)

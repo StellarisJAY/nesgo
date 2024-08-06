@@ -134,9 +134,7 @@ func (e *Emulator) LoadAndRun(ctx context.Context, enableTrace bool) {
 	if enableTrace {
 		e.processor.LoadAndRunWithCallback(ctx, trace.Trace, nil)
 	} else {
-		e.processor.LoadAndRunWithCallback(ctx, nil, func(_ *cpu.Processor) {
-			e.PushSnapshot()
-		})
+		e.processor.LoadAndRunWithCallback(ctx, nil, nil)
 	}
 }
 
@@ -198,12 +196,6 @@ func (e *Emulator) handleEvents() {
 			}
 			if event.Keysym.Scancode == sdl.SCANCODE_F2 && event.State == sdl.RELEASED {
 				e.BoostCPU(-0.5)
-				continue
-			}
-			// Backspace 回溯游戏
-			if event.Keysym.Scancode == sdl.SCANCODE_BACKSPACE && event.State == sdl.RELEASED {
-				// 此时handleEvent和cpu循环是同一个goroutine，不需要pause保证线程安全
-				_ = e.ReverseOnceNoBlock()
 				continue
 			}
 			// F5 快速存档
