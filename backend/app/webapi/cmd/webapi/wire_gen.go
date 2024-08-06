@@ -23,7 +23,7 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, confData *conf.Data, registry *conf.Registry, logger log.Logger) (*kratos.App, func(), error) {
+func wireApp(confServer *conf.Server, confData *conf.Data, registry *conf.Registry, auth *conf.Auth, logger log.Logger) (*kratos.App, func(), error) {
 	discovery := server.NewDiscovery(registry)
 	dataData, cleanup, err := data.NewData(discovery, logger)
 	if err != nil {
@@ -31,12 +31,14 @@ func wireApp(confServer *conf.Server, confData *conf.Data, registry *conf.Regist
 	}
 	userRepo := data.NewUserRepo(dataData, logger)
 	userUseCase := biz.NewUserUseCase(userRepo, logger)
-	authUseCase := biz.NewAuthUseCase(userRepo, logger)
-	roomRepo := data.NewRoomRepo(dataData, discovery, logger)
+	authUseCase := biz.NewAuthUseCase(userRepo, auth, logger)
+	roomRepo := data.NewRoomRepo(dataData, logger)
 	roomUseCase := biz.NewRoomUseCase(roomRepo, logger)
-	webApiService := service.NewWebApiService(userUseCase, authUseCase, roomUseCase, logger)
+	gamingRepo := data.NewGamingRepo(dataData, logger)
+	gamingUseCase := biz.NewGamingUseCase(roomRepo, gamingRepo, logger)
+	webApiService := service.NewWebApiService(userUseCase, authUseCase, roomUseCase, gamingUseCase, logger)
 	grpcServer := server.NewGRPCServer(confServer, webApiService, logger)
-	httpServer := server.NewHTTPServer(confServer, webApiService, logger)
+	httpServer := server.NewHTTPServer(confServer, auth, webApiService, logger)
 	registrar := server.NewRegistrar(registry)
 	app := newApp(logger, grpcServer, httpServer, registrar)
 	return app, func() {

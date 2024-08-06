@@ -16,4 +16,6 @@ data:
 registry:
   consul:
     address: localhost:8500
-    schema: nesgo
+    schema: http
+auth:
+  secret: abcdefghijklmn

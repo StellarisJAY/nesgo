@@ -15,14 +15,16 @@ type WebApiService struct {
 	uc     *biz.UserUseCase
 	ac     *biz.AuthUseCase
 	rc     *biz.RoomUseCase
+	gc     *biz.GamingUseCase
 	logger *log.Helper
 }
 
-func NewWebApiService(uc *biz.UserUseCase, ac *biz.AuthUseCase, rc *biz.RoomUseCase, logger log.Logger) *WebApiService {
+func NewWebApiService(uc *biz.UserUseCase, ac *biz.AuthUseCase, rc *biz.RoomUseCase, gc *biz.GamingUseCase, logger log.Logger) *WebApiService {
 	return &WebApiService{
 		uc:     uc,
 		ac:     ac,
 		rc:     rc,
+		gc:     gc,
 		logger: log.NewHelper(log.With(logger, "module", "service/webapi")),
 	}
 }

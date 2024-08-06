@@ -4,26 +4,15 @@ import (
 	"context"
 	"errors"
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/pion/webrtc/v3"
 	v1 "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/codec"
 	"github.com/stellarisJAY/nesgo/emulator"
 	"github.com/stellarisJAY/nesgo/emulator/config"
 	"github.com/stellarisJAY/nesgo/emulator/ppu"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
+	"sync"
 )
-
-type GameInstance struct {
-	RoomId          int64
-	e               *emulator.Emulator
-	emulatorCancel  context.CancelFunc
-	game            string
-	videoEncoder    codec.IVideoEncoder
-	audioSampleRate int
-	audioEncoder    codec.IAudioEncoder
-	audioSampleChan chan float32 // audioSampleChan 音频输出channel
-	controller1     int64        // controller1 模拟器P1控制权玩家
-	controller2     int64        // controller2 模拟器P2控制权玩家
-}
 
 type GameSave struct {
 	Id     int64  `json:"id"`
@@ -76,8 +65,11 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 		return nil, v1.ErrorCreateGameInstanceFailed("gem game file failed: %v", err)
 	}
 	instance := GameInstance{
-		RoomId: roomId,
-		game:   game,
+		RoomId:      roomId,
+		game:        game,
+		messageChan: make(chan *Message, 64),
+		mutex:       &sync.RWMutex{},
+		connections: make(map[int64]*Connection),
 	}
 	emulatorConfig := config.Config{
 		Game:        game,
@@ -88,6 +80,7 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 	}
 	instance.audioSampleRate = 48000
 	instance.audioSampleChan = make(chan float32, instance.audioSampleRate)
+	// create emulator
 	renderCallback := func(ppu *ppu.PPU) {
 		instance.RenderCallback(ppu, uc.logger)
 	}
@@ -96,6 +89,7 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 		return nil, v1.ErrorCreateGameInstanceFailed("create emulator failed: %v", err)
 	}
 	instance.e = e
+	// create video and audio encoder
 	videoEncoder, err := codec.NewVideoEncoder("h264")
 	if err != nil {
 		return nil, v1.ErrorCreateGameInstanceFailed("create video encoder failed: %v", err)
@@ -107,11 +101,87 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 	instance.videoEncoder = videoEncoder
 	instance.audioEncoder = audioEncoder
 
+	// start emulator
 	emulatorCtx, cancel := context.WithCancel(context.Background())
 	instance.emulatorCancel = cancel
 	uc.logger.Infof("emulator created, roomId: %d", roomId)
 	go instance.e.LoadAndRun(emulatorCtx, false)
 	instance.e.Pause()
+
+	// start message consumer
+	msgConsumerCtx, msgConsumerCancel := context.WithCancel(context.Background())
+	go instance.messageConsumer(msgConsumerCtx)
+	instance.cancel = msgConsumerCancel
+
 	_ = uc.repo.CreateGameInstance(ctx, &instance)
 	return &instance, nil
+}
+
+func (uc *GameInstanceUseCase) OpenGameConnection(ctx context.Context, roomId, userId int64) (string, error) {
+	instance, err := uc.repo.GetGameInstance(ctx, roomId)
+	if err != nil {
+		return "", err
+	}
+	if instance == nil {
+		return "", v1.ErrorUnknownError("game instance not found")
+	}
+	conn, sdp, err := instance.NewConnection(userId)
+	if err != nil {
+		return "", v1.ErrorOpenGameConnectionFailed("open game connection failed: %v", err)
+	}
+	instance.messageChan <- &Message{
+		Type: MsgNewConn,
+		Data: conn,
+	}
+	return sdp, nil
+}
+
+func (uc *GameInstanceUseCase) SDPAnswer(ctx context.Context, roomId, userId int64, sdpAnswer string) error {
+	instance, err := uc.repo.GetGameInstance(ctx, roomId)
+	if err != nil {
+		return err
+	}
+	if instance == nil {
+		return v1.ErrorUnknownError("game instance not found")
+	}
+	instance.mutex.RLock()
+	conn, ok := instance.connections[userId]
+	instance.mutex.RUnlock()
+	if !ok {
+		return v1.ErrorGameConnectionNotFound("game connection not found")
+	}
+
+	sdp := webrtc.SessionDescription{
+		Type: webrtc.SDPTypeOffer,
+		SDP:  sdpAnswer,
+	}
+	err = conn.pc.SetRemoteDescription(sdp)
+	if err != nil {
+		return v1.ErrorSdpAnswerFailed("set remote sdp failed: %v", err)
+	}
+	return nil
+}
+
+func (uc *GameInstanceUseCase) ICECandidate(ctx context.Context, roomId, userId int64, candidate string) error {
+	instance, err := uc.repo.GetGameInstance(ctx, roomId)
+	if err != nil {
+		return err
+	}
+	if instance == nil {
+		return v1.ErrorUnknownError("game instance not found")
+	}
+	instance.mutex.RLock()
+	conn, ok := instance.connections[userId]
+	instance.mutex.RUnlock()
+	if !ok {
+		return v1.ErrorGameConnectionNotFound("game connection not found")
+	}
+	candidateInit := webrtc.ICECandidateInit{
+		Candidate: candidate,
+	}
+	err = conn.pc.AddICECandidate(candidateInit)
+	if err != nil {
+		return v1.ErrorIceCandidateFailed("add ice candidate failed: %v", err)
+	}
+	return nil
 }

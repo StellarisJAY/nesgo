@@ -33,8 +33,15 @@ func (g *GamingService) CreateGameInstance(ctx context.Context, req *v1.CreateGa
 }
 
 func (g *GamingService) OpenGameConnection(ctx context.Context, request *v1.OpenGameConnectionRequest) (*v1.OpenGameConnectionResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	sdp, err := g.gi.OpenGameConnection(ctx, request.RoomId, request.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.OpenGameConnectionResponse{
+		RoomId:   request.RoomId,
+		UserId:   request.UserId,
+		SdpOffer: sdp,
+	}, nil
 }
 
 func (g *GamingService) SDPAnswer(ctx context.Context, request *v1.SDPAnswerRequest) (*v1.SDPAnswerResponse, error) {

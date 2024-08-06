@@ -1,18 +1,106 @@
 package biz
 
 import (
+	"context"
+	"encoding/json"
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/pion/webrtc/v3"
+	"github.com/pion/webrtc/v3/pkg/media"
+	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/codec"
+	"github.com/stellarisJAY/nesgo/emulator"
 	"github.com/stellarisJAY/nesgo/emulator/ppu"
+	"sync"
+	"time"
 )
+
+const (
+	MsgPlayerControl byte = iota
+	MsgChat
+	MsgNewConn
+	MsgCloseConn
+)
+
+type Message struct {
+	Type      byte  `json:"type"`
+	From      int64 `json:"from"`
+	To        int64 `json:"to"`
+	Timestamp int64 `json:"timestamp"`
+	Data      any   `json:"data"`
+}
+
+type GameInstance struct {
+	RoomId          int64
+	e               *emulator.Emulator
+	emulatorCancel  context.CancelFunc
+	game            string
+	videoEncoder    codec.IVideoEncoder
+	audioSampleRate int
+	audioEncoder    codec.IAudioEncoder
+	audioSampleChan chan float32 // audioSampleChan 音频输出channel
+	controller1     int64        // controller1 模拟器P1控制权玩家
+	controller2     int64        // controller2 模拟器P2控制权玩家
+
+	messageChan chan *Message
+	cancel      context.CancelFunc
+
+	connections map[int64]*Connection
+	mutex       *sync.RWMutex
+}
 
 func (g *GameInstance) RenderCallback(ppu *ppu.PPU, logger *log.Helper) {
 	frame := ppu.Frame()
-	_, release, err := g.videoEncoder.Encode(frame)
+	data, release, err := g.videoEncoder.Encode(frame)
 	if err != nil {
 		logger.Error("encode frame error", "err", err)
 		return
 	}
 	defer release()
-	// TODO broadcast video frame
+	sample := media.Sample{Data: data, Timestamp: time.Now()}
+	g.mutex.RLock()
+	defer g.mutex.RUnlock()
+	for _, conn := range g.connections {
+		if conn.pc.ConnectionState() != webrtc.PeerConnectionStateConnected {
+			continue
+		}
+		if err := conn.videoTrack.WriteSample(sample); err != nil {
+			logger.Errorf("write sample error: %v", err)
+		}
+	}
 	return
+}
+
+func (g *GameInstance) onDataChannelMessage(userId int64, raw []byte) {
+	msg := &Message{}
+	err := json.Unmarshal(raw, msg)
+	if err != nil {
+		// TODO GameInstance logger
+		return
+	}
+	msg.From = userId
+	g.messageChan <- msg
+}
+
+func (g *GameInstance) messageConsumer(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case msg := <-g.messageChan:
+			switch msg.Type {
+			case MsgPlayerControl: // TODO handle control message
+			case MsgChat: // TODO handle chat message
+			case MsgNewConn:
+				g.mutex.Lock()
+				conn := msg.Data.(*Connection)
+				g.connections[conn.userId] = conn
+				g.mutex.Unlock()
+			case MsgCloseConn:
+				g.mutex.Lock()
+				conn := msg.Data.(*Connection)
+				delete(g.connections, conn.userId)
+				g.mutex.Unlock()
+			default: // TODO handle unknown message
+			}
+		}
+	}
 }
