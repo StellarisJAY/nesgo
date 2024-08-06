@@ -35,6 +35,60 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.admin.v1.DeleteGameFileResponse'
+    /api/v1/game/connection:
+        post:
+            tags:
+                - WebApi
+            operationId: WebApi_OpenGameConnection
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.OpenGameConnectionRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.OpenGameConnectionResponse'
+    /api/v1/game/ice:
+        post:
+            tags:
+                - WebApi
+            operationId: WebApi_AddICECandidate
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.AddICECandidateRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.AddICECandidateResponse'
+    /api/v1/game/sdp:
+        post:
+            tags:
+                - WebApi
+            operationId: WebApi_SDPAnswer
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.SDPAnswerRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.SDPAnswerResponse'
     /api/v1/login:
         post:
             tags:
@@ -161,6 +215,22 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/nesgo.admin.v1.GameFileMetadata'
+        nesgo.webapi.v1.AddICECandidateRequest:
+            type: object
+            properties:
+                roomId:
+                    type: string
+                userId:
+                    type: string
+                candidate:
+                    type: string
+        nesgo.webapi.v1.AddICECandidateResponse:
+            type: object
+            properties:
+                roomId:
+                    type: string
+                userId:
+                    type: string
         nesgo.webapi.v1.GetRoomSessionRequest:
             type: object
             properties:
@@ -210,6 +280,22 @@ components:
             properties:
                 token:
                     type: string
+        nesgo.webapi.v1.OpenGameConnectionRequest:
+            type: object
+            properties:
+                roomId:
+                    type: string
+                userId:
+                    type: string
+        nesgo.webapi.v1.OpenGameConnectionResponse:
+            type: object
+            properties:
+                roomId:
+                    type: string
+                userId:
+                    type: string
+                sdpOffer:
+                    type: string
         nesgo.webapi.v1.RegisterRequest:
             type: object
             properties:
@@ -239,6 +325,22 @@ components:
                 role:
                     type: integer
                     format: int32
+        nesgo.webapi.v1.SDPAnswerRequest:
+            type: object
+            properties:
+                roomId:
+                    type: string
+                userId:
+                    type: string
+                sdpAnswer:
+                    type: string
+        nesgo.webapi.v1.SDPAnswerResponse:
+            type: object
+            properties:
+                roomId:
+                    type: string
+                userId:
+                    type: string
         nesgo.webapi.v1.User:
             type: object
             properties:
