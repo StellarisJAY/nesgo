@@ -118,3 +118,51 @@ func IsDeleteGameFailed(err error) bool {
 func ErrorDeleteGameFailed(format string, args ...interface{}) *errors.Error {
 	return errors.New(500, UserServiceErrorReason_DELETE_GAME_FAILED.String(), fmt.Sprintf(format, args...))
 }
+
+func IsOpenGameConnectionFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_OPEN_GAME_CONNECTION_FAILED.String() && e.Code == 500
+}
+
+func ErrorOpenGameConnectionFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_OPEN_GAME_CONNECTION_FAILED.String(), fmt.Sprintf(format, args...))
+}
+
+func IsGameConnectionNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_GAME_CONNECTION_NOT_FOUND.String() && e.Code == 500
+}
+
+func ErrorGameConnectionNotFound(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_GAME_CONNECTION_NOT_FOUND.String(), fmt.Sprintf(format, args...))
+}
+
+func IsSdpAnswerFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_SDP_ANSWER_FAILED.String() && e.Code == 500
+}
+
+func ErrorSdpAnswerFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_SDP_ANSWER_FAILED.String(), fmt.Sprintf(format, args...))
+}
+
+func IsIceCandidateFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_ICE_CANDIDATE_FAILED.String() && e.Code == 500
+}
+
+func ErrorIceCandidateFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_ICE_CANDIDATE_FAILED.String(), fmt.Sprintf(format, args...))
+}

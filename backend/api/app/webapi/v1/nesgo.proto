@@ -35,6 +35,24 @@ service WebApi {
       body: "*"
     };
   }
+  rpc OpenGameConnection(OpenGameConnectionRequest) returns (OpenGameConnectionResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/game/connection"
+      body: "*"
+    };
+  }
+  rpc SDPAnswer(SDPAnswerRequest) returns (SDPAnswerResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/game/sdp"
+      body: "*"
+    };
+  }
+  rpc AddICECandidate(AddICECandidateRequest) returns (AddICECandidateResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/game/ice"
+      body: "*"
+    };
+  }
 }
 
 message RegisterRequest {
@@ -97,4 +115,37 @@ message GetRoomSessionRequest {
 message GetRoomSessionResponse {
   int64 roomId = 1;
   string endpoint = 2;
+}
+
+message OpenGameConnectionRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message OpenGameConnectionResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string sdpOffer = 3;
+}
+
+message SDPAnswerRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string sdpAnswer = 3;
+}
+
+message SDPAnswerResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message AddICECandidateRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string candidate = 3;
+}
+
+message AddICECandidateResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
 }

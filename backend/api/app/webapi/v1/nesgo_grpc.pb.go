@@ -19,11 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	WebApi_Register_FullMethodName       = "/nesgo.webapi.v1.WebApi/Register"
-	WebApi_Login_FullMethodName          = "/nesgo.webapi.v1.WebApi/Login"
-	WebApi_ListMyRooms_FullMethodName    = "/nesgo.webapi.v1.WebApi/ListMyRooms"
-	WebApi_GetUser_FullMethodName        = "/nesgo.webapi.v1.WebApi/GetUser"
-	WebApi_GetRoomSession_FullMethodName = "/nesgo.webapi.v1.WebApi/GetRoomSession"
+	WebApi_Register_FullMethodName           = "/nesgo.webapi.v1.WebApi/Register"
+	WebApi_Login_FullMethodName              = "/nesgo.webapi.v1.WebApi/Login"
+	WebApi_ListMyRooms_FullMethodName        = "/nesgo.webapi.v1.WebApi/ListMyRooms"
+	WebApi_GetUser_FullMethodName            = "/nesgo.webapi.v1.WebApi/GetUser"
+	WebApi_GetRoomSession_FullMethodName     = "/nesgo.webapi.v1.WebApi/GetRoomSession"
+	WebApi_OpenGameConnection_FullMethodName = "/nesgo.webapi.v1.WebApi/OpenGameConnection"
+	WebApi_SDPAnswer_FullMethodName          = "/nesgo.webapi.v1.WebApi/SDPAnswer"
+	WebApi_AddICECandidate_FullMethodName    = "/nesgo.webapi.v1.WebApi/AddICECandidate"
 )
 
 // WebApiClient is the client API for WebApi service.
@@ -35,6 +38,9 @@ type WebApiClient interface {
 	ListMyRooms(ctx context.Context, in *ListMyRoomsRequest, opts ...grpc.CallOption) (*ListMyRoomResponse, error)
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 	GetRoomSession(ctx context.Context, in *GetRoomSessionRequest, opts ...grpc.CallOption) (*GetRoomSessionResponse, error)
+	OpenGameConnection(ctx context.Context, in *OpenGameConnectionRequest, opts ...grpc.CallOption) (*OpenGameConnectionResponse, error)
+	SDPAnswer(ctx context.Context, in *SDPAnswerRequest, opts ...grpc.CallOption) (*SDPAnswerResponse, error)
+	AddICECandidate(ctx context.Context, in *AddICECandidateRequest, opts ...grpc.CallOption) (*AddICECandidateResponse, error)
 }
 
 type webApiClient struct {
@@ -95,6 +101,36 @@ func (c *webApiClient) GetRoomSession(ctx context.Context, in *GetRoomSessionReq
 	return out, nil
 }
 
+func (c *webApiClient) OpenGameConnection(ctx context.Context, in *OpenGameConnectionRequest, opts ...grpc.CallOption) (*OpenGameConnectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(OpenGameConnectionResponse)
+	err := c.cc.Invoke(ctx, WebApi_OpenGameConnection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *webApiClient) SDPAnswer(ctx context.Context, in *SDPAnswerRequest, opts ...grpc.CallOption) (*SDPAnswerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SDPAnswerResponse)
+	err := c.cc.Invoke(ctx, WebApi_SDPAnswer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *webApiClient) AddICECandidate(ctx context.Context, in *AddICECandidateRequest, opts ...grpc.CallOption) (*AddICECandidateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddICECandidateResponse)
+	err := c.cc.Invoke(ctx, WebApi_AddICECandidate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WebApiServer is the server API for WebApi service.
 // All implementations must embed UnimplementedWebApiServer
 // for forward compatibility.
@@ -104,6 +140,9 @@ type WebApiServer interface {
 	ListMyRooms(context.Context, *ListMyRoomsRequest) (*ListMyRoomResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	GetRoomSession(context.Context, *GetRoomSessionRequest) (*GetRoomSessionResponse, error)
+	OpenGameConnection(context.Context, *OpenGameConnectionRequest) (*OpenGameConnectionResponse, error)
+	SDPAnswer(context.Context, *SDPAnswerRequest) (*SDPAnswerResponse, error)
+	AddICECandidate(context.Context, *AddICECandidateRequest) (*AddICECandidateResponse, error)
 	mustEmbedUnimplementedWebApiServer()
 }
 
@@ -128,6 +167,15 @@ func (UnimplementedWebApiServer) GetUser(context.Context, *GetUserRequest) (*Get
 }
 func (UnimplementedWebApiServer) GetRoomSession(context.Context, *GetRoomSessionRequest) (*GetRoomSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRoomSession not implemented")
+}
+func (UnimplementedWebApiServer) OpenGameConnection(context.Context, *OpenGameConnectionRequest) (*OpenGameConnectionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method OpenGameConnection not implemented")
+}
+func (UnimplementedWebApiServer) SDPAnswer(context.Context, *SDPAnswerRequest) (*SDPAnswerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SDPAnswer not implemented")
+}
+func (UnimplementedWebApiServer) AddICECandidate(context.Context, *AddICECandidateRequest) (*AddICECandidateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddICECandidate not implemented")
 }
 func (UnimplementedWebApiServer) mustEmbedUnimplementedWebApiServer() {}
 func (UnimplementedWebApiServer) testEmbeddedByValue()                {}
@@ -240,6 +288,60 @@ func _WebApi_GetRoomSession_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WebApi_OpenGameConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OpenGameConnectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).OpenGameConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_OpenGameConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).OpenGameConnection(ctx, req.(*OpenGameConnectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WebApi_SDPAnswer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SDPAnswerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).SDPAnswer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_SDPAnswer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).SDPAnswer(ctx, req.(*SDPAnswerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WebApi_AddICECandidate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddICECandidateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).AddICECandidate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_AddICECandidate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).AddICECandidate(ctx, req.(*AddICECandidateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WebApi_ServiceDesc is the grpc.ServiceDesc for WebApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +368,18 @@ var WebApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetRoomSession",
 			Handler:    _WebApi_GetRoomSession_Handler,
+		},
+		{
+			MethodName: "OpenGameConnection",
+			Handler:    _WebApi_OpenGameConnection_Handler,
+		},
+		{
+			MethodName: "SDPAnswer",
+			Handler:    _WebApi_SDPAnswer_Handler,
+		},
+		{
+			MethodName: "AddICECandidate",
+			Handler:    _WebApi_AddICECandidate_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
