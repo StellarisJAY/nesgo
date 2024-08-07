@@ -1,24 +1,26 @@
 package server
 
 import (
-	"github.com/go-kratos/kratos/contrib/registry/consul/v2"
+	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/registry"
 	"github.com/google/wire"
-	consulAPI "github.com/hashicorp/consul/api"
 	"github.com/stellarisJAY/nesgo/backend/app/user/internal/conf"
+	etcdAPI "go.etcd.io/etcd/client/v3"
 )
 
 // ProviderSet is server providers.
-var ProviderSet = wire.NewSet(NewRegistrar, NewGRPCServer)
+var ProviderSet = wire.NewSet(NewEtcdClient, NewRegistrar, NewGRPCServer)
 
-func NewRegistrar(c *conf.Registry) registry.Registrar {
-	config := consulAPI.DefaultConfig()
-	config.Address = c.Consul.Address
-	config.Scheme = c.Consul.Scheme
-	client, err := consulAPI.NewClient(config)
+func NewEtcdClient(c *conf.Registry) *etcdAPI.Client {
+	cli, err := etcdAPI.New(etcdAPI.Config{
+		Endpoints: c.Etcd.Endpoints,
+	})
 	if err != nil {
 		panic(err)
 	}
-	r := consul.New(client, consul.WithHealthCheck(true))
-	return r
+	return cli
+}
+
+func NewRegistrar(cli *etcdAPI.Client) registry.Registrar {
+	return etcd.New(cli)
 }

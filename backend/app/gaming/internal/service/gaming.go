@@ -28,7 +28,8 @@ func (g *GamingService) CreateGameInstance(ctx context.Context, req *v1.CreateGa
 		return nil, err
 	}
 	return &v1.CreateGameInstanceResponse{
-		RoomId: instance.RoomId,
+		RoomId:  instance.RoomId,
+		LeaseId: instance.LeaseID,
 	}, nil
 }
 

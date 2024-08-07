@@ -52,6 +52,7 @@ type RoomRepo interface {
 	AddRoomMember(ctx context.Context, member *RoomMember) error
 	GetOrCreateRoomSession(ctx context.Context, roomId int64) (*RoomSession, bool, error)
 	GetRoomSession(ctx context.Context, roomId int64) (*RoomSession, error)
+	RemoveRoomSession(ctx context.Context, roomId int64) error
 }
 
 type RoomUseCase struct {
@@ -152,7 +153,18 @@ func (uc *RoomUseCase) GetRoomSession(ctx context.Context, roomId, userId int64,
 	if err != nil {
 		return nil, v1.ErrorGetRoomFailed("create session error: %v", err)
 	}
+	if session == nil {
+		return nil, v1.ErrorCreateRoomSessionFailed("no available service to create session")
+	}
 	return session, nil
+}
+
+func (uc *RoomUseCase) RemoveRoomSession(ctx context.Context, roomId int64) error {
+	err := uc.rr.RemoveRoomSession(ctx, roomId)
+	if err != nil {
+		return v1.ErrorGetRoomFailed("remove room session failed: %v", err)
+	}
+	return nil
 }
 
 func generatePassword(length int) string {

@@ -17,3 +17,7 @@ registry:
   consul:
     address: localhost:8500
     scheme: http
+  etcd:
+    endpoints:
+      - localhost:2379
+    scheme: http

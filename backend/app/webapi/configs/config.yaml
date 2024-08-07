@@ -17,5 +17,8 @@ registry:
   consul:
     address: localhost:8500
     schema: http
+  etcd:
+    endpoints:
+      - localhost:2379
 auth:
   secret: abcdefghijklmn

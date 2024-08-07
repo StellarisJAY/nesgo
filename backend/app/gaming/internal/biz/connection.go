@@ -64,19 +64,26 @@ func (g *GameInstance) NewConnection(userId int64) (*Connection, string, error) 
 		userId:      userId,
 	}
 
-	pc.OnConnectionStateChange(conn.OnPeerConnectionState)
+	pc.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
+		conn.OnPeerConnectionState(state, g)
+	})
 	pc.OnICEConnectionStateChange(conn.OnICEStateChange)
 	dataChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
 		g.onDataChannelMessage(userId, msg.Data)
 	})
+	g.mutex.Lock()
+	g.connections[userId] = conn
+	g.mutex.Unlock()
 	return conn, offer.SDP, nil
 }
 
-func (c *Connection) OnPeerConnectionState(state webrtc.PeerConnectionState) {
+func (c *Connection) OnPeerConnectionState(state webrtc.PeerConnectionState, instance *GameInstance) {
 	// TODO Handle conn state change
 	switch state {
 	case webrtc.PeerConnectionStateConnected:
+
 	case webrtc.PeerConnectionStateClosed:
+		instance.closeConnection(c)
 	default:
 	}
 }

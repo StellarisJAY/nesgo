@@ -6,6 +6,7 @@
 package main
 
 import (
+	"github.com/go-kratos/kratos/v2"
 	"github.com/stellarisJAY/nesgo/backend/app/user/internal/biz"
 	"github.com/stellarisJAY/nesgo/backend/app/user/internal/conf"
 	"github.com/stellarisJAY/nesgo/backend/app/user/internal/data"

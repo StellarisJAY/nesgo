@@ -1,34 +1,30 @@
 package server
 
 import (
-	"github.com/go-kratos/kratos/contrib/registry/consul/v2"
+	"github.com/go-kratos/kratos/contrib/registry/etcd/v2"
 	"github.com/go-kratos/kratos/v2/registry"
 	"github.com/google/wire"
-	consulAPI "github.com/hashicorp/consul/api"
 	"github.com/stellarisJAY/nesgo/backend/app/webapi/internal/conf"
+	etcdAPI "go.etcd.io/etcd/client/v3"
 )
 
 // ProviderSet is server providers.
-var ProviderSet = wire.NewSet(NewRegistrar, NewDiscovery, NewGRPCServer, NewHTTPServer)
+var ProviderSet = wire.NewSet(NewEtcdClient, NewRegistrar, NewDiscovery, NewGRPCServer, NewHTTPServer)
 
-func NewRegistrar(c *conf.Registry) registry.Registrar {
-	config := consulAPI.DefaultConfig()
-	config.Address = c.Consul.Address
-	config.Scheme = c.Consul.Scheme
-	client, err := consulAPI.NewClient(config)
+func NewEtcdClient(c *conf.Registry) *etcdAPI.Client {
+	cli, err := etcdAPI.New(etcdAPI.Config{
+		Endpoints: c.Etcd.Endpoints,
+	})
 	if err != nil {
 		panic(err)
 	}
-	return consul.New(client, consul.WithHealthCheck(true))
+	return cli
 }
 
-func NewDiscovery(c *conf.Registry) registry.Discovery {
-	config := consulAPI.DefaultConfig()
-	config.Address = c.Consul.Address
-	config.Scheme = c.Consul.Scheme
-	client, err := consulAPI.NewClient(config)
-	if err != nil {
-		panic(err)
-	}
-	return consul.New(client, consul.WithHealthCheck(true))
+func NewRegistrar(cli *etcdAPI.Client) registry.Registrar {
+	return etcd.New(cli)
+}
+
+func NewDiscovery(cli *etcdAPI.Client) registry.Discovery {
+	return etcd.New(cli)
 }

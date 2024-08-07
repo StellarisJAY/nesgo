@@ -81,3 +81,11 @@ func (r *RoomService) GetRoomSession(ctx context.Context, request *v1.GetRoomSes
 		Endpoint: session.Endpoint,
 	}, nil
 }
+
+func (r *RoomService) RemoveRoomSession(ctx context.Context, request *v1.RemoveRoomSessionRequest) (*v1.RemoveRoomSessionResponse, error) {
+	err := r.ruc.RemoveRoomSession(ctx, request.RoomId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.RemoveRoomSessionResponse{}, nil
+}

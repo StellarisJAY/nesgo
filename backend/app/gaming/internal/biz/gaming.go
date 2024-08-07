@@ -28,7 +28,7 @@ type GameFileMetadata struct {
 }
 
 type GameInstanceRepo interface {
-	CreateGameInstance(ctx context.Context, game *GameInstance) error
+	CreateGameInstance(ctx context.Context, game *GameInstance) (int64, error)
 	DeleteGameInstance(ctx context.Context, roomId int64) error
 	GetGameInstance(ctx context.Context, roomId int64) (*GameInstance, error)
 }
@@ -56,6 +56,8 @@ func NewGameInstanceUseCase(repo GameInstanceRepo, gameFileRepo GameFileRepo, lo
 	}
 }
 
+// CreateGameInstance 创建模拟器实例，第一个连接房间并创建会话的操作会创建模拟器实例
+// 调用者必须持有房间会话的分布式锁，保证只创建一次
 func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId int64, game string) (*GameInstance, error) {
 	gameData, err := uc.gameFileRepo.GetGameData(ctx, game)
 	if errors.Is(err, gridfs.ErrFileNotFound) {
@@ -113,7 +115,8 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 	go instance.messageConsumer(msgConsumerCtx)
 	instance.cancel = msgConsumerCancel
 
-	_ = uc.repo.CreateGameInstance(ctx, &instance)
+	leaseID, _ := uc.repo.CreateGameInstance(ctx, &instance)
+	instance.LeaseID = leaseID
 	return &instance, nil
 }
 
@@ -125,13 +128,9 @@ func (uc *GameInstanceUseCase) OpenGameConnection(ctx context.Context, roomId, u
 	if instance == nil {
 		return "", v1.ErrorUnknownError("game instance not found")
 	}
-	conn, sdp, err := instance.NewConnection(userId)
+	_, sdp, err := instance.NewConnection(userId)
 	if err != nil {
 		return "", v1.ErrorOpenGameConnectionFailed("open game connection failed: %v", err)
-	}
-	instance.messageChan <- &Message{
-		Type: MsgNewConn,
-		Data: conn,
 	}
 	return sdp, nil
 }
@@ -184,4 +183,10 @@ func (uc *GameInstanceUseCase) ICECandidate(ctx context.Context, roomId, userId 
 		return v1.ErrorIceCandidateFailed("add ice candidate failed: %v", err)
 	}
 	return nil
+}
+
+// ReleaseGameInstance 释放模拟器实例，所有连接断开后延迟释放
+// 调用者必须持有房间会话的分布式锁，保证没有新连接建立
+func (uc *GameInstanceUseCase) ReleaseGameInstance(ctx context.Context, roomId int64) error {
+	panic("implement me")
 }

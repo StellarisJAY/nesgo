@@ -16,4 +16,7 @@ data:
 registry:
   consul:
     address: localhost:8500
-    schema: nesgo
+    schema: http
+  etcd:
+    endpoints:
+      - localhost:2379

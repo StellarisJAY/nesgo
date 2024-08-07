@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
-	consulAPI "github.com/hashicorp/consul/api"
 	gamingAPI "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
 	"github.com/stellarisJAY/nesgo/backend/app/room/internal/biz"
+	etcdAPI "go.etcd.io/etcd/client/v3"
+	"go.etcd.io/etcd/client/v3/concurrency"
 	"math/rand"
+	"net/url"
 	"time"
 )
 
@@ -153,85 +155,88 @@ func roomSessionLockKey(roomId int64) string {
 	return fmt.Sprintf("nesgo/room/session/lock/%d", roomId)
 }
 
+// GetOrCreateRoomSession 获取或创建房间会话
+// 从所有模拟器节点选择一个作为目标节点，在目标节点创建模拟器实例，并保存房间ID与目标节点映射
 func (r *roomRepo) GetOrCreateRoomSession(ctx context.Context, roomId int64) (*biz.RoomSession, bool, error) {
 	key := roomSessionKey(roomId)
 	lockKey := roomSessionLockKey(roomId)
-
-	lock, err := r.data.consul.LockKey(lockKey)
+	// 分布式锁，避免同时创建多个session
+	lockSession, err := concurrency.NewSession(r.data.etcdCli)
 	if err != nil {
 		return nil, false, err
 	}
-	_, err = lock.Lock(ctx.Done())
+	defer lockSession.Close()
+	locker := concurrency.NewLocker(lockSession, lockKey)
+	locker.Lock()
+	defer locker.Unlock()
+
+	resp, err := r.data.etcdCli.KV.Get(ctx, key)
 	if err != nil {
 		return nil, false, err
 	}
-	defer lock.Unlock()
-
-	pair, _, err := r.data.consul.KV().Get(key, nil)
+	if resp.Count > 0 {
+		var session biz.RoomSession
+		_ = json.Unmarshal(resp.Kvs[0].Value, &session)
+		return &session, true, nil
+	}
+	session := &biz.RoomSession{
+		RoomId: roomId,
+	}
+	// 获取所有模拟器服务节点，随机选择
+	serviceNodes, err := r.data.discovery.GetService(ctx, "nesgo.service.gaming")
 	if err != nil {
 		return nil, false, err
 	}
-
-	session := &biz.RoomSession{}
-	if pair != nil {
-		err = json.Unmarshal(pair.Value, session)
-		return session, true, err
-	}
-
-	serviceEntries, _, err := r.data.consul.Health().Service("nesgo.service.gaming", "", true, nil)
-	if err != nil {
-		return nil, false, err
-	}
-
-	// TODO better select strategy
-	selected := serviceEntries[rand.Intn(len(serviceEntries))]
-	session.Endpoint = fmt.Sprintf("%s:%d", selected.Service.Address, selected.Service.Port)
-	// connect to selected endpoint, send createGameInstance rpc
+	// TODO 更好的选择策略
+	session.Endpoint = serviceNodes[rand.Intn(len(serviceNodes))].Endpoints[0]
+	u, _ := url.Parse(session.Endpoint)
+	session.Endpoint = u.Host
+	// 在目标服务器创建模拟器实例
 	conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(session.Endpoint))
 	if err != nil {
 		return nil, false, err
 	}
 	defer conn.Close()
-	gamingCli := gamingAPI.NewGamingClient(conn)
-	_, err = gamingCli.CreateGameInstance(ctx, &gamingAPI.CreateGameInstanceRequest{
+	instance, err := gamingAPI.NewGamingClient(conn).CreateGameInstance(ctx, &gamingAPI.CreateGameInstanceRequest{
 		RoomId: roomId,
-		Game:   "SuperMario.nes", // TODO Select Game
+		Game:   "SuperMario.nes",
 	})
 	if err != nil {
 		return nil, false, err
 	}
-	// store endpoint
-	value, _ := json.Marshal(session)
-	_, err = r.data.consul.KV().Put(&consulAPI.KVPair{Key: key, Value: value}, nil)
-
-	return session, false, err
+	// 保存session，使用目标节点返回的lease保活
+	bytes, _ := json.Marshal(session)
+	_, err = r.data.etcdCli.KV.Put(ctx, key, string(bytes), etcdAPI.WithLease(etcdAPI.LeaseID(instance.LeaseId)))
+	return session, false, nil
 }
 
+// GetRoomSession 获取房间会话，返回模拟器节点地址
 func (r *roomRepo) GetRoomSession(ctx context.Context, roomId int64) (*biz.RoomSession, error) {
 	key := roomSessionKey(roomId)
 	lockKey := roomSessionLockKey(roomId)
-
-	lock, err := r.data.consul.LockKey(lockKey)
+	lockSession, err := concurrency.NewSession(r.data.etcdCli)
 	if err != nil {
 		return nil, err
 	}
-	_, err = lock.Lock(ctx.Done())
+	defer lockSession.Close()
+	locker := concurrency.NewLocker(lockSession, lockKey)
+	locker.Lock()
+	defer locker.Unlock()
+
+	resp, err := r.data.etcdCli.KV.Get(ctx, key)
 	if err != nil {
 		return nil, err
 	}
-	defer lock.Unlock()
-
-	pair, _, err := r.data.consul.KV().Get(key, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	session := &biz.RoomSession{}
-	if pair != nil {
-		err = json.Unmarshal(pair.Value, session)
-		return session, err
+	if resp.Count > 0 {
+		var session biz.RoomSession
+		_ = json.Unmarshal(resp.Kvs[0].Value, &session)
+		return &session, nil
 	}
 	return nil, nil
+}
+
+func (r *roomRepo) RemoveRoomSession(ctx context.Context, roomId int64) error {
+	panic("implement me")
 }
 
 func (r *roomRepo) AddRoomMember(ctx context.Context, member *biz.RoomMember) error {

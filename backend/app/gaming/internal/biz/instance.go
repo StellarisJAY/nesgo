@@ -45,6 +45,10 @@ type GameInstance struct {
 
 	connections map[int64]*Connection
 	mutex       *sync.RWMutex
+
+	destroyed bool
+
+	LeaseID int64
 }
 
 func (g *GameInstance) RenderCallback(ppu *ppu.PPU, logger *log.Helper) {
@@ -90,17 +94,53 @@ func (g *GameInstance) messageConsumer(ctx context.Context) {
 			case MsgPlayerControl: // TODO handle control message
 			case MsgChat: // TODO handle chat message
 			case MsgNewConn:
-				g.mutex.Lock()
-				conn := msg.Data.(*Connection)
-				g.connections[conn.userId] = conn
-				g.mutex.Unlock()
+				g.handleMsgNewConn(msg.Data.(*Connection))
 			case MsgCloseConn:
-				g.mutex.Lock()
-				conn := msg.Data.(*Connection)
-				delete(g.connections, conn.userId)
-				g.mutex.Unlock()
+				g.handleMsgCloseConn(msg.Data.(*Connection))
 			default: // TODO handle unknown message
 			}
 		}
+	}
+}
+
+func (g *GameInstance) closeConnection(conn *Connection) {
+	g.messageChan <- &Message{
+		Type: MsgCloseConn,
+		Data: conn,
+	}
+}
+
+func (g *GameInstance) filterConnection(filter func(*Connection) bool) []*Connection {
+	result := make([]*Connection, 0, len(g.connections))
+	for _, conn := range g.connections {
+		if filter(conn) {
+			result = append(result, conn)
+		}
+	}
+	return result
+}
+
+func (g *GameInstance) handleMsgNewConn(conn *Connection) {
+	g.mutex.RLock()
+	defer g.mutex.RUnlock()
+	active := g.filterConnection(func(c *Connection) bool {
+		return c.userId != conn.userId && c.pc.ConnectionState() == webrtc.PeerConnectionStateConnected
+	})
+	// 首个活跃连接，开启模拟器
+	if len(active) == 0 {
+		g.e.Resume()
+	}
+}
+
+func (g *GameInstance) handleMsgCloseConn(conn *Connection) {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+	delete(g.connections, conn.userId)
+	active := g.filterConnection(func(conn *Connection) bool {
+		return conn.pc.ConnectionState() == webrtc.PeerConnectionStateConnected
+	})
+	// 没有活跃连接，暂停模拟器
+	if len(active) == 0 {
+		g.e.Pause()
 	}
 }

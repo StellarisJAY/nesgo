@@ -24,7 +24,8 @@ import (
 
 // wireApp init kratos application.
 func wireApp(confServer *conf.Server, confData *conf.Data, registry *conf.Registry, logger log.Logger) (*kratos.App, func(), error) {
-	gameInstanceRepo := data.NewGameInstanceRepo(logger)
+	client := server.NewEtcdClient(registry)
+	gameInstanceRepo := data.NewGameInstanceRepo(client, logger)
 	dataData, cleanup, err := data.NewData(confData, logger)
 	if err != nil {
 		return nil, nil, err
@@ -34,7 +35,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, registry *conf.Regist
 	gameFileUseCase := biz.NewGameFileUseCase(gameFileRepo, logger)
 	gamingService := service.NewGamingService(gameInstanceUseCase, gameFileUseCase, logger)
 	grpcServer := server.NewGRPCServer(confServer, gamingService)
-	registrar := server.NewRegistrar(registry)
+	registrar := server.NewRegistrar(client)
 	app := newApp(logger, grpcServer, registrar)
 	return app, func() {
 		cleanup()
