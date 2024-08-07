@@ -27,6 +27,7 @@ message CreateGameInstanceRequest {
 
 message CreateGameInstanceResponse {
   int64 roomId = 1;
+  int64 leaseId = 2;
 }
 
 message OpenGameConnectionRequest {
