@@ -1,6 +1,7 @@
 package data
 
 import (
+	"github.com/bwmarrin/snowflake"
 	"github.com/go-kratos/kratos/v2/registry"
 	"github.com/go-redis/redis"
 	"github.com/stellarisJAY/nesgo/backend/app/room/internal/conf"
@@ -22,10 +23,11 @@ type Data struct {
 	etcdCli   *etcdAPI.Client
 	logger    *log.Helper
 	discovery registry.Discovery
+	snowflake *snowflake.Node
 }
 
 // NewData .
-func NewData(c *conf.Data, etcdCli *etcdAPI.Client, discovery registry.Discovery, logger log.Logger) (*Data, func(), error) {
+func NewData(c *conf.Data, sc *conf.Server, etcdCli *etcdAPI.Client, discovery registry.Discovery, logger log.Logger) (*Data, func(), error) {
 	logHelper := log.NewHelper(log.With(logger, "module", "data"))
 	db, err := gorm.Open(mysql.Open(c.Database.Source))
 	if err != nil {
@@ -47,7 +49,7 @@ func NewData(c *conf.Data, etcdCli *etcdAPI.Client, discovery registry.Discovery
 	rdb := redis.NewClient(&redis.Options{
 		Addr: c.Redis.Addr,
 	})
-
+	node, _ := snowflake.NewNode(sc.NodeId)
 	cleanup := func() {
 		logHelper.Info("closing the data resources")
 		_ = rdb.Close()
@@ -58,5 +60,6 @@ func NewData(c *conf.Data, etcdCli *etcdAPI.Client, discovery registry.Discovery
 		etcdCli:   etcdCli,
 		logger:    logHelper,
 		discovery: discovery,
+		snowflake: node,
 	}, cleanup, nil
 }

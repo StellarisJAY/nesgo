@@ -53,6 +53,9 @@ type RoomRepo interface {
 	GetOrCreateRoomSession(ctx context.Context, roomId int64) (*RoomSession, bool, error)
 	GetRoomSession(ctx context.Context, roomId int64) (*RoomSession, error)
 	RemoveRoomSession(ctx context.Context, roomId int64) error
+	GetOwnedRoom(ctx context.Context, name string, host int64) (*Room, error)
+	CountMember(ctx context.Context, roomId int64) (int64, error)
+	ListMembers(ctx context.Context, roomId int64) ([]*RoomMember, error)
 }
 
 type RoomUseCase struct {
@@ -68,6 +71,10 @@ func NewRoomUseCase(rr RoomRepo, logger log.Logger) *RoomUseCase {
 }
 
 func (uc *RoomUseCase) CreateRoom(ctx context.Context, room *Room) error {
+	r, _ := uc.rr.GetOwnedRoom(ctx, room.Name, room.Host)
+	if r != nil {
+		return v1.ErrorCreateRoomFailed("room already exists")
+	}
 	if room.Private {
 		room.Password = generatePassword(4)
 	}
@@ -86,33 +93,46 @@ func (uc *RoomUseCase) GetRoom(ctx context.Context, id int64) (*Room, error) {
 	if err != nil {
 		return nil, v1.ErrorGetRoomFailed("database error: %v", err)
 	}
+	memberCount, err := uc.rr.CountMember(ctx, room.Id)
+	if err != nil {
+		return nil, v1.ErrorGetRoomFailed("database error: %v", err)
+	}
+	room.MemberCount = int(memberCount)
 	return room, nil
 }
 
 func (uc *RoomUseCase) ListRooms(ctx context.Context, page int, pageSize int) ([]*Room, int, error) {
 	rooms, total, err := uc.rr.ListRooms(ctx, page, pageSize)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return make([]*Room, 0), 0, nil
-	}
 	if err != nil {
 		return nil, 0, v1.ErrorGetRoomFailed("database error: %v", err)
+	}
+	for _, room := range rooms {
+		memberCount, err := uc.rr.CountMember(ctx, room.Id)
+		if err != nil {
+			return nil, 0, v1.ErrorGetRoomFailed("database error: %v", err)
+		}
+		room.MemberCount = int(memberCount)
 	}
 	return rooms, total, nil
 }
 
 func (uc *RoomUseCase) ListJoinedRooms(ctx context.Context, userId int64, page int, pageSize int) ([]*JoinedRoom, int, error) {
 	rooms, total, err := uc.rr.ListJoinedRooms(ctx, userId, page, pageSize)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return make([]*JoinedRoom, 0), 0, nil
-	}
 	if err != nil {
 		return nil, 0, v1.ErrorGetRoomFailed("database error: %v", err)
+	}
+	for _, room := range rooms {
+		memberCount, err := uc.rr.CountMember(ctx, room.Id)
+		if err != nil {
+			return nil, 0, v1.ErrorGetRoomFailed("database error: %v", err)
+		}
+		room.MemberCount = int(memberCount)
 	}
 	return rooms, total, nil
 }
 
 func (uc *RoomUseCase) JoinRoom(ctx context.Context, userId int64, roomId int64, password string) error {
-	member, _ := uc.rr.GetRoomMember(ctx, userId, roomId)
+	member, _ := uc.rr.GetRoomMember(ctx, roomId, userId)
 	if member == nil {
 		room, err := uc.rr.GetRoom(ctx, roomId)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -165,6 +185,14 @@ func (uc *RoomUseCase) RemoveRoomSession(ctx context.Context, roomId int64) erro
 		return v1.ErrorGetRoomFailed("remove room session failed: %v", err)
 	}
 	return nil
+}
+
+func (uc *RoomUseCase) ListRoomMembers(ctx context.Context, roomId int64) ([]*RoomMember, error) {
+	members, err := uc.rr.ListMembers(ctx, roomId)
+	if err != nil {
+		return nil, v1.ErrorGetRoomFailed("database error: %v", err)
+	}
+	return members, nil
 }
 
 func generatePassword(length int) string {

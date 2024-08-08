@@ -9,6 +9,7 @@ import (
 	"github.com/go-redis/redis"
 	"github.com/stellarisJAY/nesgo/backend/app/user/internal/biz"
 	"gorm.io/gorm"
+	"time"
 )
 
 type userRepo struct {
@@ -17,10 +18,12 @@ type userRepo struct {
 }
 
 type User struct {
-	gorm.Model
-	Id       int64  `gorm:"primaryKey;autoIncrement:false" json:"id"`
-	Name     string `gorm:"size:255" json:"name"`
-	Password string `gorm:"size:255" json:"password"`
+	Id        int64  `gorm:"primaryKey;autoIncrement:false" json:"id"`
+	Name      string `gorm:"size:255" json:"name"`
+	Password  string `gorm:"size:255" json:"password"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
 func NewUserRepo(data *Data, logger log.Logger) biz.UserRepo {
@@ -58,12 +61,13 @@ func (u *userRepo) GetUser(ctx context.Context, id int64) (*biz.User, error) {
 
 func (u *userRepo) CreateUser(ctx context.Context, user *biz.User) error {
 	model := &User{
-		Model:    gorm.Model{},
-		Id:       0,
-		Name:     user.Name,
-		Password: user.Password,
+		Id:        u.data.snowflake.Generate().Int64(),
+		Name:      user.Name,
+		Password:  user.Password,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
-	err := u.data.db.Model(model).Create(model).Error
+	err := u.data.db.Model(model).WithContext(ctx).Create(model).Error
 	return err
 }
 

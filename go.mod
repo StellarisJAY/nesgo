@@ -3,12 +3,13 @@ module github.com/stellarisJAY/nesgo
 go 1.21
 
 require (
+	github.com/bwmarrin/snowflake v0.3.0
 	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-kratos/kratos/contrib/registry/etcd/v2 v2.0.0-20240725023016-d6fca5e3e984
 	github.com/go-kratos/kratos/v2 v2.8.0
 	github.com/go-redis/redis v6.15.9+incompatible
-	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/golang-jwt/jwt/v5 v5.1.0
 	github.com/golang/protobuf v1.5.4
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.6.0

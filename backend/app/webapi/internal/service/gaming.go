@@ -2,11 +2,15 @@ package service
 
 import (
 	"context"
+	"github.com/go-kratos/kratos/v2/middleware/auth/jwt"
 	v1 "github.com/stellarisJAY/nesgo/backend/api/app/webapi/v1"
+	"github.com/stellarisJAY/nesgo/backend/app/webapi/internal/biz"
 )
 
 func (ws *WebApiService) OpenGameConnection(ctx context.Context, request *v1.OpenGameConnectionRequest) (*v1.OpenGameConnectionResponse, error) {
-	sdpOffer, err := ws.gc.OpenGameConnection(ctx, request.RoomId, request.UserId)
+	c, _ := jwt.FromContext(ctx)
+	claims := c.(*biz.LoginClaims)
+	sdpOffer, err := ws.gc.OpenGameConnection(ctx, request.RoomId, claims.UserId)
 	if err != nil {
 		return nil, err
 	}
@@ -18,7 +22,9 @@ func (ws *WebApiService) OpenGameConnection(ctx context.Context, request *v1.Ope
 }
 
 func (ws *WebApiService) SDPAnswer(ctx context.Context, request *v1.SDPAnswerRequest) (*v1.SDPAnswerResponse, error) {
-	err := ws.gc.SDPAnswer(ctx, request.RoomId, request.UserId, request.SdpAnswer)
+	c, _ := jwt.FromContext(ctx)
+	claims := c.(*biz.LoginClaims)
+	err := ws.gc.SDPAnswer(ctx, request.RoomId, claims.UserId, request.SdpAnswer)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +35,9 @@ func (ws *WebApiService) SDPAnswer(ctx context.Context, request *v1.SDPAnswerReq
 }
 
 func (ws *WebApiService) AddICECandidate(ctx context.Context, request *v1.AddICECandidateRequest) (*v1.AddICECandidateResponse, error) {
-	err := ws.gc.AddICECandidate(ctx, request.RoomId, request.UserId, request.Candidate)
+	c, _ := jwt.FromContext(ctx)
+	claims := c.(*biz.LoginClaims)
+	err := ws.gc.AddICECandidate(ctx, request.RoomId, claims.UserId, request.Candidate)
 	if err != nil {
 		return nil, err
 	}

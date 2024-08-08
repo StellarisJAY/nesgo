@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
@@ -12,6 +13,7 @@ import (
 	"github.com/stellarisJAY/nesgo/backend/app/room/internal/biz"
 	etcdAPI "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
+	"gorm.io/gorm"
 	"math/rand"
 	"net/url"
 	"time"
@@ -23,7 +25,7 @@ type roomRepo struct {
 }
 
 type Room struct {
-	Id           int64     `gorm:"primary_key;auto_increment"`
+	Id           int64     `gorm:"primary_key"`
 	Name         string    `gorm:"size:255"`
 	Host         int64     `gorm:"not null"`
 	Private      bool      `gorm:"not null"`
@@ -41,16 +43,8 @@ type RoomMember struct {
 }
 
 type JoinedRoom struct {
-	Name         string    `gorm:"size:255"`
-	Host         int64     `gorm:"not null"`
-	Private      bool      `gorm:"not null"`
-	PasswordHash string    `gorm:"size:255"`
-	PasswordReal string    `gorm:"size:16"`
-	CreatedAt    time.Time `gorm:"column:created_at"`
-	RoomId       int64     `gorm:"not null;"`
-	UserId       int64     `gorm:"not null;"`
-	Role         int       `gorm:"not null"`
-	JoinedAt     time.Time `gorm:"column:joined_at"`
+	Room
+	RoomMember
 }
 
 func NewRoomRepo(data *Data, logger log.Logger) biz.RoomRepo {
@@ -61,27 +55,37 @@ func NewRoomRepo(data *Data, logger log.Logger) biz.RoomRepo {
 }
 
 func (r *roomRepo) CreateRoom(ctx context.Context, room *biz.Room) error {
+	room.Id = r.data.snowflake.Generate().Int64()
 	roomModel := Room{
 		Name:    room.Name,
 		Host:    room.Host,
 		Private: room.Private,
+		Id:      room.Id,
 	}
 	if roomModel.Private {
 		hashPassword := hex.EncodeToString(md5.New().Sum([]byte(room.Password)))
 		roomModel.PasswordHash = hashPassword
 		roomModel.PasswordReal = room.Password
 	}
-	return r.data.db.Model(&roomModel).WithContext(ctx).Create(&roomModel).Error
+	member := &RoomMember{
+		Id:       r.data.snowflake.Generate().Int64(),
+		RoomId:   room.Id,
+		UserId:   room.Host,
+		Role:     0,
+		JoinedAt: time.Now(),
+	}
+	return r.data.db.Transaction(func(tx *gorm.DB) error {
+		err := tx.Model(&roomModel).WithContext(ctx).Create(&roomModel).Error
+		if err != nil {
+			return err
+		}
+		return tx.Model(member).Create(member).WithContext(ctx).Error
+	})
 }
 
 func (r *roomRepo) GetRoom(ctx context.Context, id int64) (*biz.Room, error) {
 	room := Room{}
 	if err := r.data.db.Model(&room).WithContext(ctx).Where("id =?", id).First(&room).Error; err != nil {
-		return nil, err
-	}
-	var memberCount int64 = 0
-	err := r.data.db.Model(&Room{}).WithContext(ctx).Where("room_id=?", id).Count(&memberCount).Error
-	if err != nil {
 		return nil, err
 	}
 	return room.ToBizRoom(), nil
@@ -100,6 +104,9 @@ func (r *roomRepo) ListRooms(ctx context.Context, page int, pageSize int) ([]*bi
 		Limit(pageSize).
 		Find(&rooms).
 		Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, int(total), nil
+	}
 	if err != nil {
 		return nil, 0, err
 	}
@@ -118,12 +125,16 @@ func (r *roomRepo) ListJoinedRooms(ctx context.Context, userId int64, page int, 
 		return nil, 0, err
 	}
 	err = r.data.db.Model(&RoomMember{}).
-		InnerJoins("room on room.id = room_member.room_id").
-		Where("room_member.user_id = ?", userId).
+		InnerJoins("JOIN `rooms` on rooms.id = room_members.room_id").
+		Where("room_members.user_id = ?", userId).
 		Offset(page * pageSize).
 		Limit(pageSize).
+		Select("room_members.*, rooms.*").
 		Find(&joinedRooms).
 		WithContext(ctx).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, int(total), nil
+	}
 	if err != nil {
 		return nil, 0, err
 	}
@@ -145,6 +156,19 @@ func (r *roomRepo) GetRoomMember(ctx context.Context, roomId int64, userId int64
 		return nil, err
 	}
 	return member.ToBizRoomMember(), nil
+}
+
+func (r *roomRepo) CountMember(ctx context.Context, roomId int64) (int64, error) {
+	var count int64 = 0
+	err := r.data.db.Model(&RoomMember{}).
+		Where("room_id =?", roomId).
+		Count(&count).
+		WithContext(ctx).
+		Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
 
 func roomSessionKey(roomId int64) string {
@@ -239,9 +263,35 @@ func (r *roomRepo) RemoveRoomSession(ctx context.Context, roomId int64) error {
 	panic("implement me")
 }
 
+func (r *roomRepo) GetOwnedRoom(ctx context.Context, name string, host int64) (*biz.Room, error) {
+	roomModel := &Room{}
+	err := r.data.db.Model(roomModel).Where("name = ? AND host = ?", name, host).WithContext(ctx).First(&roomModel).Error
+	if err != nil {
+		return nil, err
+	}
+	return roomModel.ToBizRoom(), nil
+}
+
+func (r *roomRepo) ListMembers(ctx context.Context, roomId int64) ([]*biz.RoomMember, error) {
+	var members []*RoomMember
+	err := r.data.db.Model(&RoomMember{}).
+		Where("room_id = ?", roomId).
+		WithContext(ctx).
+		Find(&members).
+		Error
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*biz.RoomMember, 0, len(members))
+	for _, member := range members {
+		result = append(result, member.ToBizRoomMember())
+	}
+	return result, nil
+}
+
 func (r *roomRepo) AddRoomMember(ctx context.Context, member *biz.RoomMember) error {
 	memberModel := &RoomMember{
-		Id:       0,
+		Id:       r.data.snowflake.Generate().Int64(),
 		RoomId:   member.RoomId,
 		UserId:   member.UserId,
 		Role:     member.Role,
@@ -262,17 +312,19 @@ func (m *RoomMember) ToBizRoomMember() *biz.RoomMember {
 
 func (r *Room) ToBizRoom() *biz.Room {
 	return &biz.Room{
-		Id:       r.Id,
-		Name:     r.Name,
-		Host:     r.Host,
-		Private:  r.Private,
-		Password: r.PasswordReal,
+		Id:           r.Id,
+		Name:         r.Name,
+		Host:         r.Host,
+		Private:      r.Private,
+		Password:     r.PasswordReal,
+		PasswordHash: r.PasswordHash,
 	}
 }
 
 func (jr *JoinedRoom) ToBizJoinedRoom() *biz.JoinedRoom {
 	return &biz.JoinedRoom{
 		Room: biz.Room{
+			Id:           jr.RoomId,
 			Name:         jr.Name,
 			Host:         jr.Host,
 			Private:      jr.Private,

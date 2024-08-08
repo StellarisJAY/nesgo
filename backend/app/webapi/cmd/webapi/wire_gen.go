@@ -34,7 +34,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, registry *conf.Regist
 	userUseCase := biz.NewUserUseCase(userRepo, logger)
 	authUseCase := biz.NewAuthUseCase(userRepo, auth, logger)
 	roomRepo := data.NewRoomRepo(dataData, logger)
-	roomUseCase := biz.NewRoomUseCase(roomRepo, logger)
+	roomUseCase := biz.NewRoomUseCase(roomRepo, userRepo, logger)
 	gamingRepo := data.NewGamingRepo(dataData, logger)
 	gamingUseCase := biz.NewGamingUseCase(roomRepo, gamingRepo, logger)
 	webApiService := service.NewWebApiService(userUseCase, authUseCase, roomUseCase, gamingUseCase, logger)

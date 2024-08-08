@@ -54,13 +54,56 @@ func (r *RoomService) GetRoom(ctx context.Context, request *v1.GetRoomRequest) (
 }
 
 func (r *RoomService) ListRoomMembers(ctx context.Context, request *v1.ListRoomMemberRequest) (*v1.ListRoomMemberResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	members, err := r.ruc.ListRoomMembers(ctx, request.Id)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*v1.RoomMember, 0, len(members))
+	for _, m := range members {
+		result = append(result, &v1.RoomMember{
+			UserId:   m.UserId,
+			Role:     int32(m.Role),
+			JoinedAt: m.JoinedAt.UnixMilli(),
+		})
+	}
+	return &v1.ListRoomMemberResponse{Members: result}, nil
 }
 
 func (r *RoomService) ListRooms(ctx context.Context, request *v1.ListRoomsRequest) (*v1.ListRoomsResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	if request.Joined {
+		rooms, total, err := r.ruc.ListJoinedRooms(ctx, request.UserId, int(request.Page), int(request.PageSize))
+		if err != nil {
+			return nil, err
+		}
+		result := make([]*v1.GetRoomResponse, 0, len(rooms))
+		for _, room := range rooms {
+			result = append(result, &v1.GetRoomResponse{
+				Id:          room.Id,
+				Name:        room.Name,
+				Host:        room.Host,
+				Private:     room.Private,
+				MemberCount: int32(room.MemberCount),
+				Role:        int32(room.Role),
+			})
+		}
+		return &v1.ListRoomsResponse{Rooms: result, Total: int32(total)}, nil
+	} else {
+		rooms, total, err := r.ruc.ListRooms(ctx, int(request.Page), int(request.PageSize))
+		if err != nil {
+			return nil, err
+		}
+		result := make([]*v1.GetRoomResponse, 0, len(rooms))
+		for _, room := range rooms {
+			result = append(result, &v1.GetRoomResponse{
+				Id:          room.Id,
+				Name:        room.Name,
+				Host:        room.Host,
+				Private:     room.Private,
+				MemberCount: int32(room.MemberCount),
+			})
+		}
+		return &v1.ListRoomsResponse{Rooms: result, Total: int32(total)}, nil
+	}
 }
 
 func (r *RoomService) JoinRoom(ctx context.Context, request *v1.JoinRoomRequest) (*v1.JoinRoomResponse, error) {
