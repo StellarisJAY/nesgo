@@ -19,11 +19,28 @@ service WebApi {
       body: "*"
     };
   }
-  rpc ListMyRooms(ListMyRoomsRequest) returns (ListMyRoomResponse) {
+  rpc ListMyRooms(ListRoomRequest) returns (ListRoomResponse) {
     option (google.api.http) = {
       get: "/api/v1/rooms/joined"
     };
   }
+  rpc ListAllRooms(ListRoomRequest) returns (ListRoomResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/rooms"
+    };
+  }
+  rpc CreateRoom(CreateRoomRequest) returns (CreateRoomResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/room"
+      body: "*"
+    };
+  }
+  rpc GetRoom(GetRoomRequest) returns (GetRoomResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/room/{id}"
+    };
+  }
+
   rpc GetUser(GetUserRequest) returns (GetUserResponse) {
     option (google.api.http) = {
       get: "/api/v1/user/{id}"
@@ -50,6 +67,17 @@ service WebApi {
   rpc AddICECandidate(AddICECandidateRequest) returns (AddICECandidateResponse) {
     option (google.api.http) = {
       post: "/api/v1/game/ice"
+      body: "*"
+    };
+  }
+  rpc ListMembers(ListMemberRequest) returns (ListMemberResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/members"
+    };
+  }
+  rpc JoinRoom(JoinRoomRequest) returns (JoinRoomResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/room/{roomId}/join"
       body: "*"
     };
   }
@@ -87,7 +115,7 @@ message Room {
   int64 host = 3;
   string hostName = 4;
   bool private = 5;
-  int32 members = 6;
+  int32 memberCount = 6;
   int32 role = 7;
 }
 
@@ -96,15 +124,14 @@ message User {
   string name = 2;
 }
 
-message ListMyRoomsRequest {
+message ListRoomRequest {
   int32 page = 1;
   int32 pageSize = 2;
 }
 
-message ListMyRoomResponse {
+message ListRoomResponse {
   repeated Room rooms = 1;
   int32 total = 2;
-  int32 totalPage = 3;
 }
 
 message GetRoomSessionRequest {
@@ -148,4 +175,56 @@ message AddICECandidateRequest {
 message AddICECandidateResponse {
   int64 roomId = 1;
   int64 userId = 2;
+}
+
+message CreateRoomRequest {
+  string name = 1;
+  bool private = 2;
+}
+
+message CreateRoomResponse {
+  int64 id = 1;
+  string name = 2;
+  int64 host = 3;
+  bool private = 4;
+  string password = 5;
+}
+
+message GetRoomRequest {
+  int64 id = 1;
+}
+
+message GetRoomResponse {
+  int64 id = 1;
+  string name = 2;
+  bool private = 3;
+  int64 host = 4;
+  string hostName = 5;
+  int32 memberCount = 6;
+}
+
+message Member {
+  int64 userId = 1;
+  string name = 2;
+  int32 role = 3;
+  int64 joinedAt = 4;
+}
+
+message ListMemberRequest {
+  int64 roomId = 1;
+}
+
+message ListMemberResponse {
+  repeated Member members = 1;
+}
+
+message JoinRoomRequest {
+  int64 roomId = 1;
+  string password = 2;
+}
+
+message JoinRoomResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+  int32 role = 3;
 }
