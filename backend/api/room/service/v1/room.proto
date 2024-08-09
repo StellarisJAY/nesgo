@@ -14,6 +14,8 @@ service Room {
   rpc JoinRoom(JoinRoomRequest) returns (JoinRoomResponse) {}
   rpc GetRoomSession(GetRoomSessionRequest) returns (GetRoomSessionResponse) {}
   rpc RemoveRoomSession(RemoveRoomSessionRequest) returns (RemoveRoomSessionResponse) {}
+  rpc DeleteRoom(DeleteRoomRequest) returns (DeleteRoomResponse) {}
+  rpc UpdateRoom(UpdateRoomRequest) returns (UpdateRoomResponse) {}
 }
 
 enum RoomRole {
@@ -107,4 +109,27 @@ message RemoveRoomSessionRequest {
 
 message RemoveRoomSessionResponse {
 
+}
+
+message DeleteRoomRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message DeleteRoomResponse {
+
+}
+
+message UpdateRoomRequest {
+  int64 roomId = 1;
+  string name = 2;
+  bool private = 3;
+  int64 userId = 4;
+}
+
+message UpdateRoomResponse {
+  int64 roomId = 1;
+  string name = 2;
+  bool private = 3;
+  string password = 4;
 }

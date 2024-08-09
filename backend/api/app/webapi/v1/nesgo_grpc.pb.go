@@ -32,6 +32,8 @@ const (
 	WebApi_AddICECandidate_FullMethodName    = "/nesgo.webapi.v1.WebApi/AddICECandidate"
 	WebApi_ListMembers_FullMethodName        = "/nesgo.webapi.v1.WebApi/ListMembers"
 	WebApi_JoinRoom_FullMethodName           = "/nesgo.webapi.v1.WebApi/JoinRoom"
+	WebApi_DeleteRoom_FullMethodName         = "/nesgo.webapi.v1.WebApi/DeleteRoom"
+	WebApi_UpdateRoom_FullMethodName         = "/nesgo.webapi.v1.WebApi/UpdateRoom"
 )
 
 // WebApiClient is the client API for WebApi service.
@@ -51,6 +53,8 @@ type WebApiClient interface {
 	AddICECandidate(ctx context.Context, in *AddICECandidateRequest, opts ...grpc.CallOption) (*AddICECandidateResponse, error)
 	ListMembers(ctx context.Context, in *ListMemberRequest, opts ...grpc.CallOption) (*ListMemberResponse, error)
 	JoinRoom(ctx context.Context, in *JoinRoomRequest, opts ...grpc.CallOption) (*JoinRoomResponse, error)
+	DeleteRoom(ctx context.Context, in *DeleteRoomRequest, opts ...grpc.CallOption) (*DeleteRoomResponse, error)
+	UpdateRoom(ctx context.Context, in *UpdateRoomRequest, opts ...grpc.CallOption) (*UpdateRoomResponse, error)
 }
 
 type webApiClient struct {
@@ -191,6 +195,26 @@ func (c *webApiClient) JoinRoom(ctx context.Context, in *JoinRoomRequest, opts .
 	return out, nil
 }
 
+func (c *webApiClient) DeleteRoom(ctx context.Context, in *DeleteRoomRequest, opts ...grpc.CallOption) (*DeleteRoomResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteRoomResponse)
+	err := c.cc.Invoke(ctx, WebApi_DeleteRoom_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *webApiClient) UpdateRoom(ctx context.Context, in *UpdateRoomRequest, opts ...grpc.CallOption) (*UpdateRoomResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateRoomResponse)
+	err := c.cc.Invoke(ctx, WebApi_UpdateRoom_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WebApiServer is the server API for WebApi service.
 // All implementations must embed UnimplementedWebApiServer
 // for forward compatibility.
@@ -208,6 +232,8 @@ type WebApiServer interface {
 	AddICECandidate(context.Context, *AddICECandidateRequest) (*AddICECandidateResponse, error)
 	ListMembers(context.Context, *ListMemberRequest) (*ListMemberResponse, error)
 	JoinRoom(context.Context, *JoinRoomRequest) (*JoinRoomResponse, error)
+	DeleteRoom(context.Context, *DeleteRoomRequest) (*DeleteRoomResponse, error)
+	UpdateRoom(context.Context, *UpdateRoomRequest) (*UpdateRoomResponse, error)
 	mustEmbedUnimplementedWebApiServer()
 }
 
@@ -256,6 +282,12 @@ func (UnimplementedWebApiServer) ListMembers(context.Context, *ListMemberRequest
 }
 func (UnimplementedWebApiServer) JoinRoom(context.Context, *JoinRoomRequest) (*JoinRoomResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method JoinRoom not implemented")
+}
+func (UnimplementedWebApiServer) DeleteRoom(context.Context, *DeleteRoomRequest) (*DeleteRoomResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteRoom not implemented")
+}
+func (UnimplementedWebApiServer) UpdateRoom(context.Context, *UpdateRoomRequest) (*UpdateRoomResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateRoom not implemented")
 }
 func (UnimplementedWebApiServer) mustEmbedUnimplementedWebApiServer() {}
 func (UnimplementedWebApiServer) testEmbeddedByValue()                {}
@@ -512,6 +544,42 @@ func _WebApi_JoinRoom_Handler(srv interface{}, ctx context.Context, dec func(int
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WebApi_DeleteRoom_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRoomRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).DeleteRoom(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_DeleteRoom_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).DeleteRoom(ctx, req.(*DeleteRoomRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WebApi_UpdateRoom_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateRoomRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).UpdateRoom(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_UpdateRoom_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).UpdateRoom(ctx, req.(*UpdateRoomRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WebApi_ServiceDesc is the grpc.ServiceDesc for WebApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -570,6 +638,14 @@ var WebApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "JoinRoom",
 			Handler:    _WebApi_JoinRoom_Handler,
+		},
+		{
+			MethodName: "DeleteRoom",
+			Handler:    _WebApi_DeleteRoom_Handler,
+		},
+		{
+			MethodName: "UpdateRoom",
+			Handler:    _WebApi_UpdateRoom_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

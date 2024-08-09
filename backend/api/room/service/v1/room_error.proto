@@ -15,4 +15,5 @@ enum UserServiceErrorReason {
   GET_ROOM_FAILED = 5;
   JOIN_ROOM_FAILED = 6;
   CREATE_ROOM_SESSION_FAILED = 7;
+  UPDATE_ROOM_FAILED = 8;
 }
