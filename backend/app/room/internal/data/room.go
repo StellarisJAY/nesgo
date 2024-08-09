@@ -185,7 +185,7 @@ func roomSessionLockKey(roomId int64) string {
 
 // GetOrCreateRoomSession 获取或创建房间会话
 // 从所有模拟器节点选择一个作为目标节点，在目标节点创建模拟器实例，并保存房间ID与目标节点映射
-func (r *roomRepo) GetOrCreateRoomSession(ctx context.Context, roomId int64) (*biz.RoomSession, bool, error) {
+func (r *roomRepo) GetOrCreateRoomSession(ctx context.Context, roomId int64, game string) (*biz.RoomSession, bool, error) {
 	key := roomSessionKey(roomId)
 	lockKey := roomSessionLockKey(roomId)
 	// 分布式锁，避免同时创建多个session
@@ -227,7 +227,7 @@ func (r *roomRepo) GetOrCreateRoomSession(ctx context.Context, roomId int64) (*b
 	defer conn.Close()
 	instance, err := gamingAPI.NewGamingClient(conn).CreateGameInstance(ctx, &gamingAPI.CreateGameInstanceRequest{
 		RoomId: roomId,
-		Game:   "SuperMario.nes",
+		Game:   game,
 	})
 	if err != nil {
 		return nil, false, err
@@ -324,11 +324,41 @@ func (r *roomRepo) AddRoomMember(ctx context.Context, member *biz.RoomMember, ro
 }
 
 func (r *roomRepo) DeleteRoom(ctx context.Context, roomId int64) error {
-	return r.data.db.
-		Delete(&Room{}).
-		Where("id=?", roomId).
-		WithContext(ctx).
-		Error
+	session, err := r.GetRoomSession(ctx, roomId)
+	if err != nil {
+		return err
+	}
+
+	return r.data.db.Transaction(func(tx *gorm.DB) error {
+		if session != nil {
+			conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(session.Endpoint))
+			if err != nil {
+				return err
+			}
+			defer conn.Close()
+			_, err = gamingAPI.NewGamingClient(conn).DeleteGameInstance(ctx, &gamingAPI.DeleteGameInstanceRequest{
+				RoomId: roomId,
+				Force:  false,
+			})
+			if err != nil {
+				return err
+			}
+			err = r.RemoveRoomSession(ctx, roomId)
+			if err != nil {
+				return err
+			}
+		}
+		err = tx.Where("room_id = ?", roomId).Delete(&RoomMember{}).WithContext(ctx).Error
+		if err != nil {
+			return err
+		}
+		return tx.
+			Where("id = ?", roomId).
+			Delete(&Room{}).
+			WithContext(ctx).
+			Error
+	})
+
 }
 
 func (r *roomRepo) UpdateRoom(ctx context.Context, room *biz.Room) error {

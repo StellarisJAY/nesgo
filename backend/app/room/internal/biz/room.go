@@ -52,13 +52,14 @@ type RoomRepo interface {
 	ListJoinedRooms(ctx context.Context, userId int64, page int, pageSize int) ([]*JoinedRoom, int, error)
 	GetRoomMember(ctx context.Context, roomId int64, userId int64) (*RoomMember, error)
 	AddRoomMember(ctx context.Context, member *RoomMember, room *Room) error
-	GetOrCreateRoomSession(ctx context.Context, roomId int64) (*RoomSession, bool, error)
+	GetOrCreateRoomSession(ctx context.Context, roomId int64, game string) (*RoomSession, bool, error)
 	GetRoomSession(ctx context.Context, roomId int64) (*RoomSession, error)
 	RemoveRoomSession(ctx context.Context, roomId int64) error
 	GetOwnedRoom(ctx context.Context, name string, host int64) (*Room, error)
 	CountMember(ctx context.Context, roomId int64) (int64, error)
 	ListMembers(ctx context.Context, roomId int64) ([]*RoomMember, error)
 	UpdateRoom(ctx context.Context, room *Room) error
+	DeleteRoom(ctx context.Context, roomId int64) error
 }
 
 var ErrMemberLimitReached = errors.New("member limit reached")
@@ -171,6 +172,10 @@ func (uc *RoomUseCase) JoinRoom(ctx context.Context, userId int64, roomId int64,
 }
 
 func (uc *RoomUseCase) GetRoomSession(ctx context.Context, roomId, userId int64, game string) (*RoomSession, error) {
+	member, _ := uc.rr.GetRoomMember(ctx, roomId, userId)
+	if member == nil {
+		return nil, v1.ErrorRoomNotAccessible("not a member of this room")
+	}
 	session, err := uc.rr.GetRoomSession(ctx, roomId)
 	if session != nil {
 		return session, nil
@@ -178,7 +183,7 @@ func (uc *RoomUseCase) GetRoomSession(ctx context.Context, roomId, userId int64,
 	if err != nil {
 		return nil, v1.ErrorGetRoomFailed("consul kv error: %v", err)
 	}
-	session, _, err = uc.rr.GetOrCreateRoomSession(ctx, roomId)
+	session, _, err = uc.rr.GetOrCreateRoomSession(ctx, roomId, game)
 	if err != nil {
 		return nil, v1.ErrorGetRoomFailed("create session error: %v", err)
 	}
@@ -205,7 +210,17 @@ func (uc *RoomUseCase) ListRoomMembers(ctx context.Context, roomId int64) ([]*Ro
 }
 
 func (uc *RoomUseCase) DeleteRoom(ctx context.Context, roomId, userId int64) error {
-	panic("implement me")
+	room, err := uc.rr.GetRoom(ctx, roomId)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return v1.ErrorRoomNotFound("room not found")
+	}
+	if err != nil {
+		return v1.ErrorGetRoomFailed("database error: %v", err)
+	}
+	if room.Host != userId {
+		return v1.ErrorDeleteRoomFailed("you are not the owner of this room")
+	}
+	return uc.rr.DeleteRoom(ctx, roomId)
 }
 
 func (uc *RoomUseCase) UpdateRoom(ctx context.Context, room *Room, userId int64) error {

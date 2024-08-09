@@ -20,10 +20,11 @@ func NewRoomRepo(data *Data, logger log.Logger) biz.RoomRepo {
 	}
 }
 
-func (r *roomRepo) GetRoomSession(ctx context.Context, roomId, userId int64) (*biz.RoomSession, error) {
+func (r *roomRepo) GetRoomSession(ctx context.Context, roomId, userId int64, game string) (*biz.RoomSession, error) {
 	response, err := r.data.rc.GetRoomSession(ctx, &roomAPI.GetRoomSessionRequest{
-		RoomId: roomId,
-		UserId: userId,
+		RoomId:       roomId,
+		UserId:       userId,
+		SelectedGame: game,
 	})
 	if err != nil {
 		return nil, err
@@ -158,5 +159,16 @@ func (r *roomRepo) UpdateRoom(ctx context.Context, room *biz.Room, userId int64)
 		return err
 	}
 	room.Password = response.Password
+	return nil
+}
+
+func (r *roomRepo) DeleteRoom(ctx context.Context, roomId, userId int64) error {
+	_, err := r.data.rc.DeleteRoom(ctx, &roomAPI.DeleteRoomRequest{
+		RoomId: roomId,
+		UserId: userId,
+	})
+	if err != nil {
+		return err
+	}
 	return nil
 }

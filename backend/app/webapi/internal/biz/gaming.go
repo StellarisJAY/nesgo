@@ -24,9 +24,9 @@ func NewGamingUseCase(roomRepo RoomRepo, gamingRepo GamingRepo, logger log.Logge
 	}
 }
 
-func (uc *GamingUseCase) OpenGameConnection(ctx context.Context, roomId int64, userId int64) (string, error) {
+func (uc *GamingUseCase) OpenGameConnection(ctx context.Context, roomId int64, userId int64, game string) (string, error) {
 	// 调用房间服务，获取房间模拟器会话地址
-	session, err := uc.roomRepo.GetRoomSession(ctx, roomId, userId)
+	session, err := uc.roomRepo.GetRoomSession(ctx, roomId, userId, game)
 	if err != nil {
 		return "", err
 	}
@@ -46,7 +46,7 @@ func (uc *GamingUseCase) OpenGameConnection(ctx context.Context, roomId int64, u
 }
 
 func (uc *GamingUseCase) SDPAnswer(ctx context.Context, roomId, userId int64, sdpAnswer string) error {
-	session, err := uc.roomRepo.GetRoomSession(ctx, roomId, userId)
+	session, err := uc.roomRepo.GetRoomSession(ctx, roomId, userId, "")
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (uc *GamingUseCase) SDPAnswer(ctx context.Context, roomId, userId int64, sd
 }
 
 func (uc *GamingUseCase) AddICECandidate(ctx context.Context, roomId, userId int64, candidate string) error {
-	session, err := uc.roomRepo.GetRoomSession(ctx, roomId, userId)
+	session, err := uc.roomRepo.GetRoomSession(ctx, roomId, userId, "")
 	if err != nil {
 		return err
 	}

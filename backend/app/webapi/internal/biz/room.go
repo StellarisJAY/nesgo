@@ -43,7 +43,7 @@ type JoinedRoom struct {
 }
 
 type RoomRepo interface {
-	GetRoomSession(ctx context.Context, roomId, userId int64) (*RoomSession, error)
+	GetRoomSession(ctx context.Context, roomId, userId int64, game string) (*RoomSession, error)
 	CreateRoom(ctx context.Context, room *Room) error
 	GetRoom(ctx context.Context, roomId int64) (*Room, error)
 	ListJoinedRooms(ctx context.Context, userId int64, page, pageSize int) ([]*JoinedRoom, int, error)
@@ -51,6 +51,7 @@ type RoomRepo interface {
 	ListMembers(ctx context.Context, roomId int64) ([]*Member, error)
 	JoinRoom(ctx context.Context, roomId, userId int64, password string) error
 	UpdateRoom(ctx context.Context, room *Room, userId int64) error
+	DeleteRoom(ctx context.Context, roomId, userId int64) error
 }
 
 func NewRoomUseCase(repo RoomRepo, ur UserRepo, logger log.Logger) *RoomUseCase {
@@ -61,8 +62,8 @@ func NewRoomUseCase(repo RoomRepo, ur UserRepo, logger log.Logger) *RoomUseCase 
 	}
 }
 
-func (uc *RoomUseCase) GetRoomSession(ctx context.Context, roomId, userId int64) (*RoomSession, error) {
-	session, err := uc.repo.GetRoomSession(ctx, roomId, userId)
+func (uc *RoomUseCase) GetRoomSession(ctx context.Context, roomId, userId int64, game string) (*RoomSession, error) {
+	session, err := uc.repo.GetRoomSession(ctx, roomId, userId, game)
 	return session, err
 }
 
@@ -140,4 +141,8 @@ func (uc *RoomUseCase) JoinRoom(ctx context.Context, roomId, userId int64, passw
 
 func (uc *RoomUseCase) UpdateRoom(ctx context.Context, room *Room, userId int64) error {
 	return uc.repo.UpdateRoom(ctx, room, userId)
+}
+
+func (uc *RoomUseCase) DeleteRoom(ctx context.Context, roomId, userId int64) error {
+	return uc.repo.DeleteRoom(ctx, roomId, userId)
 }

@@ -10,7 +10,7 @@ import (
 func (ws *WebApiService) OpenGameConnection(ctx context.Context, request *v1.OpenGameConnectionRequest) (*v1.OpenGameConnectionResponse, error) {
 	c, _ := jwt.FromContext(ctx)
 	claims := c.(*biz.LoginClaims)
-	sdpOffer, err := ws.gc.OpenGameConnection(ctx, request.RoomId, claims.UserId)
+	sdpOffer, err := ws.gc.OpenGameConnection(ctx, request.RoomId, claims.UserId, request.Game)
 	if err != nil {
 		return nil, err
 	}

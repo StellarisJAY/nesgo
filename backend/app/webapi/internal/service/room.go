@@ -150,3 +150,13 @@ func (ws *WebApiService) UpdateRoom(ctx context.Context, request *v1.UpdateRoomR
 		Password: room.Password,
 	}, nil
 }
+
+func (ws *WebApiService) DeleteRoom(ctx context.Context, request *v1.DeleteRoomRequest) (*v1.DeleteRoomResponse, error) {
+	claims, _ := jwt.FromContext(ctx)
+	c := claims.(*biz.LoginClaims)
+	err := ws.rc.DeleteRoom(ctx, request.RoomId, c.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.DeleteRoomResponse{}, nil
+}

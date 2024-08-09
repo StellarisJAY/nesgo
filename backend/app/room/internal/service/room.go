@@ -157,3 +157,11 @@ func (r *RoomService) UpdateRoom(ctx context.Context, request *v1.UpdateRoomRequ
 		Password: room.Password,
 	}, nil
 }
+
+func (r *RoomService) DeleteRoom(ctx context.Context, request *v1.DeleteRoomRequest) (*v1.DeleteRoomResponse, error) {
+	err := r.ruc.DeleteRoom(ctx, request.RoomId, request.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.DeleteRoomResponse{}, nil
+}
