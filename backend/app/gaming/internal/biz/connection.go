@@ -91,3 +91,8 @@ func (c *Connection) OnPeerConnectionState(state webrtc.PeerConnectionState, ins
 func (c *Connection) OnICEStateChange(state webrtc.ICEConnectionState) {
 	// TODO Log ice state change
 }
+
+func (c *Connection) Close() {
+	_ = c.dataChannel.Close()
+	_ = c.pc.Close()
+}

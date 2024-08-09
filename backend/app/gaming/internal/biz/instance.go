@@ -10,6 +10,7 @@ import (
 	"github.com/stellarisJAY/nesgo/emulator"
 	"github.com/stellarisJAY/nesgo/emulator/ppu"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -18,6 +19,11 @@ const (
 	MsgChat
 	MsgNewConn
 	MsgCloseConn
+)
+
+const (
+	InstanceStatusRunning int32 = iota
+	InstanceStatusStopped
 )
 
 type Message struct {
@@ -47,8 +53,8 @@ type GameInstance struct {
 	mutex       *sync.RWMutex
 
 	destroyed bool
-
-	LeaseID int64
+	LeaseID   int64
+	status    atomic.Int32
 }
 
 func (g *GameInstance) RenderCallback(ppu *ppu.PPU, logger *log.Helper) {

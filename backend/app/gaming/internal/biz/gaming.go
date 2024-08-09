@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/pion/webrtc/v3"
@@ -151,7 +152,7 @@ func (uc *GameInstanceUseCase) SDPAnswer(ctx context.Context, roomId, userId int
 	}
 
 	sdp := webrtc.SessionDescription{
-		Type: webrtc.SDPTypeOffer,
+		Type: webrtc.SDPTypeAnswer,
 		SDP:  sdpAnswer,
 	}
 	err = conn.pc.SetRemoteDescription(sdp)
@@ -175,8 +176,10 @@ func (uc *GameInstanceUseCase) ICECandidate(ctx context.Context, roomId, userId 
 	if !ok {
 		return v1.ErrorGameConnectionNotFound("game connection not found")
 	}
-	candidateInit := webrtc.ICECandidateInit{
-		Candidate: candidate,
+	candidateInit := webrtc.ICECandidateInit{}
+	err = json.Unmarshal([]byte(candidate), &candidateInit)
+	if err != nil {
+		return v1.ErrorIceCandidateFailed("unmarshal ice candidate failed: %v", err)
 	}
 	err = conn.pc.AddICECandidate(candidateInit)
 	if err != nil {
@@ -187,6 +190,27 @@ func (uc *GameInstanceUseCase) ICECandidate(ctx context.Context, roomId, userId 
 
 // ReleaseGameInstance 释放模拟器实例，所有连接断开后延迟释放
 // 调用者必须持有房间会话的分布式锁，保证没有新连接建立
-func (uc *GameInstanceUseCase) ReleaseGameInstance(ctx context.Context, roomId int64) error {
-	panic("implement me")
+func (uc *GameInstanceUseCase) ReleaseGameInstance(ctx context.Context, roomId int64, force bool) error {
+	instance, _ := uc.repo.GetGameInstance(ctx, roomId)
+	if instance == nil {
+		return v1.ErrorGameInstanceNotAccessible("game instance not found")
+	}
+	instance.mutex.Lock()
+	defer instance.mutex.Unlock()
+	if instance.status.Load() == InstanceStatusStopped {
+		return nil
+	}
+	if len(instance.connections) > 0 && !force {
+		return v1.ErrorGameInstanceNotAccessible("can't release active game instance")
+	}
+	if len(instance.connections) > 0 && force {
+		for _, conn := range instance.connections {
+			conn.Close()
+		}
+	}
+	instance.emulatorCancel()
+	instance.cancel()
+	instance.status.Store(InstanceStatusStopped)
+	_ = uc.repo.DeleteGameInstance(ctx, roomId)
+	return nil
 }

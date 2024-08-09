@@ -46,13 +46,25 @@ func (g *GamingService) OpenGameConnection(ctx context.Context, request *v1.Open
 }
 
 func (g *GamingService) SDPAnswer(ctx context.Context, request *v1.SDPAnswerRequest) (*v1.SDPAnswerResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	err := g.gi.SDPAnswer(ctx, request.RoomId, request.UserId, request.SdpAnswer)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.SDPAnswerResponse{
+		RoomId: request.RoomId,
+		UserId: request.UserId,
+	}, nil
 }
 
 func (g *GamingService) ICECandidate(ctx context.Context, request *v1.ICECandidateRequest) (*v1.ICECandidateResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	err := g.gi.ICECandidate(ctx, request.RoomId, request.UserId, request.Candidate)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.ICECandidateResponse{
+		RoomId: request.RoomId,
+		UserId: request.UserId,
+	}, nil
 }
 
 func (g *GamingService) PauseEmulator(ctx context.Context, request *v1.PauseEmulatorRequest) (*v1.PauseEmulatorResponse, error) {
@@ -95,4 +107,14 @@ func (g *GamingService) DeleteGameFile(ctx context.Context, request *v1.DeleteGa
 		return nil, err
 	}
 	return &v1.DeleteGameFileResponse{Deleted: int32(deleted)}, nil
+}
+
+func (g *GamingService) DeleteGameInstance(ctx context.Context, request *v1.DeleteGameInstanceRequest) (*v1.DeleteGameInstanceResponse, error) {
+	err := g.gi.ReleaseGameInstance(ctx, request.RoomId, request.Force)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.DeleteGameInstanceResponse{
+		RoomId: request.RoomId,
+	}, nil
 }
