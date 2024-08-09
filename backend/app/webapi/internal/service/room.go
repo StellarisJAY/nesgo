@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/go-kratos/kratos/v2/middleware/auth/jwt"
 	v1 "github.com/stellarisJAY/nesgo/backend/api/app/webapi/v1"
+	roomAPI "github.com/stellarisJAY/nesgo/backend/api/room/service/v1"
 	"github.com/stellarisJAY/nesgo/backend/app/webapi/internal/biz"
 )
 
@@ -22,6 +23,8 @@ func (ws *WebApiService) ListMyRooms(ctx context.Context, request *v1.ListRoomRe
 			Host:        room.Host,
 			Private:     room.Private,
 			MemberCount: room.MemberCount,
+			MemberLimit: room.MemberLimit,
+			CreateTime:  room.CreateTime.UnixMilli(),
 			HostName:    room.HostName,
 		})
 	}
@@ -39,27 +42,36 @@ func (ws *WebApiService) CreateRoom(ctx context.Context, request *v1.CreateRoomR
 		return nil, err
 	}
 	return &v1.CreateRoomResponse{
-		Id:       room.Id,
-		Name:     room.Name,
-		Host:     room.Host,
-		Private:  room.Private,
-		Password: room.Password,
+		Id:          room.Id,
+		Name:        room.Name,
+		Host:        room.Host,
+		Private:     room.Private,
+		Password:    room.Password,
+		MemberLimit: room.MemberLimit,
 	}, nil
 }
 
 func (ws *WebApiService) GetRoom(ctx context.Context, request *v1.GetRoomRequest) (*v1.GetRoomResponse, error) {
+	claims, _ := jwt.FromContext(ctx)
+	c := claims.(*biz.LoginClaims)
 	room, err := ws.rc.GetRoom(ctx, request.Id)
 	if err != nil {
 		return nil, err
 	}
-	return &v1.GetRoomResponse{
+	resp := &v1.GetRoomResponse{
 		Id:          room.Id,
 		Name:        room.Name,
 		Host:        room.Host,
 		Private:     room.Private,
 		MemberCount: room.MemberCount,
 		HostName:    room.HostName,
-	}, nil
+		MemberLimit: room.MemberLimit,
+		CreateTime:  room.CreateTime.UnixMilli(),
+	}
+	if c.UserId == room.Host {
+		resp.Password = room.Password
+	}
+	return resp, nil
 }
 
 func (ws *WebApiService) ListAllRooms(ctx context.Context, request *v1.ListRoomRequest) (*v1.ListRoomResponse, error) {
@@ -76,6 +88,8 @@ func (ws *WebApiService) ListAllRooms(ctx context.Context, request *v1.ListRoomR
 			Private:     room.Private,
 			MemberCount: room.MemberCount,
 			HostName:    room.HostName,
+			MemberLimit: room.MemberLimit,
+			CreateTime:  room.CreateTime.UnixMilli(),
 		})
 	}
 	return &v1.ListRoomResponse{
@@ -113,5 +127,6 @@ func (ws *WebApiService) JoinRoom(ctx context.Context, request *v1.JoinRoomReque
 	return &v1.JoinRoomResponse{
 		RoomId: request.RoomId,
 		UserId: c.UserId,
+		Role:   roomAPI.RoomRole_Observer,
 	}, nil
 }

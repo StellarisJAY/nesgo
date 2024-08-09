@@ -10,6 +10,7 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	gamingAPI "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
+	"github.com/stellarisJAY/nesgo/backend/api/room/service/v1"
 	"github.com/stellarisJAY/nesgo/backend/app/room/internal/biz"
 	etcdAPI "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
@@ -31,6 +32,7 @@ type Room struct {
 	Private      bool      `gorm:"not null"`
 	PasswordHash string    `gorm:"size:255"`
 	PasswordReal string    `gorm:"size:16"`
+	MemberLimit  int       `gorm:"not null"`
 	CreatedAt    time.Time `gorm:"column:created_at"`
 }
 
@@ -57,10 +59,12 @@ func NewRoomRepo(data *Data, logger log.Logger) biz.RoomRepo {
 func (r *roomRepo) CreateRoom(ctx context.Context, room *biz.Room) error {
 	room.Id = r.data.snowflake.Generate().Int64()
 	roomModel := Room{
-		Name:    room.Name,
-		Host:    room.Host,
-		Private: room.Private,
-		Id:      room.Id,
+		Name:        room.Name,
+		Host:        room.Host,
+		Private:     room.Private,
+		Id:          room.Id,
+		MemberLimit: room.MemberLimit,
+		CreatedAt:   time.Now(),
 	}
 	if roomModel.Private {
 		hashPassword := hex.EncodeToString(md5.New().Sum([]byte(room.Password)))
@@ -71,7 +75,7 @@ func (r *roomRepo) CreateRoom(ctx context.Context, room *biz.Room) error {
 		Id:       r.data.snowflake.Generate().Int64(),
 		RoomId:   room.Id,
 		UserId:   room.Host,
-		Role:     0,
+		Role:     int(v1.RoomRole_Host),
 		JoinedAt: time.Now(),
 	}
 	return r.data.db.Transaction(func(tx *gorm.DB) error {
@@ -289,22 +293,41 @@ func (r *roomRepo) ListMembers(ctx context.Context, roomId int64) ([]*biz.RoomMe
 	return result, nil
 }
 
-func (r *roomRepo) AddRoomMember(ctx context.Context, member *biz.RoomMember) error {
+func (r *roomRepo) AddRoomMember(ctx context.Context, member *biz.RoomMember, room *biz.Room) error {
 	memberModel := &RoomMember{
 		Id:       r.data.snowflake.Generate().Int64(),
 		RoomId:   member.RoomId,
 		UserId:   member.UserId,
-		Role:     member.Role,
+		Role:     int(member.Role),
 		JoinedAt: member.JoinedAt,
 	}
-	return r.data.db.Model(memberModel).Create(&memberModel).WithContext(ctx).Error
+	err := r.data.db.Transaction(func(tx *gorm.DB) error {
+		var count int64 = 0
+		err := tx.Model(&RoomMember{}).
+			Where("room_id = ?", member.RoomId).
+			WithContext(ctx).
+			Count(&count).
+			Error
+		if err != nil {
+			return err
+		}
+		if int(count) == room.MemberLimit {
+			return biz.ErrMemberLimitReached
+		}
+
+		return tx.Model(memberModel).
+			Create(&memberModel).
+			WithContext(ctx).
+			Error
+	})
+	return err
 }
 
 func (m *RoomMember) ToBizRoomMember() *biz.RoomMember {
 	return &biz.RoomMember{
 		UserId:   m.UserId,
 		RoomId:   m.RoomId,
-		Role:     m.Role,
+		Role:     v1.RoomRole(m.Role),
 		Id:       m.Id,
 		JoinedAt: m.JoinedAt,
 	}
@@ -318,6 +341,8 @@ func (r *Room) ToBizRoom() *biz.Room {
 		Private:      r.Private,
 		Password:     r.PasswordReal,
 		PasswordHash: r.PasswordHash,
+		MemberLimit:  r.MemberLimit,
+		CreateTime:   r.CreatedAt,
 	}
 }
 
@@ -330,8 +355,10 @@ func (jr *JoinedRoom) ToBizJoinedRoom() *biz.JoinedRoom {
 			Private:      jr.Private,
 			Password:     jr.PasswordReal,
 			PasswordHash: jr.PasswordHash,
+			MemberLimit:  jr.MemberLimit,
+			CreateTime:   jr.CreatedAt,
 		},
 		UserId: jr.UserId,
-		Role:   jr.Role,
+		Role:   v1.RoomRole(jr.Role),
 	}
 }

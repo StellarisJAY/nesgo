@@ -45,6 +45,7 @@ func (r *roomRepo) CreateRoom(ctx context.Context, room *biz.Room) error {
 	}
 	room.Id = response.Id
 	room.Password = response.Password
+	room.MemberLimit = response.MemberLimit
 	return nil
 }
 
@@ -60,6 +61,8 @@ func (r *roomRepo) GetRoom(ctx context.Context, roomId int64) (*biz.Room, error)
 		Private:     response.Private,
 		Password:    response.Password,
 		MemberCount: response.MemberCount,
+		MemberLimit: response.MemberLimit,
+		CreateTime:  time.UnixMilli(response.CreateTime).Local(),
 	}, nil
 }
 
@@ -83,8 +86,10 @@ func (r *roomRepo) ListJoinedRooms(ctx context.Context, userId int64, page, page
 				Private:     room.Private,
 				Password:    room.Password,
 				MemberCount: room.MemberCount,
+				MemberLimit: room.MemberLimit,
+				CreateTime:  time.UnixMilli(room.CreateTime).Local(),
 			},
-			Role: int(room.Role),
+			Role: room.Role,
 		})
 	}
 	return result, int(response.Total), nil
@@ -108,6 +113,8 @@ func (r *roomRepo) ListRooms(ctx context.Context, page, pageSize int) ([]*biz.Ro
 			Private:     room.Private,
 			Password:    room.Password,
 			MemberCount: room.MemberCount,
+			MemberLimit: room.MemberLimit,
+			CreateTime:  time.UnixMilli(room.CreateTime).Local(),
 		})
 	}
 	return result, int(response.Total), nil

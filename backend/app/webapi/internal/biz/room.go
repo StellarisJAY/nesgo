@@ -3,6 +3,7 @@ package biz
 import (
 	"context"
 	"github.com/go-kratos/kratos/v2/log"
+	roomAPI "github.com/stellarisJAY/nesgo/backend/api/room/service/v1"
 	"time"
 )
 
@@ -18,25 +19,27 @@ type RoomSession struct {
 }
 
 type Room struct {
-	Id          int64  `json:"id"`
-	Name        string `json:"name"`
-	Host        int64  `json:"host"`
-	HostName    string `json:"hostName"`
-	Private     bool   `json:"private"`
-	MemberCount int32  `json:"memberCount"`
-	Password    string `json:"password"`
+	Id          int64     `json:"id"`
+	Name        string    `json:"name"`
+	Host        int64     `json:"host"`
+	HostName    string    `json:"hostName"`
+	Private     bool      `json:"private"`
+	MemberCount int32     `json:"memberCount"`
+	MemberLimit int32     `json:"memberLimit"`
+	Password    string    `json:"password"`
+	CreateTime  time.Time `json:"createTime"`
 }
 
 type Member struct {
-	Id       int64     `json:"id"`
-	Name     string    `json:"name"`
-	Role     int32     `json:"role"`
-	JoinedAt time.Time `json:"joinedAt"`
+	Id       int64            `json:"id"`
+	Name     string           `json:"name"`
+	Role     roomAPI.RoomRole `json:"role"`
+	JoinedAt time.Time        `json:"joinedAt"`
 }
 
 type JoinedRoom struct {
 	Room
-	Role int `json:"role"`
+	Role roomAPI.RoomRole `json:"role"`
 }
 
 type RoomRepo interface {

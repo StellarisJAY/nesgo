@@ -14,28 +14,30 @@ import (
 )
 
 type Room struct {
-	Id           int64  `json:"id"`
-	Name         string `json:"name"`
-	Host         int64  `json:"host"`
-	HostName     string `json:"hostName"`
-	Private      bool   `json:"private"`
-	Password     string `json:"password"`
-	PasswordHash string `json:"passwordHash"`
-	MemberCount  int    `json:"memberCount"`
+	Id           int64     `json:"id"`
+	Name         string    `json:"name"`
+	Host         int64     `json:"host"`
+	HostName     string    `json:"hostName"`
+	Private      bool      `json:"private"`
+	Password     string    `json:"password"`
+	PasswordHash string    `json:"passwordHash"`
+	MemberCount  int       `json:"memberCount"`
+	MemberLimit  int       `json:"memberLimit"`
+	CreateTime   time.Time `json:"createTime"`
 }
 
 type JoinedRoom struct {
 	Room
-	UserId int64 `json:"userId"`
-	Role   int   `json:"role"`
+	UserId int64       `json:"userId"`
+	Role   v1.RoomRole `json:"role"`
 }
 
 type RoomMember struct {
-	Id       int64     `json:"id"`
-	UserId   int64     `json:"userId"`
-	Role     int       `json:"role"`
-	RoomId   int64     `json:"roomId"`
-	JoinedAt time.Time `json:"joinedTime"`
+	Id       int64       `json:"id"`
+	UserId   int64       `json:"userId"`
+	Role     v1.RoomRole `json:"role"`
+	RoomId   int64       `json:"roomId"`
+	JoinedAt time.Time   `json:"joinedTime"`
 }
 
 type RoomSession struct {
@@ -49,7 +51,7 @@ type RoomRepo interface {
 	ListRooms(ctx context.Context, page int, pageSize int) ([]*Room, int, error)
 	ListJoinedRooms(ctx context.Context, userId int64, page int, pageSize int) ([]*JoinedRoom, int, error)
 	GetRoomMember(ctx context.Context, roomId int64, userId int64) (*RoomMember, error)
-	AddRoomMember(ctx context.Context, member *RoomMember) error
+	AddRoomMember(ctx context.Context, member *RoomMember, room *Room) error
 	GetOrCreateRoomSession(ctx context.Context, roomId int64) (*RoomSession, bool, error)
 	GetRoomSession(ctx context.Context, roomId int64) (*RoomSession, error)
 	RemoveRoomSession(ctx context.Context, roomId int64) error
@@ -57,6 +59,8 @@ type RoomRepo interface {
 	CountMember(ctx context.Context, roomId int64) (int64, error)
 	ListMembers(ctx context.Context, roomId int64) ([]*RoomMember, error)
 }
+
+var ErrMemberLimitReached = errors.New("member limit reached")
 
 type RoomUseCase struct {
 	rr     RoomRepo
@@ -78,6 +82,8 @@ func (uc *RoomUseCase) CreateRoom(ctx context.Context, room *Room) error {
 	if room.Private {
 		room.Password = generatePassword(4)
 	}
+	// TODO 根据用户级别设置房间人数上限
+	room.MemberLimit = 4
 	err := uc.rr.CreateRoom(ctx, room)
 	if err != nil {
 		return v1.ErrorCreateRoomFailed("database error: %v", err)
@@ -148,12 +154,14 @@ func (uc *RoomUseCase) JoinRoom(ctx context.Context, userId int64, roomId int64,
 			}
 		}
 		err = uc.rr.AddRoomMember(ctx, &RoomMember{
-			Id:       0,
 			UserId:   userId,
-			Role:     1,
+			Role:     v1.RoomRole_Observer,
 			RoomId:   roomId,
 			JoinedAt: time.Now(),
-		})
+		}, room)
+		if errors.Is(err, ErrMemberLimitReached) {
+			return v1.ErrorRoomNotAccessible("room is full")
+		}
 		if err != nil {
 			return v1.ErrorCreateRoomFailed("database error: %v", err)
 		}

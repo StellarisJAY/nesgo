@@ -32,9 +32,10 @@ func (r *RoomService) CreateRoom(ctx context.Context, request *v1.CreateRoomRequ
 		return nil, err
 	}
 	return &v1.CreateRoomResponse{
-		Id:       room.Id,
-		Private:  room.Private,
-		Password: room.Password,
+		Id:          room.Id,
+		Private:     room.Private,
+		Password:    room.Password,
+		MemberLimit: int32(room.MemberLimit),
 	}, nil
 }
 
@@ -50,6 +51,8 @@ func (r *RoomService) GetRoom(ctx context.Context, request *v1.GetRoomRequest) (
 		Private:     room.Private,
 		Password:    room.Password,
 		MemberCount: int32(room.MemberCount),
+		MemberLimit: int32(room.MemberLimit),
+		CreateTime:  room.CreateTime.UnixMilli(),
 	}, nil
 }
 
@@ -62,7 +65,7 @@ func (r *RoomService) ListRoomMembers(ctx context.Context, request *v1.ListRoomM
 	for _, m := range members {
 		result = append(result, &v1.RoomMember{
 			UserId:   m.UserId,
-			Role:     int32(m.Role),
+			Role:     m.Role,
 			JoinedAt: m.JoinedAt.UnixMilli(),
 		})
 	}
@@ -83,7 +86,9 @@ func (r *RoomService) ListRooms(ctx context.Context, request *v1.ListRoomsReques
 				Host:        room.Host,
 				Private:     room.Private,
 				MemberCount: int32(room.MemberCount),
-				Role:        int32(room.Role),
+				MemberLimit: int32(room.MemberLimit),
+				Role:        room.Role,
+				CreateTime:  room.CreateTime.UnixMilli(),
 			})
 		}
 		return &v1.ListRoomsResponse{Rooms: result, Total: int32(total)}, nil
@@ -100,6 +105,8 @@ func (r *RoomService) ListRooms(ctx context.Context, request *v1.ListRoomsReques
 				Host:        room.Host,
 				Private:     room.Private,
 				MemberCount: int32(room.MemberCount),
+				MemberLimit: int32(room.MemberLimit),
+				CreateTime:  room.CreateTime.UnixMilli(),
 			})
 		}
 		return &v1.ListRoomsResponse{Rooms: result, Total: int32(total)}, nil
