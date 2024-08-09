@@ -25,6 +25,7 @@ const (
 	Gaming_ICECandidate_FullMethodName       = "/gaming.v1.Gaming/ICECandidate"
 	Gaming_PauseEmulator_FullMethodName      = "/gaming.v1.Gaming/PauseEmulator"
 	Gaming_RestartEmulator_FullMethodName    = "/gaming.v1.Gaming/RestartEmulator"
+	Gaming_DeleteGameInstance_FullMethodName = "/gaming.v1.Gaming/DeleteGameInstance"
 	Gaming_UploadGame_FullMethodName         = "/gaming.v1.Gaming/UploadGame"
 	Gaming_ListGames_FullMethodName          = "/gaming.v1.Gaming/ListGames"
 	Gaming_DeleteGameFile_FullMethodName     = "/gaming.v1.Gaming/DeleteGameFile"
@@ -40,6 +41,7 @@ type GamingClient interface {
 	ICECandidate(ctx context.Context, in *ICECandidateRequest, opts ...grpc.CallOption) (*ICECandidateResponse, error)
 	PauseEmulator(ctx context.Context, in *PauseEmulatorRequest, opts ...grpc.CallOption) (*PauseEmulatorResponse, error)
 	RestartEmulator(ctx context.Context, in *RestartEmulatorRequest, opts ...grpc.CallOption) (*RestartEmulatorResponse, error)
+	DeleteGameInstance(ctx context.Context, in *DeleteGameInstanceRequest, opts ...grpc.CallOption) (*DeleteGameInstanceResponse, error)
 	UploadGame(ctx context.Context, in *UploadGameRequest, opts ...grpc.CallOption) (*UploadGameResponse, error)
 	ListGames(ctx context.Context, in *ListGamesRequest, opts ...grpc.CallOption) (*ListGamesResponse, error)
 	DeleteGameFile(ctx context.Context, in *DeleteGameFileRequest, opts ...grpc.CallOption) (*DeleteGameFileResponse, error)
@@ -113,6 +115,16 @@ func (c *gamingClient) RestartEmulator(ctx context.Context, in *RestartEmulatorR
 	return out, nil
 }
 
+func (c *gamingClient) DeleteGameInstance(ctx context.Context, in *DeleteGameInstanceRequest, opts ...grpc.CallOption) (*DeleteGameInstanceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteGameInstanceResponse)
+	err := c.cc.Invoke(ctx, Gaming_DeleteGameInstance_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *gamingClient) UploadGame(ctx context.Context, in *UploadGameRequest, opts ...grpc.CallOption) (*UploadGameResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(UploadGameResponse)
@@ -153,6 +165,7 @@ type GamingServer interface {
 	ICECandidate(context.Context, *ICECandidateRequest) (*ICECandidateResponse, error)
 	PauseEmulator(context.Context, *PauseEmulatorRequest) (*PauseEmulatorResponse, error)
 	RestartEmulator(context.Context, *RestartEmulatorRequest) (*RestartEmulatorResponse, error)
+	DeleteGameInstance(context.Context, *DeleteGameInstanceRequest) (*DeleteGameInstanceResponse, error)
 	UploadGame(context.Context, *UploadGameRequest) (*UploadGameResponse, error)
 	ListGames(context.Context, *ListGamesRequest) (*ListGamesResponse, error)
 	DeleteGameFile(context.Context, *DeleteGameFileRequest) (*DeleteGameFileResponse, error)
@@ -183,6 +196,9 @@ func (UnimplementedGamingServer) PauseEmulator(context.Context, *PauseEmulatorRe
 }
 func (UnimplementedGamingServer) RestartEmulator(context.Context, *RestartEmulatorRequest) (*RestartEmulatorResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RestartEmulator not implemented")
+}
+func (UnimplementedGamingServer) DeleteGameInstance(context.Context, *DeleteGameInstanceRequest) (*DeleteGameInstanceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteGameInstance not implemented")
 }
 func (UnimplementedGamingServer) UploadGame(context.Context, *UploadGameRequest) (*UploadGameResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UploadGame not implemented")
@@ -322,6 +338,24 @@ func _Gaming_RestartEmulator_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Gaming_DeleteGameInstance_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteGameInstanceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).DeleteGameInstance(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_DeleteGameInstance_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).DeleteGameInstance(ctx, req.(*DeleteGameInstanceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Gaming_UploadGame_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UploadGameRequest)
 	if err := dec(in); err != nil {
@@ -406,6 +440,10 @@ var Gaming_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RestartEmulator",
 			Handler:    _Gaming_RestartEmulator_Handler,
+		},
+		{
+			MethodName: "DeleteGameInstance",
+			Handler:    _Gaming_DeleteGameInstance_Handler,
 		},
 		{
 			MethodName: "UploadGame",

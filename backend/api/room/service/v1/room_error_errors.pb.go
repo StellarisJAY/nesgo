@@ -106,3 +106,15 @@ func IsUpdateRoomFailed(err error) bool {
 func ErrorUpdateRoomFailed(format string, args ...interface{}) *errors.Error {
 	return errors.New(500, UserServiceErrorReason_UPDATE_ROOM_FAILED.String(), fmt.Sprintf(format, args...))
 }
+
+func IsDeleteRoomFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_DELETE_ROOM_FAILED.String() && e.Code == 500
+}
+
+func ErrorDeleteRoomFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_DELETE_ROOM_FAILED.String(), fmt.Sprintf(format, args...))
+}

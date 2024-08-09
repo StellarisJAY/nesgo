@@ -160,6 +160,7 @@ message GetRoomSessionResponse {
 message OpenGameConnectionRequest {
   int64 roomId = 1;
   int64 userId = 2;
+  string game = 3;
 }
 
 message OpenGameConnectionResponse {

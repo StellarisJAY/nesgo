@@ -166,3 +166,15 @@ func IsIceCandidateFailed(err error) bool {
 func ErrorIceCandidateFailed(format string, args ...interface{}) *errors.Error {
 	return errors.New(500, UserServiceErrorReason_ICE_CANDIDATE_FAILED.String(), fmt.Sprintf(format, args...))
 }
+
+func IsGameInstanceNotAccessible(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_GAME_INSTANCE_NOT_ACCESSIBLE.String() && e.Code == 500
+}
+
+func ErrorGameInstanceNotAccessible(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_GAME_INSTANCE_NOT_ACCESSIBLE.String(), fmt.Sprintf(format, args...))
+}

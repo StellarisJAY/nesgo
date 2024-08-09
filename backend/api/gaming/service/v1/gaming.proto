@@ -15,6 +15,8 @@ service Gaming {
   rpc PauseEmulator(PauseEmulatorRequest) returns (PauseEmulatorResponse) {}
   rpc RestartEmulator(RestartEmulatorRequest) returns (RestartEmulatorResponse) {}
 
+  rpc DeleteGameInstance(DeleteGameInstanceRequest) returns (DeleteGameInstanceResponse) {}
+
   rpc UploadGame(UploadGameRequest) returns (UploadGameResponse) {}
   rpc ListGames(ListGamesRequest) returns (ListGamesResponse) {}
   rpc DeleteGameFile(DeleteGameFileRequest) returns (DeleteGameFileResponse) {}
@@ -33,7 +35,6 @@ message CreateGameInstanceResponse {
 message OpenGameConnectionRequest {
   int64 roomId = 1;
   int64 userId = 2;
-  string game = 3;
 }
 
 message OpenGameConnectionResponse {
@@ -114,5 +115,14 @@ message DeleteGameFileRequest {
 
 message DeleteGameFileResponse {
   int32 deleted = 1;
+}
+
+message DeleteGameInstanceRequest {
+  int64 roomId = 1;
+  bool force = 2;
+}
+
+message DeleteGameInstanceResponse {
+  int64 roomId = 1;
 }
 
