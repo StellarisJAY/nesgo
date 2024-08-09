@@ -4,7 +4,7 @@ package gaming.v1;
 
 import "google/api/annotations.proto";
 
-option go_package = "backend/api/gaming/service/v1;v1";
+option go_package = "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1;v1";
 
 service Gaming {
   rpc CreateGameInstance(CreateGameInstanceRequest) returns (CreateGameInstanceResponse) {}

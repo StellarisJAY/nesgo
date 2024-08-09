@@ -4,7 +4,7 @@ package user.v1;
 
 import "google/api/annotations.proto";
 
-option go_package = "backend/api/user/service/v1;v1";
+option go_package = "github.com/stellarisJAY/nesgo/backend/api/user/service/v1;v1";
 
 service User {
   rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}

@@ -3,8 +3,8 @@ syntax = "proto3";
 package nesgo.webapi.v1;
 
 import "google/api/annotations.proto";
-
-option go_package = "backend/api/app/webapi/v1;v1";
+import "room/service/v1/room.proto";
+option go_package = "github.com/stellarisJAY/nesgo/backend/api/app/webapi/v1;v1";
 
 service WebApi {
   rpc Register(RegisterRequest) returns (RegisterResponse) {
@@ -116,7 +116,9 @@ message Room {
   string hostName = 4;
   bool private = 5;
   int32 memberCount = 6;
-  int32 role = 7;
+  int32 memberLimit = 7;
+  int64 createTime = 8;
+  string password = 9;
 }
 
 message User {
@@ -188,6 +190,7 @@ message CreateRoomResponse {
   int64 host = 3;
   bool private = 4;
   string password = 5;
+  int32 memberLimit = 6;
 }
 
 message GetRoomRequest {
@@ -201,12 +204,15 @@ message GetRoomResponse {
   int64 host = 4;
   string hostName = 5;
   int32 memberCount = 6;
+  int32 memberLimit = 7;
+  int64 createTime = 8;
+  string password = 9;
 }
 
 message Member {
   int64 userId = 1;
   string name = 2;
-  int32 role = 3;
+  room.v1.RoomRole role = 3;
   int64 joinedAt = 4;
 }
 
@@ -226,5 +232,5 @@ message JoinRoomRequest {
 message JoinRoomResponse {
   int64 roomId = 1;
   int64 userId = 2;
-  int32 role = 3;
+  room.v1.RoomRole role = 3;
 }

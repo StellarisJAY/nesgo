@@ -107,6 +107,23 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.LoginResponse'
+    /api/v1/members:
+        get:
+            tags:
+                - WebApi
+            operationId: WebApi_ListMembers
+            parameters:
+                - name: roomId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.ListMemberResponse'
     /api/v1/register:
         post:
             tags:
@@ -125,6 +142,24 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.RegisterResponse'
+    /api/v1/room:
+        post:
+            tags:
+                - WebApi
+            operationId: WebApi_CreateRoom
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.CreateRoomRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.CreateRoomResponse'
     /api/v1/room/session:
         get:
             tags:
@@ -143,6 +178,71 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.GetRoomSessionResponse'
+    /api/v1/room/{id}:
+        get:
+            tags:
+                - WebApi
+            operationId: WebApi_GetRoom
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.GetRoomResponse'
+    /api/v1/room/{roomId}/join:
+        post:
+            tags:
+                - WebApi
+            operationId: WebApi_JoinRoom
+            parameters:
+                - name: roomId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.JoinRoomRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.JoinRoomResponse'
+    /api/v1/rooms:
+        get:
+            tags:
+                - WebApi
+            operationId: WebApi_ListAllRooms
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.ListRoomResponse'
     /api/v1/rooms/joined:
         get:
             tags:
@@ -165,7 +265,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/nesgo.webapi.v1.ListMyRoomResponse'
+                                $ref: '#/components/schemas/nesgo.webapi.v1.ListRoomResponse'
     /api/v1/user/{id}:
         get:
             tags:
@@ -231,6 +331,52 @@ components:
                     type: string
                 userId:
                     type: string
+        nesgo.webapi.v1.CreateRoomRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                private:
+                    type: boolean
+        nesgo.webapi.v1.CreateRoomResponse:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                host:
+                    type: string
+                private:
+                    type: boolean
+                password:
+                    type: string
+                memberLimit:
+                    type: integer
+                    format: int32
+        nesgo.webapi.v1.GetRoomResponse:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                private:
+                    type: boolean
+                host:
+                    type: string
+                hostName:
+                    type: string
+                memberCount:
+                    type: integer
+                    format: int32
+                memberLimit:
+                    type: integer
+                    format: int32
+                createTime:
+                    type: string
+                password:
+                    type: string
         nesgo.webapi.v1.GetRoomSessionRequest:
             type: object
             properties:
@@ -255,7 +401,31 @@ components:
                     type: string
                 data:
                     $ref: '#/components/schemas/nesgo.webapi.v1.User'
-        nesgo.webapi.v1.ListMyRoomResponse:
+        nesgo.webapi.v1.JoinRoomRequest:
+            type: object
+            properties:
+                roomId:
+                    type: string
+                password:
+                    type: string
+        nesgo.webapi.v1.JoinRoomResponse:
+            type: object
+            properties:
+                roomId:
+                    type: string
+                userId:
+                    type: string
+                role:
+                    type: integer
+                    format: enum
+        nesgo.webapi.v1.ListMemberResponse:
+            type: object
+            properties:
+                members:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/nesgo.webapi.v1.Member'
+        nesgo.webapi.v1.ListRoomResponse:
             type: object
             properties:
                 rooms:
@@ -263,9 +433,6 @@ components:
                     items:
                         $ref: '#/components/schemas/nesgo.webapi.v1.Room'
                 total:
-                    type: integer
-                    format: int32
-                totalPage:
                     type: integer
                     format: int32
         nesgo.webapi.v1.LoginRequest:
@@ -279,6 +446,18 @@ components:
             type: object
             properties:
                 token:
+                    type: string
+        nesgo.webapi.v1.Member:
+            type: object
+            properties:
+                userId:
+                    type: string
+                name:
+                    type: string
+                role:
+                    type: integer
+                    format: enum
+                joinedAt:
                     type: string
         nesgo.webapi.v1.OpenGameConnectionRequest:
             type: object
@@ -319,12 +498,16 @@ components:
                     type: string
                 private:
                     type: boolean
-                members:
+                memberCount:
                     type: integer
                     format: int32
-                role:
+                memberLimit:
                     type: integer
                     format: int32
+                createTime:
+                    type: string
+                password:
+                    type: string
         nesgo.webapi.v1.SDPAnswerRequest:
             type: object
             properties:

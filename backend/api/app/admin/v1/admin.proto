@@ -4,7 +4,7 @@ package nesgo.admin.v1;
 
 import "google/api/annotations.proto";
 
-option go_package = "backend/api/app/admin/v1;v1";
+option go_package = "github.com/stellarisJAY/nesgo/backend/api/app/admin/v1;v1";
 
 service Admin {
   rpc UploadGame(UploadFileRequest) returns (UploadFileResponse) {}
