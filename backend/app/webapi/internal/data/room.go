@@ -146,3 +146,17 @@ func (r *roomRepo) JoinRoom(ctx context.Context, roomId, userId int64, password 
 	})
 	return err
 }
+
+func (r *roomRepo) UpdateRoom(ctx context.Context, room *biz.Room, userId int64) error {
+	response, err := r.data.rc.UpdateRoom(ctx, &roomAPI.UpdateRoomRequest{
+		RoomId:  room.Id,
+		Name:    room.Name,
+		Private: room.Private,
+		UserId:  userId,
+	})
+	if err != nil {
+		return err
+	}
+	room.Password = response.Password
+	return nil
+}

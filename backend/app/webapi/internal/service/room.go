@@ -130,3 +130,23 @@ func (ws *WebApiService) JoinRoom(ctx context.Context, request *v1.JoinRoomReque
 		Role:   roomAPI.RoomRole_Observer,
 	}, nil
 }
+
+func (ws *WebApiService) UpdateRoom(ctx context.Context, request *v1.UpdateRoomRequest) (*v1.UpdateRoomResponse, error) {
+	claims, _ := jwt.FromContext(ctx)
+	c := claims.(*biz.LoginClaims)
+	room := &biz.Room{
+		Id:      request.RoomId,
+		Name:    request.Name,
+		Private: request.Private,
+	}
+	err := ws.rc.UpdateRoom(ctx, room, c.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.UpdateRoomResponse{
+		RoomId:   request.RoomId,
+		Name:     request.Name,
+		Private:  room.Private,
+		Password: room.Password,
+	}, nil
+}

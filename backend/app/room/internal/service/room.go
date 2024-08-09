@@ -139,3 +139,21 @@ func (r *RoomService) RemoveRoomSession(ctx context.Context, request *v1.RemoveR
 	}
 	return &v1.RemoveRoomSessionResponse{}, nil
 }
+
+func (r *RoomService) UpdateRoom(ctx context.Context, request *v1.UpdateRoomRequest) (*v1.UpdateRoomResponse, error) {
+	room := &biz.Room{
+		Id:      request.RoomId,
+		Name:    request.Name,
+		Private: request.Private,
+	}
+	err := r.ruc.UpdateRoom(ctx, room, request.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.UpdateRoomResponse{
+		RoomId:   room.Id,
+		Name:     room.Name,
+		Private:  room.Private,
+		Password: room.Password,
+	}, nil
+}

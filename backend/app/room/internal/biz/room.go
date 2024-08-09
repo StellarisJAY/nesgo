@@ -58,6 +58,7 @@ type RoomRepo interface {
 	GetOwnedRoom(ctx context.Context, name string, host int64) (*Room, error)
 	CountMember(ctx context.Context, roomId int64) (int64, error)
 	ListMembers(ctx context.Context, roomId int64) ([]*RoomMember, error)
+	UpdateRoom(ctx context.Context, room *Room) error
 }
 
 var ErrMemberLimitReached = errors.New("member limit reached")
@@ -201,6 +202,37 @@ func (uc *RoomUseCase) ListRoomMembers(ctx context.Context, roomId int64) ([]*Ro
 		return nil, v1.ErrorGetRoomFailed("database error: %v", err)
 	}
 	return members, nil
+}
+
+func (uc *RoomUseCase) DeleteRoom(ctx context.Context, roomId, userId int64) error {
+	panic("implement me")
+}
+
+func (uc *RoomUseCase) UpdateRoom(ctx context.Context, room *Room, userId int64) error {
+	r, err := uc.rr.GetRoom(ctx, room.Id)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return v1.ErrorRoomNotFound("room not found")
+	}
+	if err != nil {
+		return v1.ErrorUpdateRoomFailed("database error: %v", err)
+	}
+	if r.Host != userId {
+		return v1.ErrorUpdateRoomFailed("you are not the owner of this room")
+	}
+	if r.Private == room.Private {
+		room.Password = r.Password
+	} else if !r.Private && room.Private {
+		room.Password = generatePassword(4)
+		room.PasswordHash = hex.EncodeToString(md5.New().Sum([]byte(room.Password)))
+	} else if !room.Private {
+		room.Password = ""
+		room.PasswordHash = ""
+	}
+	err = uc.rr.UpdateRoom(ctx, room)
+	if err != nil {
+		return v1.ErrorUpdateRoomFailed("database error: %v", err)
+	}
+	return nil
 }
 
 func generatePassword(length int) string {

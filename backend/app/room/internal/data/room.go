@@ -323,6 +323,27 @@ func (r *roomRepo) AddRoomMember(ctx context.Context, member *biz.RoomMember, ro
 	return err
 }
 
+func (r *roomRepo) DeleteRoom(ctx context.Context, roomId int64) error {
+	return r.data.db.
+		Delete(&Room{}).
+		Where("id=?", roomId).
+		WithContext(ctx).
+		Error
+}
+
+func (r *roomRepo) UpdateRoom(ctx context.Context, room *biz.Room) error {
+	return r.data.db.Model(&Room{}).
+		Where("id=?", room.Id).
+		Updates(map[string]interface{}{
+			"name":          room.Name,
+			"private":       room.Private,
+			"password_real": room.Password,
+			"password_hash": room.PasswordHash,
+		}).
+		WithContext(ctx).
+		Error
+}
+
 func (m *RoomMember) ToBizRoomMember() *biz.RoomMember {
 	return &biz.RoomMember{
 		UserId:   m.UserId,
