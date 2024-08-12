@@ -110,6 +110,8 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 	uc.logger.Infof("emulator created, roomId: %d", roomId)
 	go instance.e.LoadAndRun(emulatorCtx, false)
 	instance.e.Pause()
+	// collect audio samples
+	go instance.audioSampleListener(emulatorCtx, uc.logger)
 
 	// start message consumer
 	msgConsumerCtx, msgConsumerCancel := context.WithCancel(context.Background())

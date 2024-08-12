@@ -58,6 +58,7 @@ type GameInstance struct {
 }
 
 func (g *GameInstance) RenderCallback(ppu *ppu.PPU, logger *log.Helper) {
+	ppu.Render()
 	frame := ppu.Frame()
 	data, release, err := g.videoEncoder.Encode(frame)
 	if err != nil {
@@ -65,7 +66,7 @@ func (g *GameInstance) RenderCallback(ppu *ppu.PPU, logger *log.Helper) {
 		return
 	}
 	defer release()
-	sample := media.Sample{Data: data, Timestamp: time.Now()}
+	sample := media.Sample{Data: data, Duration: 15 * time.Millisecond, Timestamp: time.Now()}
 	g.mutex.RLock()
 	defer g.mutex.RUnlock()
 	for _, conn := range g.connections {
@@ -77,6 +78,42 @@ func (g *GameInstance) RenderCallback(ppu *ppu.PPU, logger *log.Helper) {
 		}
 	}
 	return
+}
+
+func (g *GameInstance) audioSampleListener(ctx context.Context, logger *log.Helper) {
+	// 每5毫秒发送一次，根据采样率计算buffer大小
+	buffer := make([]float32, 0, g.audioSampleRate*5/1000)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case s := <-g.audioSampleChan:
+			buffer = append(buffer, s)
+			if len(buffer) == cap(buffer) {
+				g.sendAudioSamples(buffer, logger)
+				buffer = buffer[:0]
+			}
+		}
+	}
+}
+
+func (g *GameInstance) sendAudioSamples(buffer []float32, logger *log.Helper) {
+	data, err := g.audioEncoder.Encode(buffer)
+	if err != nil {
+		logger.Error("encode audio samples error: ", err)
+	}
+	sample := media.Sample{Data: data, Timestamp: time.Now()}
+	g.mutex.RLock()
+	defer g.mutex.RUnlock()
+	for _, conn := range g.connections {
+		if conn.pc.ConnectionState() != webrtc.PeerConnectionStateConnected {
+			continue
+		}
+		err := conn.audioTrack.WriteSample(sample)
+		if err != nil {
+			logger.Errorf("write sample error: %v", err)
+		}
+	}
 }
 
 func (g *GameInstance) onDataChannelMessage(userId int64, raw []byte) {
@@ -109,6 +146,13 @@ func (g *GameInstance) messageConsumer(ctx context.Context) {
 	}
 }
 
+func (g *GameInstance) onConnected(conn *Connection) {
+	g.messageChan <- &Message{
+		Type: MsgNewConn,
+		Data: conn,
+	}
+}
+
 func (g *GameInstance) closeConnection(conn *Connection) {
 	g.messageChan <- &Message{
 		Type: MsgCloseConn,
@@ -126,14 +170,14 @@ func (g *GameInstance) filterConnection(filter func(*Connection) bool) []*Connec
 	return result
 }
 
-func (g *GameInstance) handleMsgNewConn(conn *Connection) {
+func (g *GameInstance) handleMsgNewConn(_ *Connection) {
 	g.mutex.RLock()
 	defer g.mutex.RUnlock()
 	active := g.filterConnection(func(c *Connection) bool {
-		return c.userId != conn.userId && c.pc.ConnectionState() == webrtc.PeerConnectionStateConnected
+		return c.pc.ConnectionState() == webrtc.PeerConnectionStateConnected
 	})
 	// 首个活跃连接，开启模拟器
-	if len(active) == 0 {
+	if len(active) == 1 {
 		g.e.Resume()
 	}
 }

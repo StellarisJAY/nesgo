@@ -28,11 +28,11 @@ func (g *GameInstance) NewConnection(userId int64) (*Connection, string, error) 
 	}()
 
 	// create video and audio tracks
-	videoTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, "video", "nesgo")
+	videoTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, "video", "nesgo_video")
 	if err != nil {
 		panic(fmt.Errorf("create video track error: %v", err))
 	}
-	audioTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, "audio", "nesgo")
+	audioTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus}, "audio", "nesgo_audio")
 	if err != nil {
 		panic(fmt.Errorf("create audio track error: %v", err))
 	}
@@ -81,7 +81,7 @@ func (c *Connection) OnPeerConnectionState(state webrtc.PeerConnectionState, ins
 	// TODO Handle conn state change
 	switch state {
 	case webrtc.PeerConnectionStateConnected:
-
+		instance.onConnected(c)
 	case webrtc.PeerConnectionStateClosed:
 		instance.closeConnection(c)
 	default:
