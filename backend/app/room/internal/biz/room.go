@@ -209,6 +209,17 @@ func (uc *RoomUseCase) ListRoomMembers(ctx context.Context, roomId int64) ([]*Ro
 	return members, nil
 }
 
+func (uc *RoomUseCase) GetRoomMember(ctx context.Context, roomId, userId int64) (*RoomMember, error) {
+	member, err := uc.rr.GetRoomMember(ctx, roomId, userId)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, v1.ErrorGetRoomMemberFailed("member not found")
+	}
+	if err != nil {
+		return nil, v1.ErrorGetRoomMemberFailed("database error: %v", err)
+	}
+	return member, nil
+}
+
 func (uc *RoomUseCase) DeleteRoom(ctx context.Context, roomId, userId int64) error {
 	room, err := uc.rr.GetRoom(ctx, roomId)
 	if errors.Is(err, gorm.ErrRecordNotFound) {

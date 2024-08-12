@@ -13,7 +13,14 @@ type GamingUseCase struct {
 	logger   *log.Helper
 }
 
+type GameMetadata struct {
+	Name      string `json:"name"`
+	Mapper    string `json:"mapper"`
+	Mirroring string `json:"mirroring"`
+}
+
 type GamingRepo interface {
+	ListGames(ctx context.Context) ([]*GameMetadata, error)
 }
 
 func NewGamingUseCase(roomRepo RoomRepo, gamingRepo GamingRepo, logger log.Logger) *GamingUseCase {
@@ -75,4 +82,8 @@ func (uc *GamingUseCase) AddICECandidate(ctx context.Context, roomId, userId int
 	gamingCli := gamingAPI.NewGamingClient(conn)
 	_, err = gamingCli.ICECandidate(ctx, &gamingAPI.ICECandidateRequest{RoomId: roomId, UserId: userId, Candidate: candidate})
 	return err
+}
+
+func (uc *GamingUseCase) ListGames(ctx context.Context) ([]*GameMetadata, error) {
+	return uc.repo.ListGames(ctx)
 }

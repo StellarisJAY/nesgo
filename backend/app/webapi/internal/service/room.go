@@ -160,3 +160,18 @@ func (ws *WebApiService) DeleteRoom(ctx context.Context, request *v1.DeleteRoomR
 	}
 	return &v1.DeleteRoomResponse{}, nil
 }
+
+func (ws *WebApiService) GetRoomMember(ctx context.Context, request *v1.GetRoomMemberRequest) (*v1.GetRoomMemberResponse, error) {
+	claims, _ := jwt.FromContext(ctx)
+	c := claims.(*biz.LoginClaims)
+	member, err := ws.rc.GetRoomMember(ctx, request.RoomId, c.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.GetRoomMemberResponse{Member: &v1.Member{
+		UserId:   member.Id,
+		Name:     member.Name,
+		Role:     member.Role,
+		JoinedAt: member.JoinedAt.UnixMilli(),
+	}}, nil
+}

@@ -46,3 +46,19 @@ func (ws *WebApiService) AddICECandidate(ctx context.Context, request *v1.AddICE
 		UserId: request.UserId,
 	}, nil
 }
+
+func (ws *WebApiService) ListGames(ctx context.Context, _ *v1.ListGamesRequest) (*v1.ListGamesResponse, error) {
+	games, err := ws.gc.ListGames(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*v1.GameFileMetadata, 0, len(games))
+	for _, g := range games {
+		result = append(result, &v1.GameFileMetadata{
+			Name:      g.Name,
+			Mapper:    g.Mapper,
+			Mirroring: g.Mirroring,
+		})
+	}
+	return &v1.ListGamesResponse{Games: result}, nil
+}

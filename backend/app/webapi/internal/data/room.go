@@ -172,3 +172,18 @@ func (r *roomRepo) DeleteRoom(ctx context.Context, roomId, userId int64) error {
 	}
 	return nil
 }
+
+func (r *roomRepo) GetRoomMember(ctx context.Context, roomId, userId int64) (*biz.Member, error) {
+	response, err := r.data.rc.GetRoomMember(ctx, &roomAPI.GetRoomMemberRequest{
+		RoomId: roomId,
+		UserId: userId,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &biz.Member{
+		Id:       response.Member.UserId,
+		Role:     response.Member.Role,
+		JoinedAt: time.UnixMilli(response.Member.JoinedAt).Local(),
+	}, nil
+}

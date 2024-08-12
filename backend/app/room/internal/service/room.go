@@ -165,3 +165,17 @@ func (r *RoomService) DeleteRoom(ctx context.Context, request *v1.DeleteRoomRequ
 	}
 	return &v1.DeleteRoomResponse{}, nil
 }
+
+func (r *RoomService) GetRoomMember(ctx context.Context, request *v1.GetRoomMemberRequest) (*v1.GetRoomMemberResponse, error) {
+	member, err := r.ruc.GetRoomMember(ctx, request.RoomId, request.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.GetRoomMemberResponse{
+		Member: &v1.RoomMember{
+			UserId:   member.UserId,
+			Role:     member.Role,
+			JoinedAt: member.JoinedAt.UnixMilli(),
+		},
+	}, nil
+}

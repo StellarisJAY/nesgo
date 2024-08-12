@@ -52,6 +52,7 @@ type RoomRepo interface {
 	JoinRoom(ctx context.Context, roomId, userId int64, password string) error
 	UpdateRoom(ctx context.Context, room *Room, userId int64) error
 	DeleteRoom(ctx context.Context, roomId, userId int64) error
+	GetRoomMember(ctx context.Context, roomId, userId int64) (*Member, error)
 }
 
 func NewRoomUseCase(repo RoomRepo, ur UserRepo, logger log.Logger) *RoomUseCase {
@@ -145,4 +146,17 @@ func (uc *RoomUseCase) UpdateRoom(ctx context.Context, room *Room, userId int64)
 
 func (uc *RoomUseCase) DeleteRoom(ctx context.Context, roomId, userId int64) error {
 	return uc.repo.DeleteRoom(ctx, roomId, userId)
+}
+
+func (uc *RoomUseCase) GetRoomMember(ctx context.Context, roomId, userId int64) (*Member, error) {
+	member, err := uc.repo.GetRoomMember(ctx, roomId, userId)
+	if err != nil {
+		return nil, err
+	}
+	user, err := uc.ur.GetUser(ctx, member.Id)
+	if err != nil {
+		return nil, err
+	}
+	member.Name = user.Name
+	return member, nil
 }
