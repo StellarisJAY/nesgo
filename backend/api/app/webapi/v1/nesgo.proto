@@ -92,6 +92,18 @@ service WebApi {
       body: "*"
     };
   }
+
+  rpc GetRoomMember(GetRoomMemberRequest) returns (GetRoomMemberResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/member/{roomId}"
+    };
+  }
+
+  rpc ListGames(ListGamesRequest) returns (ListGamesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/games"
+    };
+  }
 }
 
 message RegisterRequest {
@@ -264,4 +276,26 @@ message UpdateRoomResponse {
   string name = 2;
   bool private = 3;
   string password = 4;
+}
+
+message GetRoomMemberRequest {
+  int64 roomId = 1;
+}
+
+message GetRoomMemberResponse {
+  Member member = 1;
+}
+
+message ListGamesRequest {
+
+}
+
+message GameFileMetadata {
+  string name = 1;
+  string mapper = 2;
+  string mirroring = 3;
+}
+
+message ListGamesResponse {
+  repeated GameFileMetadata games = 1;
 }

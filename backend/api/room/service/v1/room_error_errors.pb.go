@@ -118,3 +118,15 @@ func IsDeleteRoomFailed(err error) bool {
 func ErrorDeleteRoomFailed(format string, args ...interface{}) *errors.Error {
 	return errors.New(500, UserServiceErrorReason_DELETE_ROOM_FAILED.String(), fmt.Sprintf(format, args...))
 }
+
+func IsGetRoomMemberFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_GET_ROOM_MEMBER_FAILED.String() && e.Code == 500
+}
+
+func ErrorGetRoomMemberFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_GET_ROOM_MEMBER_FAILED.String(), fmt.Sprintf(format, args...))
+}

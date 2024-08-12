@@ -23,10 +23,12 @@ const OperationWebApiAddICECandidate = "/nesgo.webapi.v1.WebApi/AddICECandidate"
 const OperationWebApiCreateRoom = "/nesgo.webapi.v1.WebApi/CreateRoom"
 const OperationWebApiDeleteRoom = "/nesgo.webapi.v1.WebApi/DeleteRoom"
 const OperationWebApiGetRoom = "/nesgo.webapi.v1.WebApi/GetRoom"
+const OperationWebApiGetRoomMember = "/nesgo.webapi.v1.WebApi/GetRoomMember"
 const OperationWebApiGetRoomSession = "/nesgo.webapi.v1.WebApi/GetRoomSession"
 const OperationWebApiGetUser = "/nesgo.webapi.v1.WebApi/GetUser"
 const OperationWebApiJoinRoom = "/nesgo.webapi.v1.WebApi/JoinRoom"
 const OperationWebApiListAllRooms = "/nesgo.webapi.v1.WebApi/ListAllRooms"
+const OperationWebApiListGames = "/nesgo.webapi.v1.WebApi/ListGames"
 const OperationWebApiListMembers = "/nesgo.webapi.v1.WebApi/ListMembers"
 const OperationWebApiListMyRooms = "/nesgo.webapi.v1.WebApi/ListMyRooms"
 const OperationWebApiLogin = "/nesgo.webapi.v1.WebApi/Login"
@@ -40,10 +42,12 @@ type WebApiHTTPServer interface {
 	CreateRoom(context.Context, *CreateRoomRequest) (*CreateRoomResponse, error)
 	DeleteRoom(context.Context, *DeleteRoomRequest) (*DeleteRoomResponse, error)
 	GetRoom(context.Context, *GetRoomRequest) (*GetRoomResponse, error)
+	GetRoomMember(context.Context, *GetRoomMemberRequest) (*GetRoomMemberResponse, error)
 	GetRoomSession(context.Context, *GetRoomSessionRequest) (*GetRoomSessionResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	JoinRoom(context.Context, *JoinRoomRequest) (*JoinRoomResponse, error)
 	ListAllRooms(context.Context, *ListRoomRequest) (*ListRoomResponse, error)
+	ListGames(context.Context, *ListGamesRequest) (*ListGamesResponse, error)
 	ListMembers(context.Context, *ListMemberRequest) (*ListMemberResponse, error)
 	ListMyRooms(context.Context, *ListRoomRequest) (*ListRoomResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
@@ -70,6 +74,8 @@ func RegisterWebApiHTTPServer(s *http.Server, srv WebApiHTTPServer) {
 	r.POST("/api/v1/room/{roomId}/join", _WebApi_JoinRoom0_HTTP_Handler(srv))
 	r.DELETE("/api/v1/room/{roomId}", _WebApi_DeleteRoom0_HTTP_Handler(srv))
 	r.PUT("/api/v1/room/{roomId}", _WebApi_UpdateRoom0_HTTP_Handler(srv))
+	r.GET("/api/v1/member/{roomId}", _WebApi_GetRoomMember0_HTTP_Handler(srv))
+	r.GET("/api/v1/games", _WebApi_ListGames1_HTTP_Handler(srv))
 }
 
 func _WebApi_Register0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
@@ -399,15 +405,58 @@ func _WebApi_UpdateRoom0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Contex
 	}
 }
 
+func _WebApi_GetRoomMember0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetRoomMemberRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiGetRoomMember)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetRoomMember(ctx, req.(*GetRoomMemberRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetRoomMemberResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _WebApi_ListGames1_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListGamesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiListGames)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListGames(ctx, req.(*ListGamesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListGamesResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type WebApiHTTPClient interface {
 	AddICECandidate(ctx context.Context, req *AddICECandidateRequest, opts ...http.CallOption) (rsp *AddICECandidateResponse, err error)
 	CreateRoom(ctx context.Context, req *CreateRoomRequest, opts ...http.CallOption) (rsp *CreateRoomResponse, err error)
 	DeleteRoom(ctx context.Context, req *DeleteRoomRequest, opts ...http.CallOption) (rsp *DeleteRoomResponse, err error)
 	GetRoom(ctx context.Context, req *GetRoomRequest, opts ...http.CallOption) (rsp *GetRoomResponse, err error)
+	GetRoomMember(ctx context.Context, req *GetRoomMemberRequest, opts ...http.CallOption) (rsp *GetRoomMemberResponse, err error)
 	GetRoomSession(ctx context.Context, req *GetRoomSessionRequest, opts ...http.CallOption) (rsp *GetRoomSessionResponse, err error)
 	GetUser(ctx context.Context, req *GetUserRequest, opts ...http.CallOption) (rsp *GetUserResponse, err error)
 	JoinRoom(ctx context.Context, req *JoinRoomRequest, opts ...http.CallOption) (rsp *JoinRoomResponse, err error)
 	ListAllRooms(ctx context.Context, req *ListRoomRequest, opts ...http.CallOption) (rsp *ListRoomResponse, err error)
+	ListGames(ctx context.Context, req *ListGamesRequest, opts ...http.CallOption) (rsp *ListGamesResponse, err error)
 	ListMembers(ctx context.Context, req *ListMemberRequest, opts ...http.CallOption) (rsp *ListMemberResponse, err error)
 	ListMyRooms(ctx context.Context, req *ListRoomRequest, opts ...http.CallOption) (rsp *ListRoomResponse, err error)
 	Login(ctx context.Context, req *LoginRequest, opts ...http.CallOption) (rsp *LoginResponse, err error)
@@ -477,6 +526,19 @@ func (c *WebApiHTTPClientImpl) GetRoom(ctx context.Context, in *GetRoomRequest, 
 	return &out, nil
 }
 
+func (c *WebApiHTTPClientImpl) GetRoomMember(ctx context.Context, in *GetRoomMemberRequest, opts ...http.CallOption) (*GetRoomMemberResponse, error) {
+	var out GetRoomMemberResponse
+	pattern := "/api/v1/member/{roomId}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationWebApiGetRoomMember))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *WebApiHTTPClientImpl) GetRoomSession(ctx context.Context, in *GetRoomSessionRequest, opts ...http.CallOption) (*GetRoomSessionResponse, error) {
 	var out GetRoomSessionResponse
 	pattern := "/api/v1/room/session"
@@ -521,6 +583,19 @@ func (c *WebApiHTTPClientImpl) ListAllRooms(ctx context.Context, in *ListRoomReq
 	pattern := "/api/v1/rooms"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationWebApiListAllRooms))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) ListGames(ctx context.Context, in *ListGamesRequest, opts ...http.CallOption) (*ListGamesResponse, error) {
+	var out ListGamesResponse
+	pattern := "/api/v1/games"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationWebApiListGames))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
