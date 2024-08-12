@@ -65,10 +65,10 @@ export default {
     },
     methods: {
         onFinish(ev) {
-            api.post("/user/login", this.formState)
+            api.post("api/v1/login", this.formState)
             .then(resp=>{
                 message.success("登录成功")
-                tokenStorage.setToken(resp.data)
+                tokenStorage.setToken(resp["token"])
                 router.push("/home")
             }).catch(resp=>{
                 

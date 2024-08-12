@@ -85,7 +85,7 @@ export default {
     },
     methods: {
         onFinish(ev) {
-            api.post("/user/register", {
+            api.post("api/v1/register", {
                 "name": this.formState.name,
                 "password": this.formState.password,
             })
