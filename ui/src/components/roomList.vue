@@ -24,8 +24,8 @@
                 <a-button v-else type="link" @click="tryJoinRoom(item)">加入</a-button>
               </template>
               <ul style="text-align: left">
-                <li>房主：{{item["host"]}}</li>
-                <li>人数：{{item["memberCount"]}}/4</li>
+                <li>房主：{{item["hostName"]}}</li>
+                <li>人数：{{item["memberCount"]}}/{{item["memberLimit"]}}</li>
               </ul>
             </a-card>
           </a-list-item>
@@ -113,16 +113,16 @@ export default {
   },
   methods: {
       listJoinedRooms() {
-        api.get("/room/list/joined?page=1&pageSize=10")
+        api.get("api/v1/rooms/joined?page=0&pageSize=10")
             .then(resp=>{
-              this.rooms = resp.data
+              this.rooms = resp["rooms"];
             })
             .catch(resp=>{})
       },
       listAllRooms() {
-          api.get("/room/list?page=1&pageSize=10")
+          api.get("api/v1/rooms?page=0&pageSize=10")
               .then(resp=>{
-                this.rooms = resp.data
+                this.rooms = resp["rooms"];
               })
       },
       deleteRoom(id) {
@@ -144,7 +144,7 @@ export default {
         return
       }
       const that = this
-      api.post("/room", {"name": this.createRoomState.name, "private": this.createRoomState.isPrivate})
+      api.post("api/v1/room", {"name": this.createRoomState.name, "private": this.createRoomState.isPrivate})
           .then(resp=>{
             if (resp.status === 200) {
               message.success("新建房间成功")
