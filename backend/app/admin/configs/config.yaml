@@ -8,7 +8,7 @@ server:
 data:
   database:
     driver: mysql
-    source: root:root@tcp(127.0.0.1:3306)/test?parseTime=True&loc=Local
+    source: root:12345678@tcp(localhost:3306)/nesgo?parseTime=True&loc=Local
   redis:
     addr: 127.0.0.1:6379
     read_timeout: 0.2s
@@ -21,3 +21,5 @@ registry:
     endpoints:
       - localhost:2379
     scheme: http
+auth:
+  secret: abcdefg

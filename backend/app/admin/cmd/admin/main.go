@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/go-kratos/kratos/v2/registry"
+	"github.com/google/uuid"
 	"os"
 
 	"github.com/stellarisJAY/nesgo/backend/app/admin/internal/conf"
@@ -27,7 +28,7 @@ var (
 	// flagconf is the config flag.
 	flagconf string
 
-	id = Name
+	id = uuid.NewString()
 )
 
 func init() {
@@ -76,7 +77,7 @@ func main() {
 		panic(err)
 	}
 
-	app, cleanup, err := wireApp(bc.Server, bc.Data, bc.Registry, logger)
+	app, cleanup, err := wireApp(bc.Server, bc.Data, bc.Registry, bc.Auth, logger)
 	if err != nil {
 		panic(err)
 	}

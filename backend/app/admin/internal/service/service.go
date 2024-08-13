@@ -14,12 +14,14 @@ var ProviderSet = wire.NewSet(NewAdminService)
 type AdminService struct {
 	v1.UnimplementedAdminServer
 	gf     *biz.GameFileUseCase
+	a      *biz.AdminUseCase
 	logger *log.Helper
 }
 
-func NewAdminService(gf *biz.GameFileUseCase, logger log.Logger) *AdminService {
+func NewAdminService(gf *biz.GameFileUseCase, a *biz.AdminUseCase, logger log.Logger) *AdminService {
 	return &AdminService{
 		gf:     gf,
+		a:      a,
 		logger: log.NewHelper(log.With(logger, "module", "service/admin")),
 	}
 }
