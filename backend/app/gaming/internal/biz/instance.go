@@ -8,6 +8,7 @@ import (
 	"github.com/pion/webrtc/v3/pkg/media"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/codec"
 	"github.com/stellarisJAY/nesgo/emulator"
+	"github.com/stellarisJAY/nesgo/emulator/bus"
 	"github.com/stellarisJAY/nesgo/emulator/ppu"
 	"sync"
 	"sync/atomic"
@@ -15,10 +16,14 @@ import (
 )
 
 const (
-	MsgPlayerControl byte = iota
+	MsgPlayerControlButtonPressed byte = iota
+	MsgPlayerControlButtonReleased
 	MsgChat
 	MsgNewConn
 	MsgCloseConn
+	MsgSetController1
+	MsgSetController2
+	MsgResetController
 )
 
 const (
@@ -26,12 +31,24 @@ const (
 	InstanceStatusStopped
 )
 
+const (
+	MessageTargetEmulator int64 = iota
+)
+
+type ConsumerResult struct {
+	Success bool
+	Error   error
+	Message string
+}
+
 type Message struct {
 	Type      byte  `json:"type"`
 	From      int64 `json:"from"`
 	To        int64 `json:"to"`
 	Timestamp int64 `json:"timestamp"`
 	Data      any   `json:"data"`
+
+	resultChan chan ConsumerResult
 }
 
 type GameInstance struct {
@@ -134,12 +151,22 @@ func (g *GameInstance) messageConsumer(ctx context.Context) {
 			return
 		case msg := <-g.messageChan:
 			switch msg.Type {
-			case MsgPlayerControl: // TODO handle control message
+			case MsgPlayerControlButtonPressed:
+				fallthrough
+			case MsgPlayerControlButtonReleased:
+				keyCode := msg.Data.(string)
+				g.handlePlayerControl(keyCode, msg.Type, msg.From)
 			case MsgChat: // TODO handle chat message
 			case MsgNewConn:
 				g.handleMsgNewConn(msg.Data.(*Connection))
 			case MsgCloseConn:
 				g.handleMsgCloseConn(msg.Data.(*Connection))
+			case MsgSetController1:
+				msg.resultChan <- ConsumerResult{Success: g.handleSetController(msg.Data.(int64), 0)}
+			case MsgSetController2:
+				msg.resultChan <- ConsumerResult{Success: g.handleSetController(msg.Data.(int64), 1)}
+			case MsgResetController:
+				msg.resultChan <- ConsumerResult{Success: g.handleResetController(msg.Data.(int64))}
 			default: // TODO handle unknown message
 			}
 		}
@@ -193,4 +220,67 @@ func (g *GameInstance) handleMsgCloseConn(conn *Connection) {
 	if len(active) == 0 {
 		g.e.Pause()
 	}
+}
+
+func (g *GameInstance) handlePlayerControl(keyCode string, action byte, player int64) {
+	if player != g.controller1 && player != g.controller2 {
+		return
+	}
+	id := 1
+	if player == g.controller2 {
+		id = 2
+	}
+	switch keyCode {
+	case "Up":
+		g.e.SetJoyPadButtonPressed(id, bus.Up, action == MsgPlayerControlButtonPressed)
+	case "Down":
+		g.e.SetJoyPadButtonPressed(id, bus.Down, action == MsgPlayerControlButtonPressed)
+	case "Left":
+		g.e.SetJoyPadButtonPressed(id, bus.Left, action == MsgPlayerControlButtonPressed)
+	case "Right":
+		g.e.SetJoyPadButtonPressed(id, bus.Right, action == MsgPlayerControlButtonPressed)
+	case "A":
+		g.e.SetJoyPadButtonPressed(id, bus.ButtonA, action == MsgPlayerControlButtonPressed)
+	case "B":
+		g.e.SetJoyPadButtonPressed(id, bus.ButtonB, action == MsgPlayerControlButtonPressed)
+	case "Select":
+		g.e.SetJoyPadButtonPressed(id, bus.Select, action == MsgPlayerControlButtonPressed)
+	case "Start":
+		g.e.SetJoyPadButtonPressed(id, bus.Start, action == MsgPlayerControlButtonPressed)
+	}
+}
+
+func (g *GameInstance) handleSetController(playerId int64, id int) bool {
+	g.mutex.RLock()
+	defer g.mutex.RUnlock()
+	if _, ok := g.connections[playerId]; !ok {
+		return false
+	}
+	if id == 0 {
+		g.controller1 = playerId
+		if g.controller2 == playerId {
+			g.controller2 = 0
+		}
+	} else {
+		g.controller2 = playerId
+		if g.controller1 == playerId {
+			g.controller1 = 0
+		}
+	}
+	return true
+}
+
+func (g *GameInstance) handleResetController(playerId int64) bool {
+	g.mutex.RLock()
+	defer g.mutex.RUnlock()
+	if _, ok := g.connections[playerId]; !ok {
+		return false
+	}
+	if g.controller1 == playerId {
+		g.controller1 = 0
+	}
+	if g.controller2 == playerId {
+		g.controller2 = 0
+	}
+	return true
 }

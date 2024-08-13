@@ -118,3 +118,22 @@ func (g *GamingService) DeleteGameInstance(ctx context.Context, request *v1.Dele
 		RoomId: request.RoomId,
 	}, nil
 }
+
+func (g *GamingService) SetController(ctx context.Context, request *v1.SetControllerRequest) (*v1.SetControllerResponse, error) {
+	err := g.gi.SetController(ctx, request.RoomId, request.UserId, int(request.Controller))
+	if err != nil {
+		return nil, err
+	}
+	return &v1.SetControllerResponse{}, nil
+}
+
+func (g *GamingService) GetControllers(ctx context.Context, request *v1.GetControllersRequest) (*v1.GetControllersResponse, error) {
+	p1, p2, err := g.gi.GetController(ctx, request.RoomId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.GetControllersResponse{
+		Controller1: p1,
+		Controller2: p2,
+	}, nil
+}

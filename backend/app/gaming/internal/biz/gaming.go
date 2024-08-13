@@ -216,3 +216,42 @@ func (uc *GameInstanceUseCase) ReleaseGameInstance(ctx context.Context, roomId i
 	_ = uc.repo.DeleteGameInstance(ctx, roomId)
 	return nil
 }
+
+func (uc *GameInstanceUseCase) SetController(ctx context.Context, roomId, playerId int64, controllerId int) error {
+	instance, err := uc.repo.GetGameInstance(ctx, roomId)
+	if err != nil {
+		return err
+	}
+	if instance == nil {
+		return v1.ErrorGameInstanceNotAccessible("game instance not found")
+	}
+	msgType := MsgResetController
+	if controllerId == 1 {
+		msgType = MsgSetController1
+	}
+	if controllerId == 2 {
+		msgType = MsgSetController2
+	}
+	resultChan := make(chan ConsumerResult)
+	instance.messageChan <- &Message{
+		Data:       playerId,
+		Type:       msgType,
+		resultChan: resultChan,
+	}
+	res := <-resultChan
+	if !res.Success {
+		return v1.ErrorOperationFailed("set controller failed")
+	}
+	return nil
+}
+
+func (uc *GameInstanceUseCase) GetController(ctx context.Context, roomId int64) (int64, int64, error) {
+	instance, err := uc.repo.GetGameInstance(ctx, roomId)
+	if err != nil {
+		return 0, 0, err
+	}
+	if instance == nil {
+		return 0, 0, v1.ErrorGameInstanceNotAccessible("game instance not found")
+	}
+	return instance.controller1, instance.controller2, nil
+}

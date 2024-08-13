@@ -141,8 +141,12 @@ const tourSteps = [
             <a-row>
               <a-col :span="8"><CrownTwoTone v-if="item.role===RoleNameHost" />{{item.name}}</a-col>
               <a-col :span="10">
-                <a-checkbox :disabled="memberSelf.role!==RoleNameHost" v-model:checked="item['player1']" @change="ev=>{onP1P2Change(ev, item, 1)}">P1</a-checkbox>
-                <a-checkbox :disabled="memberSelf.role!==RoleNameHost" v-model:checked="item['player2']" @change="ev=>{onP1P2Change(ev, item, 2)}">P2</a-checkbox>
+                <a-checkbox :disabled="memberSelf.role!==RoleNameHost||rtcSession.pc === undefined||rtcSession.pc.connectionState !== 'connected' "
+                            v-model:checked="item['player1']"
+                            @change="ev=>{onP1P2Change(ev, item, 1)}">P1</a-checkbox>
+                <a-checkbox :disabled="memberSelf.role!==RoleNameHost||rtcSession.pc === undefined||rtcSession.pc.connectionState !== 'connected' "
+                            v-model:checked="item['player2']"
+                            @change="ev=>{onP1P2Change(ev, item, 2)}">P2</a-checkbox>
                 <a-radio-group v-model:value="item.role" :disabled="memberSelf.role!==RoleNameHost || item.role===RoleNameHost"
                                @change="ev=>{onRoleRatioChange(ev, item)}">
                   <a-radio :value="RoleNamePlayer">玩家</a-radio>
@@ -202,8 +206,8 @@ import {notification, Tour} from "ant-design-vue";
 // const MessageSDPOffer = 0
 // const MessageSDPAnswer = 1
 // const MessageICECandidate = 2
-const MessageGameButtonPressed = 3
-const MessageGameButtonReleased = 4
+const MessageGameButtonPressed = 0
+const MessageGameButtonReleased = 1
 // const MessageTurnServerInfo = 5
 // const MessageChat = 6
 // const MessagePing = 7
@@ -455,6 +459,13 @@ export default {
     },
     sendAction(code, pressed) {
         // TODO send control message
+      const msg = JSON.stringify({
+        "from": 0,
+        "to": 0,
+        "type": pressed,
+        "data": code,
+      });
+      this.rtcSession.dataChannel.send(msg);
     },
 
     onRoleRatioChange(ev, member) {
@@ -503,7 +514,19 @@ export default {
     },
 
     onP1P2Change(ev, m, which) {
-      // TODO switch controller
+      if (m["role"] === RoleNameObserver) {
+        message.error("无法修改观战玩家的控制");
+        return;
+      }
+      const _this = this;
+      api.post("api/v1/game/controller", {
+        "roomId": this.roomId,
+        "playerId": m["userId"],
+        "controllerId": ev.target.checked ? which : -1,
+      }).then(_=>{
+        _this.listRoomMembers();
+        message.success("修改成功");
+      });
     },
     alterRoomPrivacy() {
       // TODO update room

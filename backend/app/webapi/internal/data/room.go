@@ -20,11 +20,24 @@ func NewRoomRepo(data *Data, logger log.Logger) biz.RoomRepo {
 	}
 }
 
-func (r *roomRepo) GetRoomSession(ctx context.Context, roomId, userId int64, game string) (*biz.RoomSession, error) {
+func (r *roomRepo) GetRoomSession(ctx context.Context, roomId int64) (*biz.RoomSession, error) {
 	response, err := r.data.rc.GetRoomSession(ctx, &roomAPI.GetRoomSessionRequest{
+		RoomId: roomId,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &biz.RoomSession{
+		RoomId:   roomId,
+		Endpoint: response.Endpoint,
+	}, nil
+}
+
+func (r *roomRepo) GetCreateRoomSession(ctx context.Context, roomId, userId int64, selectedGame string) (*biz.RoomSession, error) {
+	response, err := r.data.rc.GetCreateRoomSession(ctx, &roomAPI.GetCreateRoomSessionRequest{
 		RoomId:       roomId,
 		UserId:       userId,
-		SelectedGame: game,
+		SelectedGame: selectedGame,
 	})
 	if err != nil {
 		return nil, err

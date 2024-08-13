@@ -4,7 +4,9 @@ import (
 	"context"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
+	v1 "github.com/stellarisJAY/nesgo/backend/api/app/webapi/v1"
 	gamingAPI "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
+	roomAPI "github.com/stellarisJAY/nesgo/backend/api/room/service/v1"
 )
 
 type GamingUseCase struct {
@@ -33,7 +35,7 @@ func NewGamingUseCase(roomRepo RoomRepo, gamingRepo GamingRepo, logger log.Logge
 
 func (uc *GamingUseCase) OpenGameConnection(ctx context.Context, roomId int64, userId int64, game string) (string, error) {
 	// 调用房间服务，获取房间模拟器会话地址
-	session, err := uc.roomRepo.GetRoomSession(ctx, roomId, userId, game)
+	session, err := uc.roomRepo.GetCreateRoomSession(ctx, roomId, userId, game)
 	if err != nil {
 		return "", err
 	}
@@ -53,7 +55,7 @@ func (uc *GamingUseCase) OpenGameConnection(ctx context.Context, roomId int64, u
 }
 
 func (uc *GamingUseCase) SDPAnswer(ctx context.Context, roomId, userId int64, sdpAnswer string) error {
-	session, err := uc.roomRepo.GetRoomSession(ctx, roomId, userId, "")
+	session, err := uc.roomRepo.GetRoomSession(ctx, roomId)
 	if err != nil {
 		return err
 	}
@@ -69,7 +71,7 @@ func (uc *GamingUseCase) SDPAnswer(ctx context.Context, roomId, userId int64, sd
 }
 
 func (uc *GamingUseCase) AddICECandidate(ctx context.Context, roomId, userId int64, candidate string) error {
-	session, err := uc.roomRepo.GetRoomSession(ctx, roomId, userId, "")
+	session, err := uc.roomRepo.GetRoomSession(ctx, roomId)
 	if err != nil {
 		return err
 	}
@@ -86,4 +88,41 @@ func (uc *GamingUseCase) AddICECandidate(ctx context.Context, roomId, userId int
 
 func (uc *GamingUseCase) ListGames(ctx context.Context) ([]*GameMetadata, error) {
 	return uc.repo.ListGames(ctx)
+}
+
+func (uc *GamingUseCase) SetController(ctx context.Context, roomId, userId, playerId int64, controller int32) error {
+	room, err := uc.roomRepo.GetRoom(ctx, roomId)
+	if err != nil {
+		return err
+	}
+	if room.Host != userId {
+		return v1.ErrorOperationFailed("only host can set controller")
+	}
+	member, err := uc.roomRepo.GetRoomMember(ctx, roomId, playerId)
+	if err != nil {
+		return err
+	}
+	if member.Role == roomAPI.RoomRole_Observer {
+		return v1.ErrorOperationFailed("can't set controller for observer")
+	}
+	session, err := uc.roomRepo.GetRoomSession(ctx, roomId)
+	if err != nil {
+		return err
+	}
+	endpoint := session.Endpoint
+	conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(endpoint))
+	if err != nil {
+		return v1.ErrorOperationFailed("can't connect room session: %v", err)
+	}
+	defer conn.Close()
+	client := gamingAPI.NewGamingClient(conn)
+	_, err = client.SetController(ctx, &gamingAPI.SetControllerRequest{
+		Controller: controller,
+		RoomId:     roomId,
+		UserId:     userId,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

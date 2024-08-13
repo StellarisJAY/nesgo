@@ -110,6 +110,8 @@ func (ws *WebApiService) ListMembers(ctx context.Context, request *v1.ListMember
 			Name:     member.Name,
 			Role:     member.Role,
 			JoinedAt: member.JoinedAt.UnixMilli(),
+			Player1:  member.Player1,
+			Player2:  member.Player2,
 		})
 	}
 	return &v1.ListMemberResponse{

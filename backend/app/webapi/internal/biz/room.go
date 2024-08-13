@@ -3,6 +3,8 @@ package biz
 import (
 	"context"
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/go-kratos/kratos/v2/transport/grpc"
+	gamingAPI "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
 	roomAPI "github.com/stellarisJAY/nesgo/backend/api/room/service/v1"
 	"time"
 )
@@ -35,6 +37,8 @@ type Member struct {
 	Name     string           `json:"name"`
 	Role     roomAPI.RoomRole `json:"role"`
 	JoinedAt time.Time        `json:"joinedAt"`
+	Player1  bool             `json:"player1"`
+	Player2  bool             `json:"player2"`
 }
 
 type JoinedRoom struct {
@@ -43,7 +47,8 @@ type JoinedRoom struct {
 }
 
 type RoomRepo interface {
-	GetRoomSession(ctx context.Context, roomId, userId int64, game string) (*RoomSession, error)
+	GetRoomSession(ctx context.Context, roomId int64) (*RoomSession, error)
+	GetCreateRoomSession(ctx context.Context, roomId, userId int64, selectedGame string) (*RoomSession, error)
 	CreateRoom(ctx context.Context, room *Room) error
 	GetRoom(ctx context.Context, roomId int64) (*Room, error)
 	ListJoinedRooms(ctx context.Context, userId int64, page, pageSize int) ([]*JoinedRoom, int, error)
@@ -61,11 +66,6 @@ func NewRoomUseCase(repo RoomRepo, ur UserRepo, logger log.Logger) *RoomUseCase 
 		ur:     ur,
 		logger: log.NewHelper(log.With(logger, "module", "biz/room")),
 	}
-}
-
-func (uc *RoomUseCase) GetRoomSession(ctx context.Context, roomId, userId int64, game string) (*RoomSession, error) {
-	session, err := uc.repo.GetRoomSession(ctx, roomId, userId, game)
-	return session, err
 }
 
 func (uc *RoomUseCase) CreateRoom(ctx context.Context, name string, private bool, userId int64) (*Room, error) {
@@ -132,6 +132,27 @@ func (uc *RoomUseCase) ListMembers(ctx context.Context, roomId int64) ([]*Member
 		if user != nil {
 			member.Name = user.Name
 		}
+	}
+
+	session, _ := uc.repo.GetRoomSession(ctx, roomId)
+	if session == nil {
+		return members, nil
+	}
+
+	conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(session.Endpoint))
+	if err != nil {
+		uc.logger.Errorf("list members connect gaming service failed: %v", err)
+		return members, nil
+	}
+	defer conn.Close()
+	response, err := gamingAPI.NewGamingClient(conn).GetControllers(ctx, &gamingAPI.GetControllersRequest{RoomId: roomId})
+	if err != nil {
+		uc.logger.Errorf("list members get player1&2 failed: %v", err)
+		return members, nil
+	}
+	for _, member := range members {
+		member.Player1 = member.Id == response.Controller1
+		member.Player2 = member.Id == response.Controller2
 	}
 	return members, nil
 }

@@ -62,3 +62,13 @@ func (ws *WebApiService) ListGames(ctx context.Context, _ *v1.ListGamesRequest) 
 	}
 	return &v1.ListGamesResponse{Games: result}, nil
 }
+
+func (ws *WebApiService) SetController(ctx context.Context, request *v1.SetControllerRequest) (*v1.SetControllerResponse, error) {
+	c, _ := jwt.FromContext(ctx)
+	claims := c.(*biz.LoginClaims)
+	err := ws.gc.SetController(ctx, request.RoomId, claims.UserId, request.PlayerId, request.ControllerId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.SetControllerResponse{}, nil
+}
