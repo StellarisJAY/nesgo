@@ -2,12 +2,10 @@ package data
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-redis/redis"
 	"github.com/stellarisJAY/nesgo/backend/app/user/internal/biz"
+	"github.com/stellarisJAY/nesgo/backend/pkg/cache"
 	"gorm.io/gorm"
 	"time"
 )
@@ -89,38 +87,20 @@ func (u *userRepo) GetUserByName(ctx context.Context, name string) (*biz.User, e
 	}, nil
 }
 
-func (u *userRepo) cacheGetUser(_ context.Context, id int64) *User {
-	result, err := u.data.rdb.Get(userCacheKey(id)).Result()
-	if errors.Is(err, redis.Nil) {
-		return nil
-	}
-	if err != nil {
-		u.logger.Errorf("cacheGetUser error: %v", err)
-		return nil
-	}
-	user := &User{}
-	err = json.Unmarshal([]byte(result), user)
-	if err != nil {
-		u.logger.Errorf("cacheGetUser error: %v", err)
-		return nil
-	}
+func (u *userRepo) cacheGetUser(ctx context.Context, id int64) *User {
+	user, _ := cache.Get[User](ctx, u.data.rdb, userCacheKey(id))
 	return user
 }
 
-func (u *userRepo) cacheSetUser(_ context.Context, user *User) {
-	data, err := json.Marshal(user)
-	if err != nil {
-		u.logger.Errorf("cacheSetUser error: %v", err)
-		return
-	}
-	_, err = u.data.rdb.Set(userCacheKey(user.Id), data, 0).Result()
+func (u *userRepo) cacheSetUser(ctx context.Context, user *User) {
+	err := cache.Set(ctx, u.data.rdb, userCacheKey(user.Id), user)
 	if err != nil {
 		u.logger.Errorf("cacheSetUser error: %v", err)
 	}
 }
 
-func (u *userRepo) cacheDeleteUser(_ context.Context, id int64) error {
-	_, err := u.data.rdb.Del(userCacheKey(id)).Result()
+func (u *userRepo) cacheDeleteUser(ctx context.Context, id int64) error {
+	err := cache.Del(ctx, u.data.rdb, userCacheKey(id))
 	if err != nil {
 		u.logger.Errorf("cacheDeleteUser error: %v", err)
 		return err
