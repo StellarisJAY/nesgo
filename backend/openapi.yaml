@@ -6,6 +6,24 @@ info:
     title: ""
     version: 0.0.1
 paths:
+    /api/v1/admin:
+        post:
+            tags:
+                - Admin
+            operationId: Admin_CreateAdmin
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.admin.v1.CreateAdminRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.admin.v1.CreateAdminResponse'
     /api/v1/admin/games:
         get:
             tags:
@@ -22,12 +40,13 @@ paths:
             tags:
                 - Admin
             operationId: Admin_DeleteGameFiles
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/nesgo.admin.v1.DeleteGameFileRequest'
-                required: true
+            parameters:
+                - name: games
+                  in: query
+                  schema:
+                    type: array
+                    items:
+                        type: string
             responses:
                 "200":
                     description: OK
@@ -35,6 +54,47 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.admin.v1.DeleteGameFileResponse'
+    /api/v1/admin/login:
+        post:
+            tags:
+                - Admin
+            operationId: Admin_Login
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.admin.v1.LoginRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.admin.v1.LoginResponse'
+    /api/v1/admin/rooms/active:
+        get:
+            tags:
+                - Admin
+            operationId: Admin_ListActiveRooms
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.admin.v1.ListActiveRoomsResponse'
     /api/v1/game/connection:
         post:
             tags:
@@ -375,13 +435,43 @@ paths:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.GetUserResponse'
 components:
     schemas:
-        nesgo.admin.v1.DeleteGameFileRequest:
+        nesgo.admin.v1.ActiveRoom:
             type: object
             properties:
-                games:
-                    type: array
-                    items:
-                        type: string
+                roomId:
+                    type: string
+                name:
+                    type: string
+                host:
+                    type: string
+                hostName:
+                    type: string
+                memberCount:
+                    type: integer
+                    format: int32
+                memberLimit:
+                    type: integer
+                    format: int32
+                endpoint:
+                    type: string
+                connections:
+                    type: integer
+                    format: int32
+                activeConnections:
+                    type: integer
+                    format: int32
+                game:
+                    type: string
+        nesgo.admin.v1.CreateAdminRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                password:
+                    type: string
+        nesgo.admin.v1.CreateAdminResponse:
+            type: object
+            properties: {}
         nesgo.admin.v1.DeleteGameFileResponse:
             type: object
             properties:
@@ -397,6 +487,16 @@ components:
                     type: string
                 mirroring:
                     type: string
+        nesgo.admin.v1.ListActiveRoomsResponse:
+            type: object
+            properties:
+                rooms:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/nesgo.admin.v1.ActiveRoom'
+                total:
+                    type: integer
+                    format: int32
         nesgo.admin.v1.ListGamesResponse:
             type: object
             properties:
@@ -404,6 +504,18 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/nesgo.admin.v1.GameFileMetadata'
+        nesgo.admin.v1.LoginRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                password:
+                    type: string
+        nesgo.admin.v1.LoginResponse:
+            type: object
+            properties:
+                token:
+                    type: string
         nesgo.webapi.v1.AddICECandidateRequest:
             type: object
             properties:

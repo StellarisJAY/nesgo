@@ -62,7 +62,7 @@ type WebApiHTTPServer interface {
 func RegisterWebApiHTTPServer(s *http.Server, srv WebApiHTTPServer) {
 	r := s.Route("/")
 	r.POST("/api/v1/register", _WebApi_Register0_HTTP_Handler(srv))
-	r.POST("/api/v1/login", _WebApi_Login0_HTTP_Handler(srv))
+	r.POST("/api/v1/login", _WebApi_Login1_HTTP_Handler(srv))
 	r.GET("/api/v1/rooms/joined", _WebApi_ListMyRooms0_HTTP_Handler(srv))
 	r.GET("/api/v1/rooms", _WebApi_ListAllRooms0_HTTP_Handler(srv))
 	r.POST("/api/v1/room", _WebApi_CreateRoom0_HTTP_Handler(srv))
@@ -103,7 +103,7 @@ func _WebApi_Register0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context)
 	}
 }
 
-func _WebApi_Login0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+func _WebApi_Login1_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in LoginRequest
 		if err := ctx.Bind(&in); err != nil {

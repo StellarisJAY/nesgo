@@ -10,4 +10,6 @@ enum NesgoAdminErrorReasons {
 
   UNKNOWN_ERROR = 0;
   UPLOAD_FILE_ERROR = 1;
+  LOGIN_FAILED = 2;
+  LIST_ACTIVE_ROOMS_FAILED = 3;
 }

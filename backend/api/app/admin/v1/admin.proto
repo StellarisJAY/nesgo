@@ -16,7 +16,23 @@ service Admin {
   rpc DeleteGameFiles(DeleteGameFileRequest) returns (DeleteGameFileResponse) {
     option (google.api.http) = {
       delete: "/api/v1/admin/games",
+    };
+  }
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/admin/login",
       body: "*"
+    };
+  }
+  rpc CreateAdmin(CreateAdminRequest) returns (CreateAdminResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/admin",
+      body: "*"
+    };
+  }
+  rpc ListActiveRooms(ListActiveRoomsRequest) returns (ListActiveRoomsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/admin/rooms/active"
     };
   }
 }
@@ -50,4 +66,43 @@ message DeleteGameFileRequest {
 
 message DeleteGameFileResponse {
   int32 deleted = 1;
+}
+
+message LoginRequest {
+  string name = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string token = 1;
+}
+
+message CreateAdminRequest {
+  string name = 1;
+  string password = 2;
+}
+
+message CreateAdminResponse {}
+
+message ActiveRoom {
+  int64 roomId = 1;
+  string name = 2;
+  int64 host = 3;
+  string hostName = 4;
+  int32 memberCount = 5;
+  int32 memberLimit = 6;
+  string endpoint = 7;
+  int32 connections = 8;
+  int32 activeConnections = 9;
+  string game = 10;
+}
+
+message ListActiveRoomsRequest {
+  int32 page = 1;
+  int32 pageSize = 2;
+}
+
+message ListActiveRoomsResponse {
+  repeated ActiveRoom rooms = 1;
+  int32 total = 2;
 }

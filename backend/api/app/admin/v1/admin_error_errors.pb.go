@@ -34,3 +34,27 @@ func IsUploadFileError(err error) bool {
 func ErrorUploadFileError(format string, args ...interface{}) *errors.Error {
 	return errors.New(500, NesgoAdminErrorReasons_UPLOAD_FILE_ERROR.String(), fmt.Sprintf(format, args...))
 }
+
+func IsLoginFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == NesgoAdminErrorReasons_LOGIN_FAILED.String() && e.Code == 500
+}
+
+func ErrorLoginFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, NesgoAdminErrorReasons_LOGIN_FAILED.String(), fmt.Sprintf(format, args...))
+}
+
+func IsListActiveRoomsFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == NesgoAdminErrorReasons_LIST_ACTIVE_ROOMS_FAILED.String() && e.Code == 500
+}
+
+func ErrorListActiveRoomsFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, NesgoAdminErrorReasons_LIST_ACTIVE_ROOMS_FAILED.String(), fmt.Sprintf(format, args...))
+}
