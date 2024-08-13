@@ -70,8 +70,8 @@ export default {
                 message.success("登录成功")
                 tokenStorage.setToken(resp["token"])
                 router.push("/home")
-            }).catch(resp=>{
-                
+            }).catch(_=>{
+                message.warn("登录失败，请检查用户名和密码");
             })
         },
         onFinishFailed(ev) {

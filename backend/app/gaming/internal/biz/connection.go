@@ -71,9 +71,13 @@ func (g *GameInstance) NewConnection(userId int64) (*Connection, string, error) 
 	dataChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
 		g.onDataChannelMessage(userId, msg.Data)
 	})
-	g.mutex.Lock()
-	g.connections[userId] = conn
-	g.mutex.Unlock()
+	rch := make(chan ConsumerResult)
+	g.messageChan <- &Message{
+		Type:       MsgNewConn,
+		Data:       conn,
+		resultChan: rch,
+	}
+	<-rch
 	return conn, offer.SDP, nil
 }
 

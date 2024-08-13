@@ -24,6 +24,7 @@ const (
 	MsgSetController1
 	MsgSetController2
 	MsgResetController
+	MsgPeerConnected
 )
 
 const (
@@ -159,6 +160,9 @@ func (g *GameInstance) messageConsumer(ctx context.Context) {
 			case MsgChat: // TODO handle chat message
 			case MsgNewConn:
 				g.handleMsgNewConn(msg.Data.(*Connection))
+				msg.resultChan <- ConsumerResult{Success: true}
+			case MsgPeerConnected:
+				g.handlePeerConnected(msg.Data.(*Connection))
 			case MsgCloseConn:
 				g.handleMsgCloseConn(msg.Data.(*Connection))
 			case MsgSetController1:
@@ -175,7 +179,7 @@ func (g *GameInstance) messageConsumer(ctx context.Context) {
 
 func (g *GameInstance) onConnected(conn *Connection) {
 	g.messageChan <- &Message{
-		Type: MsgNewConn,
+		Type: MsgPeerConnected,
 		Data: conn,
 	}
 }
@@ -197,7 +201,17 @@ func (g *GameInstance) filterConnection(filter func(*Connection) bool) []*Connec
 	return result
 }
 
-func (g *GameInstance) handleMsgNewConn(_ *Connection) {
+func (g *GameInstance) handleMsgNewConn(conn *Connection) {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+	if old, ok := g.connections[conn.userId]; ok {
+		old.Close()
+		delete(g.connections, conn.userId)
+	}
+	g.connections[conn.userId] = conn
+}
+
+func (g *GameInstance) handlePeerConnected(_ *Connection) {
 	g.mutex.RLock()
 	defer g.mutex.RUnlock()
 	active := g.filterConnection(func(c *Connection) bool {
@@ -212,7 +226,12 @@ func (g *GameInstance) handleMsgNewConn(_ *Connection) {
 func (g *GameInstance) handleMsgCloseConn(conn *Connection) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
-	delete(g.connections, conn.userId)
+	// 被动关闭连接，可能是因为新连接挤掉旧连接，需要避免删除新连接
+	if cur, ok := g.connections[conn.userId]; ok {
+		if cur.pc.ConnectionState() == webrtc.PeerConnectionStateClosed {
+			delete(g.connections, conn.userId)
+		}
+	}
 	active := g.filterConnection(func(conn *Connection) bool {
 		return conn.pc.ConnectionState() == webrtc.PeerConnectionStateConnected
 	})
