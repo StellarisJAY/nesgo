@@ -73,6 +73,8 @@ type GameInstance struct {
 	destroyed bool
 	LeaseID   int64
 	status    atomic.Int32
+
+	createTime time.Time
 }
 
 func (g *GameInstance) RenderCallback(ppu *ppu.PPU, logger *log.Helper) {
@@ -302,4 +304,19 @@ func (g *GameInstance) handleResetController(playerId int64) bool {
 		g.controller2 = 0
 	}
 	return true
+}
+
+func (g *GameInstance) DumpStats() *GameInstanceStats {
+	g.mutex.RLock()
+	defer g.mutex.RUnlock()
+	active := g.filterConnection(func(c *Connection) bool {
+		return c.pc.ConnectionState() == webrtc.PeerConnectionStateConnected
+	})
+	return &GameInstanceStats{
+		RoomId:            g.RoomId,
+		Connections:       len(g.connections),
+		ActiveConnections: len(active),
+		Game:              g.game,
+		Uptime:            time.Now().Sub(g.createTime),
+	}
 }

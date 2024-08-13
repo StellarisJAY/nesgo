@@ -23,6 +23,8 @@ service Gaming {
 
   rpc SetController(SetControllerRequest) returns (SetControllerResponse) {}
   rpc GetControllers(GetControllersRequest) returns (GetControllersResponse) {}
+
+  rpc GetGameInstanceStats(GetGameInstanceStatsRequest) returns (GetGameInstanceStatsResponse) {}
 }
 
 message CreateGameInstanceRequest {
@@ -144,4 +146,21 @@ message GetControllersResponse {
   int64 roomId = 1;
   int64 controller1 = 2;
   int64 controller2 = 3;
+}
+
+message GameInstanceStats {
+  int64 roomId = 1;
+  int32 connections = 2;
+  int32 activeConnections = 3;
+  string game = 4;
+  int64 uptime = 5;
+  // TODO more stats
+}
+
+message GetGameInstanceStatsRequest {
+  int64 roomId = 1;
+}
+
+message GetGameInstanceStatsResponse {
+  GameInstanceStats stats = 1;
 }

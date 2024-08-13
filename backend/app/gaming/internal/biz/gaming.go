@@ -13,6 +13,7 @@ import (
 	"github.com/stellarisJAY/nesgo/emulator/ppu"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"sync"
+	"time"
 )
 
 type GameSave struct {
@@ -26,6 +27,14 @@ type GameFileMetadata struct {
 	Name      string `json:"name"`
 	Mapper    string `json:"mapper"`
 	Mirroring string `json:"mirroring"`
+}
+
+type GameInstanceStats struct {
+	RoomId            int64         `json:"roomId"`
+	Connections       int           `json:"connections"`
+	ActiveConnections int           `json:"activeConnections"`
+	Game              string        `json:"game"`
+	Uptime            time.Duration `json:"uptime"`
 }
 
 type GameInstanceRepo interface {
@@ -73,6 +82,7 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 		messageChan: make(chan *Message, 64),
 		mutex:       &sync.RWMutex{},
 		connections: make(map[int64]*Connection),
+		createTime:  time.Now(),
 	}
 	emulatorConfig := config.Config{
 		Game:        game,
@@ -254,4 +264,15 @@ func (uc *GameInstanceUseCase) GetController(ctx context.Context, roomId int64) 
 		return 0, 0, v1.ErrorGameInstanceNotAccessible("game instance not found")
 	}
 	return instance.controller1, instance.controller2, nil
+}
+
+func (uc *GameInstanceUseCase) GetGameInstanceStats(ctx context.Context, roomId int64) (*GameInstanceStats, error) {
+	instance, err := uc.repo.GetGameInstance(ctx, roomId)
+	if err != nil {
+		return nil, err
+	}
+	if instance == nil {
+		return nil, v1.ErrorGameInstanceNotAccessible("game instance not found")
+	}
+	return instance.DumpStats(), nil
 }

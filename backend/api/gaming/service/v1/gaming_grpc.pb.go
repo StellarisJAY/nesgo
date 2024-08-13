@@ -19,18 +19,19 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Gaming_CreateGameInstance_FullMethodName = "/gaming.v1.Gaming/CreateGameInstance"
-	Gaming_OpenGameConnection_FullMethodName = "/gaming.v1.Gaming/OpenGameConnection"
-	Gaming_SDPAnswer_FullMethodName          = "/gaming.v1.Gaming/SDPAnswer"
-	Gaming_ICECandidate_FullMethodName       = "/gaming.v1.Gaming/ICECandidate"
-	Gaming_PauseEmulator_FullMethodName      = "/gaming.v1.Gaming/PauseEmulator"
-	Gaming_RestartEmulator_FullMethodName    = "/gaming.v1.Gaming/RestartEmulator"
-	Gaming_DeleteGameInstance_FullMethodName = "/gaming.v1.Gaming/DeleteGameInstance"
-	Gaming_UploadGame_FullMethodName         = "/gaming.v1.Gaming/UploadGame"
-	Gaming_ListGames_FullMethodName          = "/gaming.v1.Gaming/ListGames"
-	Gaming_DeleteGameFile_FullMethodName     = "/gaming.v1.Gaming/DeleteGameFile"
-	Gaming_SetController_FullMethodName      = "/gaming.v1.Gaming/SetController"
-	Gaming_GetControllers_FullMethodName     = "/gaming.v1.Gaming/GetControllers"
+	Gaming_CreateGameInstance_FullMethodName   = "/gaming.v1.Gaming/CreateGameInstance"
+	Gaming_OpenGameConnection_FullMethodName   = "/gaming.v1.Gaming/OpenGameConnection"
+	Gaming_SDPAnswer_FullMethodName            = "/gaming.v1.Gaming/SDPAnswer"
+	Gaming_ICECandidate_FullMethodName         = "/gaming.v1.Gaming/ICECandidate"
+	Gaming_PauseEmulator_FullMethodName        = "/gaming.v1.Gaming/PauseEmulator"
+	Gaming_RestartEmulator_FullMethodName      = "/gaming.v1.Gaming/RestartEmulator"
+	Gaming_DeleteGameInstance_FullMethodName   = "/gaming.v1.Gaming/DeleteGameInstance"
+	Gaming_UploadGame_FullMethodName           = "/gaming.v1.Gaming/UploadGame"
+	Gaming_ListGames_FullMethodName            = "/gaming.v1.Gaming/ListGames"
+	Gaming_DeleteGameFile_FullMethodName       = "/gaming.v1.Gaming/DeleteGameFile"
+	Gaming_SetController_FullMethodName        = "/gaming.v1.Gaming/SetController"
+	Gaming_GetControllers_FullMethodName       = "/gaming.v1.Gaming/GetControllers"
+	Gaming_GetGameInstanceStats_FullMethodName = "/gaming.v1.Gaming/GetGameInstanceStats"
 )
 
 // GamingClient is the client API for Gaming service.
@@ -49,6 +50,7 @@ type GamingClient interface {
 	DeleteGameFile(ctx context.Context, in *DeleteGameFileRequest, opts ...grpc.CallOption) (*DeleteGameFileResponse, error)
 	SetController(ctx context.Context, in *SetControllerRequest, opts ...grpc.CallOption) (*SetControllerResponse, error)
 	GetControllers(ctx context.Context, in *GetControllersRequest, opts ...grpc.CallOption) (*GetControllersResponse, error)
+	GetGameInstanceStats(ctx context.Context, in *GetGameInstanceStatsRequest, opts ...grpc.CallOption) (*GetGameInstanceStatsResponse, error)
 }
 
 type gamingClient struct {
@@ -179,6 +181,16 @@ func (c *gamingClient) GetControllers(ctx context.Context, in *GetControllersReq
 	return out, nil
 }
 
+func (c *gamingClient) GetGameInstanceStats(ctx context.Context, in *GetGameInstanceStatsRequest, opts ...grpc.CallOption) (*GetGameInstanceStatsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetGameInstanceStatsResponse)
+	err := c.cc.Invoke(ctx, Gaming_GetGameInstanceStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GamingServer is the server API for Gaming service.
 // All implementations must embed UnimplementedGamingServer
 // for forward compatibility.
@@ -195,6 +207,7 @@ type GamingServer interface {
 	DeleteGameFile(context.Context, *DeleteGameFileRequest) (*DeleteGameFileResponse, error)
 	SetController(context.Context, *SetControllerRequest) (*SetControllerResponse, error)
 	GetControllers(context.Context, *GetControllersRequest) (*GetControllersResponse, error)
+	GetGameInstanceStats(context.Context, *GetGameInstanceStatsRequest) (*GetGameInstanceStatsResponse, error)
 	mustEmbedUnimplementedGamingServer()
 }
 
@@ -240,6 +253,9 @@ func (UnimplementedGamingServer) SetController(context.Context, *SetControllerRe
 }
 func (UnimplementedGamingServer) GetControllers(context.Context, *GetControllersRequest) (*GetControllersResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetControllers not implemented")
+}
+func (UnimplementedGamingServer) GetGameInstanceStats(context.Context, *GetGameInstanceStatsRequest) (*GetGameInstanceStatsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetGameInstanceStats not implemented")
 }
 func (UnimplementedGamingServer) mustEmbedUnimplementedGamingServer() {}
 func (UnimplementedGamingServer) testEmbeddedByValue()                {}
@@ -478,6 +494,24 @@ func _Gaming_GetControllers_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Gaming_GetGameInstanceStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetGameInstanceStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).GetGameInstanceStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_GetGameInstanceStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).GetGameInstanceStats(ctx, req.(*GetGameInstanceStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Gaming_ServiceDesc is the grpc.ServiceDesc for Gaming service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -532,6 +566,10 @@ var Gaming_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetControllers",
 			Handler:    _Gaming_GetControllers_Handler,
+		},
+		{
+			MethodName: "GetGameInstanceStats",
+			Handler:    _Gaming_GetGameInstanceStats_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

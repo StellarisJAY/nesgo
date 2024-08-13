@@ -137,3 +137,19 @@ func (g *GamingService) GetControllers(ctx context.Context, request *v1.GetContr
 		Controller2: p2,
 	}, nil
 }
+
+func (g *GamingService) GetGameInstanceStats(ctx context.Context, request *v1.GetGameInstanceStatsRequest) (*v1.GetGameInstanceStatsResponse, error) {
+	stats, err := g.gi.GetGameInstanceStats(ctx, request.RoomId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.GetGameInstanceStatsResponse{
+		Stats: &v1.GameInstanceStats{
+			RoomId:            stats.RoomId,
+			Connections:       int32(stats.Connections),
+			ActiveConnections: int32(stats.ActiveConnections),
+			Game:              stats.Game,
+			Uptime:            stats.Uptime.Milliseconds(),
+		},
+	}, nil
+}
