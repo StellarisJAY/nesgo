@@ -126,41 +126,29 @@ export default {
               })
       },
       deleteRoom(id) {
-        const that = this
-        api.post("/room/" + id + "/delete")
-            .then(resp=>{
-              if (resp.status === 200) {
-                message.success("删除成功")
-              }
-            })
-            .then(_=>{
-              that.listJoinedRooms(1, 10)
-            })
-            .catch(resp=>{})
+        const _this = this;
+        api.delete("api/v1/room/" + id).then(resp=>{
+          message.success("删除成功");
+          _this.listAllRooms();
+          _this.listJoinedRooms();
+        }).catch(_=>{
+          message.error("删除失败");
+        });
       },
     createRoom() {
       if (this.createRoomState.name === "") {
-        message.warn("请输入房间名")
-        return
+        message.warn("请输入房间名");
+        return;
       }
-      const that = this
-      api.post("api/v1/room", {"name": this.createRoomState.name, "private": this.createRoomState.isPrivate})
-          .then(resp=>{
-            if (resp.status === 200) {
-              message.success("新建房间成功")
-              that.createRoomState = {}
-              that.createRoomModalOpen = false
-            }
-          })
-          .then(_=>{
-            that.listJoinedRooms(1, 10)
-          })
+      const _this = this;
+      api.post("api/v1/room", {"name": this.createRoomState.name, "private": this.createRoomState.isPrivate}).then(_=>{
+        _this.listJoinedRooms();
+        _this.createRoomModalOpen = false
+        message.success("创建成功");
+      });
     },
     searchRoom() {
-      api.get("/room/search?search=" + this.searchInput)
-          .then(resp=>{
-            this.rooms = resp.data
-          })
+      // TODO search room
     },
     tryJoinRoom(room) {
       api.get("/room/" + room.id + "/member")
@@ -179,21 +167,18 @@ export default {
     enterRoom() {
       const roomId = this.joinRoomFormState.id
       const password = this.joinRoomFormState.password
-      api.post("/room/" + roomId + "/join?password=" + password)
-          .then(resp=>{
-            this.joinRoomModalOpen = false
-            return router.push("/room/" + roomId)
-          })
-          .catch(resp=>{
-            return message.warn(resp.message)
-          })
+      api.post("api/v1/room/" + roomId + "/join", {
+        "password": password
+      }).then(_=>{
+        message.success("加入成功");
+        router.push("/room/" + roomId);
+      }).catch(resp=>{
+        if (resp.status === 403) message.warn("密码错误");
+        else message.warn("无法加入房间");
+      });
     },
     leaveRoom(id) {
-      api.post("/room/" + id + "/leave")
-          .then(_=>{
-            message.success("退出房间成功")
-            this.listJoinedRooms()
-          })
+      // TODO leave room
     }
   }
 }

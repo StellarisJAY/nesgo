@@ -21,15 +21,12 @@ v1.interceptors.request.use(config=>{
     return config
 })
 
-v1.interceptors.response.use(response=>{
-    if (response.status === 200) {
-        return response.data
-    }else if (response.status === 401) {
-        return router.push("/login")
-    }else {
-        message.error(response.data.message).then()
-        return Promise.reject(response)
-    }
+v1.interceptors.response.use(r=>{
+    if (r.status && r.status === 200) return r.data;
+    if (!r["response"]) return Promise.reject(r);
+    const response = r["response"];
+    if (response.status === 401) return router.push("/login");
+    return Promise.reject(response.data);
 })
 
 // a.interceptors.request.use(config=>{
@@ -57,19 +54,27 @@ v1.interceptors.response.use(response=>{
 //     return Promise.reject(response)
 // })
 
+function errorHandler(err) {
+    const response = err["response"];
+    if (response && response.status) {
+        if (response.status === 401) return router.push("/login");
+    }
+    return Promise.reject(response);
+}
+
 const api = {
     axios: v1,
     get(path) {
-        return this.axios.get(path)
+        return this.axios.get(path).catch(err=>errorHandler(err));
     },
     post(path, data) {
-        return this.axios.post(path, data)
+        return this.axios.post(path, data).catch(err=>errorHandler(err));
     },
     put(path, data) {
-        return this.axios.put(path, data)
+        return this.axios.put(path, data).catch(err=>errorHandler(err));
     },
     delete(path) {
-        return this.axios.delete(path)
+        return this.axios.delete(path).catch(err=>errorHandler(err));
     }
 }
 

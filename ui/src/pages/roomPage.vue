@@ -348,10 +348,18 @@ export default {
       openConnection: async function() {
         const _this = this;
         const roomId = this.roomId;
-        const data = await api.post("api/v1/game/connection", {
-          "roomId": roomId,
-          "game": this.selectedGame,
-        });
+        let data;
+        try {
+          data = await api.post("api/v1/game/connection", {
+            "roomId": roomId,
+            "game": this.selectedGame,
+          });
+        }catch (errResp) {
+          message.warn("连接失败，请重试");
+          this.connectBtnDisabled = false;
+          return;
+        }
+
         // TODO TURN relay server
         const pc = new RTCPeerConnection({
           iceServers: [
@@ -391,10 +399,17 @@ export default {
         });
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
-        await api.post("api/v1/game/sdp", {
-          "roomId": roomId,
-          "sdpAnswer": answer.sdp,
-        });
+        try {
+          await api.post("api/v1/game/sdp", {
+            "roomId": roomId,
+            "sdpAnswer": answer.sdp,
+          });
+        }catch (errResp) {
+          message.warn("连接失败，请重试");
+          this.connectBtnDisabled = false;
+          return;
+        }
+
         // 发送answer之前的candidate，避免远端没有收到answer导致无法这是candidate
         this.iceCandidates.forEach(candidate=>{
           const s = JSON.stringify(candidate);
@@ -453,9 +468,13 @@ export default {
       },
     onDisconnected() {
       message.warn("连接断开");
-      this.disableControlButtons()
-      this.rtcSession.pc.close()
-      this.connectBtnDisabled = false
+      this.disableControlButtons();
+      this.rtcSession.pc.close();
+      this.connectBtnDisabled = false;
+      this.saveBtnDisabled = true;
+      this.restartBtnDisabled = true;
+      this.loadBtnDisabled = true;
+      this.chatBtnDisabled = true;
     },
     sendAction(code, pressed) {
         // TODO send control message
