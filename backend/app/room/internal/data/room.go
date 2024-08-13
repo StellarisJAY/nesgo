@@ -12,6 +12,7 @@ import (
 	gamingAPI "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
 	"github.com/stellarisJAY/nesgo/backend/api/room/service/v1"
 	"github.com/stellarisJAY/nesgo/backend/app/room/internal/biz"
+	"github.com/stellarisJAY/nesgo/backend/pkg/cache"
 	etcdAPI "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 	"gorm.io/gorm"
@@ -88,9 +89,15 @@ func (r *roomRepo) CreateRoom(ctx context.Context, room *biz.Room) error {
 }
 
 func (r *roomRepo) GetRoom(ctx context.Context, id int64) (*biz.Room, error) {
-	room := Room{}
-	if err := r.data.db.Model(&room).WithContext(ctx).Where("id =?", id).First(&room).Error; err != nil {
-		return nil, err
+	room, err := cache.Get[Room](ctx, r.data.rdb, roomCacheKey(id))
+	if err != nil {
+		if err := r.data.db.Model(&room).WithContext(ctx).Where("id =?", id).First(&room).Error; err != nil {
+			return nil, err
+		}
+		err := cache.Set(ctx, r.data.rdb, roomCacheKey(id), room)
+		if err != nil {
+			r.log.Errorf("cache set room error: %v", err)
+		}
 	}
 	return room.ToBizRoom(), nil
 }
@@ -183,6 +190,8 @@ func roomSessionLockKey(roomId int64) string {
 	return fmt.Sprintf("nesgo/room/session/lock/%d", roomId)
 }
 
+func roomCacheKey(roomId int64) string { return fmt.Sprintf("nesgo/room/%d", roomId) }
+
 // GetOrCreateRoomSession 获取或创建房间会话
 // 从所有模拟器节点选择一个作为目标节点，在目标节点创建模拟器实例，并保存房间ID与目标节点映射
 func (r *roomRepo) GetOrCreateRoomSession(ctx context.Context, roomId int64, game string) (*biz.RoomSession, bool, error) {
@@ -257,6 +266,7 @@ func (r *roomRepo) GetRoomSession(ctx context.Context, roomId int64) (*biz.RoomS
 	}
 	if resp.Count > 0 {
 		var session biz.RoomSession
+		session.RoomId = roomId
 		_ = json.Unmarshal(resp.Kvs[0].Value, &session)
 		return &session, nil
 	}
@@ -352,17 +362,25 @@ func (r *roomRepo) DeleteRoom(ctx context.Context, roomId int64) error {
 		if err != nil {
 			return err
 		}
-		return tx.
+		err = tx.
 			Where("id = ?", roomId).
 			Delete(&Room{}).
 			WithContext(ctx).
 			Error
+		if err != nil {
+			return err
+		}
+		err = cache.Del(ctx, r.data.rdb, roomCacheKey(roomId))
+		if err != nil {
+			r.log.Errorf("cache del room error: %v", err)
+		}
+		return nil
 	})
 
 }
 
 func (r *roomRepo) UpdateRoom(ctx context.Context, room *biz.Room) error {
-	return r.data.db.Model(&Room{}).
+	err := r.data.db.Model(&Room{}).
 		Where("id=?", room.Id).
 		Updates(map[string]interface{}{
 			"name":          room.Name,
@@ -372,6 +390,14 @@ func (r *roomRepo) UpdateRoom(ctx context.Context, room *biz.Room) error {
 		}).
 		WithContext(ctx).
 		Error
+	if err != nil {
+		return err
+	}
+	err = cache.Del(ctx, r.data.rdb, roomCacheKey(room.Id))
+	if err != nil {
+		r.log.Errorf("del room cache error: %v", err)
+	}
+	return nil
 }
 
 func (m *RoomMember) ToBizRoomMember() *biz.RoomMember {

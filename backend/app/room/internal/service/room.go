@@ -122,7 +122,18 @@ func (r *RoomService) JoinRoom(ctx context.Context, request *v1.JoinRoomRequest)
 }
 
 func (r *RoomService) GetRoomSession(ctx context.Context, request *v1.GetRoomSessionRequest) (*v1.GetRoomSessionResponse, error) {
-	session, err := r.ruc.GetRoomSession(ctx, request.RoomId, request.UserId, request.SelectedGame)
+	session, err := r.ruc.GetRoomSession(ctx, request.RoomId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.GetRoomSessionResponse{
+		RoomId:   session.RoomId,
+		Endpoint: session.Endpoint,
+	}, nil
+}
+
+func (r *RoomService) GetCreateRoomSession(ctx context.Context, request *v1.GetCreateRoomSessionRequest) (*v1.GetRoomSessionResponse, error) {
+	session, err := r.ruc.GetCreateRoomSession(ctx, request.RoomId, request.UserId, request.SelectedGame)
 	if err != nil {
 		return nil, err
 	}

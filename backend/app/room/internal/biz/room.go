@@ -171,7 +171,7 @@ func (uc *RoomUseCase) JoinRoom(ctx context.Context, userId int64, roomId int64,
 	return nil
 }
 
-func (uc *RoomUseCase) GetRoomSession(ctx context.Context, roomId, userId int64, game string) (*RoomSession, error) {
+func (uc *RoomUseCase) GetCreateRoomSession(ctx context.Context, roomId, userId int64, game string) (*RoomSession, error) {
 	member, _ := uc.rr.GetRoomMember(ctx, roomId, userId)
 	if member == nil {
 		return nil, v1.ErrorRoomNotAccessible("not a member of this room")
@@ -181,7 +181,7 @@ func (uc *RoomUseCase) GetRoomSession(ctx context.Context, roomId, userId int64,
 		return session, nil
 	}
 	if err != nil {
-		return nil, v1.ErrorGetRoomFailed("consul kv error: %v", err)
+		return nil, v1.ErrorGetRoomFailed("database error: %v", err)
 	}
 	session, _, err = uc.rr.GetOrCreateRoomSession(ctx, roomId, game)
 	if err != nil {
@@ -189,6 +189,17 @@ func (uc *RoomUseCase) GetRoomSession(ctx context.Context, roomId, userId int64,
 	}
 	if session == nil {
 		return nil, v1.ErrorCreateRoomSessionFailed("no available service to create session")
+	}
+	return session, nil
+}
+
+func (uc *RoomUseCase) GetRoomSession(ctx context.Context, roomId int64) (*RoomSession, error) {
+	session, err := uc.rr.GetRoomSession(ctx, roomId)
+	if session != nil {
+		return session, nil
+	}
+	if err != nil {
+		return nil, v1.ErrorGetRoomFailed("database error: %v", err)
 	}
 	return session, nil
 }
