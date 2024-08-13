@@ -178,3 +178,15 @@ func IsGameInstanceNotAccessible(err error) bool {
 func ErrorGameInstanceNotAccessible(format string, args ...interface{}) *errors.Error {
 	return errors.New(500, UserServiceErrorReason_GAME_INSTANCE_NOT_ACCESSIBLE.String(), fmt.Sprintf(format, args...))
 }
+
+func IsOperationFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_OPERATION_FAILED.String() && e.Code == 500
+}
+
+func ErrorOperationFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_OPERATION_FAILED.String(), fmt.Sprintf(format, args...))
+}

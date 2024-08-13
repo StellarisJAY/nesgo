@@ -36,6 +36,7 @@ const (
 	WebApi_UpdateRoom_FullMethodName         = "/nesgo.webapi.v1.WebApi/UpdateRoom"
 	WebApi_GetRoomMember_FullMethodName      = "/nesgo.webapi.v1.WebApi/GetRoomMember"
 	WebApi_ListGames_FullMethodName          = "/nesgo.webapi.v1.WebApi/ListGames"
+	WebApi_SetController_FullMethodName      = "/nesgo.webapi.v1.WebApi/SetController"
 )
 
 // WebApiClient is the client API for WebApi service.
@@ -59,6 +60,7 @@ type WebApiClient interface {
 	UpdateRoom(ctx context.Context, in *UpdateRoomRequest, opts ...grpc.CallOption) (*UpdateRoomResponse, error)
 	GetRoomMember(ctx context.Context, in *GetRoomMemberRequest, opts ...grpc.CallOption) (*GetRoomMemberResponse, error)
 	ListGames(ctx context.Context, in *ListGamesRequest, opts ...grpc.CallOption) (*ListGamesResponse, error)
+	SetController(ctx context.Context, in *SetControllerRequest, opts ...grpc.CallOption) (*SetControllerResponse, error)
 }
 
 type webApiClient struct {
@@ -239,6 +241,16 @@ func (c *webApiClient) ListGames(ctx context.Context, in *ListGamesRequest, opts
 	return out, nil
 }
 
+func (c *webApiClient) SetController(ctx context.Context, in *SetControllerRequest, opts ...grpc.CallOption) (*SetControllerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetControllerResponse)
+	err := c.cc.Invoke(ctx, WebApi_SetController_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WebApiServer is the server API for WebApi service.
 // All implementations must embed UnimplementedWebApiServer
 // for forward compatibility.
@@ -260,6 +272,7 @@ type WebApiServer interface {
 	UpdateRoom(context.Context, *UpdateRoomRequest) (*UpdateRoomResponse, error)
 	GetRoomMember(context.Context, *GetRoomMemberRequest) (*GetRoomMemberResponse, error)
 	ListGames(context.Context, *ListGamesRequest) (*ListGamesResponse, error)
+	SetController(context.Context, *SetControllerRequest) (*SetControllerResponse, error)
 	mustEmbedUnimplementedWebApiServer()
 }
 
@@ -320,6 +333,9 @@ func (UnimplementedWebApiServer) GetRoomMember(context.Context, *GetRoomMemberRe
 }
 func (UnimplementedWebApiServer) ListGames(context.Context, *ListGamesRequest) (*ListGamesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListGames not implemented")
+}
+func (UnimplementedWebApiServer) SetController(context.Context, *SetControllerRequest) (*SetControllerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetController not implemented")
 }
 func (UnimplementedWebApiServer) mustEmbedUnimplementedWebApiServer() {}
 func (UnimplementedWebApiServer) testEmbeddedByValue()                {}
@@ -648,6 +664,24 @@ func _WebApi_ListGames_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WebApi_SetController_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetControllerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).SetController(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_SetController_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).SetController(ctx, req.(*SetControllerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WebApi_ServiceDesc is the grpc.ServiceDesc for WebApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -722,6 +756,10 @@ var WebApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListGames",
 			Handler:    _WebApi_ListGames_Handler,
+		},
+		{
+			MethodName: "SetController",
+			Handler:    _WebApi_SetController_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

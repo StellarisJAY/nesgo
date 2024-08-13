@@ -19,16 +19,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Room_CreateRoom_FullMethodName        = "/room.v1.Room/CreateRoom"
-	Room_GetRoom_FullMethodName           = "/room.v1.Room/GetRoom"
-	Room_ListRoomMembers_FullMethodName   = "/room.v1.Room/ListRoomMembers"
-	Room_ListRooms_FullMethodName         = "/room.v1.Room/ListRooms"
-	Room_JoinRoom_FullMethodName          = "/room.v1.Room/JoinRoom"
-	Room_GetRoomSession_FullMethodName    = "/room.v1.Room/GetRoomSession"
-	Room_RemoveRoomSession_FullMethodName = "/room.v1.Room/RemoveRoomSession"
-	Room_DeleteRoom_FullMethodName        = "/room.v1.Room/DeleteRoom"
-	Room_UpdateRoom_FullMethodName        = "/room.v1.Room/UpdateRoom"
-	Room_GetRoomMember_FullMethodName     = "/room.v1.Room/GetRoomMember"
+	Room_CreateRoom_FullMethodName           = "/room.v1.Room/CreateRoom"
+	Room_GetRoom_FullMethodName              = "/room.v1.Room/GetRoom"
+	Room_ListRoomMembers_FullMethodName      = "/room.v1.Room/ListRoomMembers"
+	Room_ListRooms_FullMethodName            = "/room.v1.Room/ListRooms"
+	Room_JoinRoom_FullMethodName             = "/room.v1.Room/JoinRoom"
+	Room_GetRoomSession_FullMethodName       = "/room.v1.Room/GetRoomSession"
+	Room_GetCreateRoomSession_FullMethodName = "/room.v1.Room/GetCreateRoomSession"
+	Room_RemoveRoomSession_FullMethodName    = "/room.v1.Room/RemoveRoomSession"
+	Room_DeleteRoom_FullMethodName           = "/room.v1.Room/DeleteRoom"
+	Room_UpdateRoom_FullMethodName           = "/room.v1.Room/UpdateRoom"
+	Room_GetRoomMember_FullMethodName        = "/room.v1.Room/GetRoomMember"
 )
 
 // RoomClient is the client API for Room service.
@@ -41,6 +42,7 @@ type RoomClient interface {
 	ListRooms(ctx context.Context, in *ListRoomsRequest, opts ...grpc.CallOption) (*ListRoomsResponse, error)
 	JoinRoom(ctx context.Context, in *JoinRoomRequest, opts ...grpc.CallOption) (*JoinRoomResponse, error)
 	GetRoomSession(ctx context.Context, in *GetRoomSessionRequest, opts ...grpc.CallOption) (*GetRoomSessionResponse, error)
+	GetCreateRoomSession(ctx context.Context, in *GetCreateRoomSessionRequest, opts ...grpc.CallOption) (*GetRoomSessionResponse, error)
 	RemoveRoomSession(ctx context.Context, in *RemoveRoomSessionRequest, opts ...grpc.CallOption) (*RemoveRoomSessionResponse, error)
 	DeleteRoom(ctx context.Context, in *DeleteRoomRequest, opts ...grpc.CallOption) (*DeleteRoomResponse, error)
 	UpdateRoom(ctx context.Context, in *UpdateRoomRequest, opts ...grpc.CallOption) (*UpdateRoomResponse, error)
@@ -115,6 +117,16 @@ func (c *roomClient) GetRoomSession(ctx context.Context, in *GetRoomSessionReque
 	return out, nil
 }
 
+func (c *roomClient) GetCreateRoomSession(ctx context.Context, in *GetCreateRoomSessionRequest, opts ...grpc.CallOption) (*GetRoomSessionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRoomSessionResponse)
+	err := c.cc.Invoke(ctx, Room_GetCreateRoomSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *roomClient) RemoveRoomSession(ctx context.Context, in *RemoveRoomSessionRequest, opts ...grpc.CallOption) (*RemoveRoomSessionResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RemoveRoomSessionResponse)
@@ -165,6 +177,7 @@ type RoomServer interface {
 	ListRooms(context.Context, *ListRoomsRequest) (*ListRoomsResponse, error)
 	JoinRoom(context.Context, *JoinRoomRequest) (*JoinRoomResponse, error)
 	GetRoomSession(context.Context, *GetRoomSessionRequest) (*GetRoomSessionResponse, error)
+	GetCreateRoomSession(context.Context, *GetCreateRoomSessionRequest) (*GetRoomSessionResponse, error)
 	RemoveRoomSession(context.Context, *RemoveRoomSessionRequest) (*RemoveRoomSessionResponse, error)
 	DeleteRoom(context.Context, *DeleteRoomRequest) (*DeleteRoomResponse, error)
 	UpdateRoom(context.Context, *UpdateRoomRequest) (*UpdateRoomResponse, error)
@@ -196,6 +209,9 @@ func (UnimplementedRoomServer) JoinRoom(context.Context, *JoinRoomRequest) (*Joi
 }
 func (UnimplementedRoomServer) GetRoomSession(context.Context, *GetRoomSessionRequest) (*GetRoomSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRoomSession not implemented")
+}
+func (UnimplementedRoomServer) GetCreateRoomSession(context.Context, *GetCreateRoomSessionRequest) (*GetRoomSessionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetCreateRoomSession not implemented")
 }
 func (UnimplementedRoomServer) RemoveRoomSession(context.Context, *RemoveRoomSessionRequest) (*RemoveRoomSessionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RemoveRoomSession not implemented")
@@ -338,6 +354,24 @@ func _Room_GetRoomSession_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Room_GetCreateRoomSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCreateRoomSessionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RoomServer).GetCreateRoomSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Room_GetCreateRoomSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RoomServer).GetCreateRoomSession(ctx, req.(*GetCreateRoomSessionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Room_RemoveRoomSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RemoveRoomSessionRequest)
 	if err := dec(in); err != nil {
@@ -440,6 +474,10 @@ var Room_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetRoomSession",
 			Handler:    _Room_GetRoomSession_Handler,
+		},
+		{
+			MethodName: "GetCreateRoomSession",
+			Handler:    _Room_GetCreateRoomSession_Handler,
 		},
 		{
 			MethodName: "RemoveRoomSession",

@@ -53,6 +53,24 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.OpenGameConnectionResponse'
+    /api/v1/game/controller:
+        post:
+            tags:
+                - WebApi
+            operationId: WebApi_SetController
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.SetControllerRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.SetControllerResponse'
     /api/v1/game/ice:
         post:
             tags:
@@ -554,6 +572,10 @@ components:
                     format: enum
                 joinedAt:
                     type: string
+                player1:
+                    type: boolean
+                player2:
+                    type: boolean
         nesgo.webapi.v1.OpenGameConnectionRequest:
             type: object
             properties:
@@ -621,6 +643,19 @@ components:
                     type: string
                 userId:
                     type: string
+        nesgo.webapi.v1.SetControllerRequest:
+            type: object
+            properties:
+                roomId:
+                    type: string
+                playerId:
+                    type: string
+                controllerId:
+                    type: integer
+                    format: int32
+        nesgo.webapi.v1.SetControllerResponse:
+            type: object
+            properties: {}
         nesgo.webapi.v1.UpdateRoomRequest:
             type: object
             properties:

@@ -13,6 +13,7 @@ service Room {
   rpc ListRooms(ListRoomsRequest) returns (ListRoomsResponse) {}
   rpc JoinRoom(JoinRoomRequest) returns (JoinRoomResponse) {}
   rpc GetRoomSession(GetRoomSessionRequest) returns (GetRoomSessionResponse) {}
+  rpc GetCreateRoomSession(GetCreateRoomSessionRequest) returns (GetRoomSessionResponse) {}
   rpc RemoveRoomSession(RemoveRoomSessionRequest) returns (RemoveRoomSessionResponse) {}
   rpc DeleteRoom(DeleteRoomRequest) returns (DeleteRoomResponse) {}
   rpc UpdateRoom(UpdateRoomRequest) returns (UpdateRoomResponse) {}
@@ -94,6 +95,10 @@ message JoinRoomResponse {
 }
 
 message GetRoomSessionRequest {
+  int64 roomId = 1;
+}
+
+message GetCreateRoomSessionRequest {
   int64 roomId = 1;
   int64 userId = 2;
   string selectedGame = 3;

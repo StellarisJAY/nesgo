@@ -20,6 +20,9 @@ service Gaming {
   rpc UploadGame(UploadGameRequest) returns (UploadGameResponse) {}
   rpc ListGames(ListGamesRequest) returns (ListGamesResponse) {}
   rpc DeleteGameFile(DeleteGameFileRequest) returns (DeleteGameFileResponse) {}
+
+  rpc SetController(SetControllerRequest) returns (SetControllerResponse) {}
+  rpc GetControllers(GetControllersRequest) returns (GetControllersResponse) {}
 }
 
 message CreateGameInstanceRequest {
@@ -126,3 +129,19 @@ message DeleteGameInstanceResponse {
   int64 roomId = 1;
 }
 
+message SetControllerRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  int32 controller = 3;
+}
+
+message SetControllerResponse {}
+
+message GetControllersRequest {
+  int64 roomId = 1;
+}
+message GetControllersResponse {
+  int64 roomId = 1;
+  int64 controller1 = 2;
+  int64 controller2 = 3;
+}

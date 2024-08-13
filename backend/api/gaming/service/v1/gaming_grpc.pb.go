@@ -29,6 +29,8 @@ const (
 	Gaming_UploadGame_FullMethodName         = "/gaming.v1.Gaming/UploadGame"
 	Gaming_ListGames_FullMethodName          = "/gaming.v1.Gaming/ListGames"
 	Gaming_DeleteGameFile_FullMethodName     = "/gaming.v1.Gaming/DeleteGameFile"
+	Gaming_SetController_FullMethodName      = "/gaming.v1.Gaming/SetController"
+	Gaming_GetControllers_FullMethodName     = "/gaming.v1.Gaming/GetControllers"
 )
 
 // GamingClient is the client API for Gaming service.
@@ -45,6 +47,8 @@ type GamingClient interface {
 	UploadGame(ctx context.Context, in *UploadGameRequest, opts ...grpc.CallOption) (*UploadGameResponse, error)
 	ListGames(ctx context.Context, in *ListGamesRequest, opts ...grpc.CallOption) (*ListGamesResponse, error)
 	DeleteGameFile(ctx context.Context, in *DeleteGameFileRequest, opts ...grpc.CallOption) (*DeleteGameFileResponse, error)
+	SetController(ctx context.Context, in *SetControllerRequest, opts ...grpc.CallOption) (*SetControllerResponse, error)
+	GetControllers(ctx context.Context, in *GetControllersRequest, opts ...grpc.CallOption) (*GetControllersResponse, error)
 }
 
 type gamingClient struct {
@@ -155,6 +159,26 @@ func (c *gamingClient) DeleteGameFile(ctx context.Context, in *DeleteGameFileReq
 	return out, nil
 }
 
+func (c *gamingClient) SetController(ctx context.Context, in *SetControllerRequest, opts ...grpc.CallOption) (*SetControllerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetControllerResponse)
+	err := c.cc.Invoke(ctx, Gaming_SetController_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gamingClient) GetControllers(ctx context.Context, in *GetControllersRequest, opts ...grpc.CallOption) (*GetControllersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetControllersResponse)
+	err := c.cc.Invoke(ctx, Gaming_GetControllers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GamingServer is the server API for Gaming service.
 // All implementations must embed UnimplementedGamingServer
 // for forward compatibility.
@@ -169,6 +193,8 @@ type GamingServer interface {
 	UploadGame(context.Context, *UploadGameRequest) (*UploadGameResponse, error)
 	ListGames(context.Context, *ListGamesRequest) (*ListGamesResponse, error)
 	DeleteGameFile(context.Context, *DeleteGameFileRequest) (*DeleteGameFileResponse, error)
+	SetController(context.Context, *SetControllerRequest) (*SetControllerResponse, error)
+	GetControllers(context.Context, *GetControllersRequest) (*GetControllersResponse, error)
 	mustEmbedUnimplementedGamingServer()
 }
 
@@ -208,6 +234,12 @@ func (UnimplementedGamingServer) ListGames(context.Context, *ListGamesRequest) (
 }
 func (UnimplementedGamingServer) DeleteGameFile(context.Context, *DeleteGameFileRequest) (*DeleteGameFileResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteGameFile not implemented")
+}
+func (UnimplementedGamingServer) SetController(context.Context, *SetControllerRequest) (*SetControllerResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetController not implemented")
+}
+func (UnimplementedGamingServer) GetControllers(context.Context, *GetControllersRequest) (*GetControllersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetControllers not implemented")
 }
 func (UnimplementedGamingServer) mustEmbedUnimplementedGamingServer() {}
 func (UnimplementedGamingServer) testEmbeddedByValue()                {}
@@ -410,6 +442,42 @@ func _Gaming_DeleteGameFile_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Gaming_SetController_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetControllerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).SetController(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_SetController_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).SetController(ctx, req.(*SetControllerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Gaming_GetControllers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetControllersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).GetControllers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_GetControllers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).GetControllers(ctx, req.(*GetControllersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Gaming_ServiceDesc is the grpc.ServiceDesc for Gaming service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -456,6 +524,14 @@ var Gaming_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteGameFile",
 			Handler:    _Gaming_DeleteGameFile_Handler,
+		},
+		{
+			MethodName: "SetController",
+			Handler:    _Gaming_SetController_Handler,
+		},
+		{
+			MethodName: "GetControllers",
+			Handler:    _Gaming_GetControllers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

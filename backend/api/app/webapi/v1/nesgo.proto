@@ -104,6 +104,13 @@ service WebApi {
       get: "/api/v1/games"
     };
   }
+
+  rpc SetController(SetControllerRequest) returns (SetControllerResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/game/controller"
+      body: "*"
+    };
+  }
 }
 
 message RegisterRequest {
@@ -238,6 +245,8 @@ message Member {
   string name = 2;
   room.v1.RoomRole role = 3;
   int64 joinedAt = 4;
+  bool player1 = 5;
+  bool player2 = 6;
 }
 
 message ListMemberRequest {
@@ -298,4 +307,14 @@ message GameFileMetadata {
 
 message ListGamesResponse {
   repeated GameFileMetadata games = 1;
+}
+
+message SetControllerRequest {
+  int64 roomId = 1;
+  int64 playerId = 2;
+  int32 controllerId = 3;
+}
+
+message SetControllerResponse {
+
 }

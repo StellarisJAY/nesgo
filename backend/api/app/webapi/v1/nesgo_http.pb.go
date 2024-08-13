@@ -35,6 +35,7 @@ const OperationWebApiLogin = "/nesgo.webapi.v1.WebApi/Login"
 const OperationWebApiOpenGameConnection = "/nesgo.webapi.v1.WebApi/OpenGameConnection"
 const OperationWebApiRegister = "/nesgo.webapi.v1.WebApi/Register"
 const OperationWebApiSDPAnswer = "/nesgo.webapi.v1.WebApi/SDPAnswer"
+const OperationWebApiSetController = "/nesgo.webapi.v1.WebApi/SetController"
 const OperationWebApiUpdateRoom = "/nesgo.webapi.v1.WebApi/UpdateRoom"
 
 type WebApiHTTPServer interface {
@@ -54,6 +55,7 @@ type WebApiHTTPServer interface {
 	OpenGameConnection(context.Context, *OpenGameConnectionRequest) (*OpenGameConnectionResponse, error)
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
 	SDPAnswer(context.Context, *SDPAnswerRequest) (*SDPAnswerResponse, error)
+	SetController(context.Context, *SetControllerRequest) (*SetControllerResponse, error)
 	UpdateRoom(context.Context, *UpdateRoomRequest) (*UpdateRoomResponse, error)
 }
 
@@ -76,6 +78,7 @@ func RegisterWebApiHTTPServer(s *http.Server, srv WebApiHTTPServer) {
 	r.PUT("/api/v1/room/{roomId}", _WebApi_UpdateRoom0_HTTP_Handler(srv))
 	r.GET("/api/v1/member/{roomId}", _WebApi_GetRoomMember0_HTTP_Handler(srv))
 	r.GET("/api/v1/games", _WebApi_ListGames1_HTTP_Handler(srv))
+	r.POST("/api/v1/game/controller", _WebApi_SetController0_HTTP_Handler(srv))
 }
 
 func _WebApi_Register0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
@@ -446,6 +449,28 @@ func _WebApi_ListGames1_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context
 	}
 }
 
+func _WebApi_SetController0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SetControllerRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiSetController)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SetController(ctx, req.(*SetControllerRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*SetControllerResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type WebApiHTTPClient interface {
 	AddICECandidate(ctx context.Context, req *AddICECandidateRequest, opts ...http.CallOption) (rsp *AddICECandidateResponse, err error)
 	CreateRoom(ctx context.Context, req *CreateRoomRequest, opts ...http.CallOption) (rsp *CreateRoomResponse, err error)
@@ -463,6 +488,7 @@ type WebApiHTTPClient interface {
 	OpenGameConnection(ctx context.Context, req *OpenGameConnectionRequest, opts ...http.CallOption) (rsp *OpenGameConnectionResponse, err error)
 	Register(ctx context.Context, req *RegisterRequest, opts ...http.CallOption) (rsp *RegisterResponse, err error)
 	SDPAnswer(ctx context.Context, req *SDPAnswerRequest, opts ...http.CallOption) (rsp *SDPAnswerResponse, err error)
+	SetController(ctx context.Context, req *SetControllerRequest, opts ...http.CallOption) (rsp *SetControllerResponse, err error)
 	UpdateRoom(ctx context.Context, req *UpdateRoomRequest, opts ...http.CallOption) (rsp *UpdateRoomResponse, err error)
 }
 
@@ -674,6 +700,19 @@ func (c *WebApiHTTPClientImpl) SDPAnswer(ctx context.Context, in *SDPAnswerReque
 	pattern := "/api/v1/game/sdp"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationWebApiSDPAnswer))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) SetController(ctx context.Context, in *SetControllerRequest, opts ...http.CallOption) (*SetControllerResponse, error) {
+	var out SetControllerResponse
+	pattern := "/api/v1/game/controller"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationWebApiSetController))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {

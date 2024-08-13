@@ -28,11 +28,11 @@ func IsLoginFailed(err error) bool {
 		return false
 	}
 	e := errors.FromError(err)
-	return e.Reason == NesgoWebAPIErrorReason_LOGIN_FAILED.String() && e.Code == 401
+	return e.Reason == NesgoWebAPIErrorReason_LOGIN_FAILED.String() && e.Code == 500
 }
 
 func ErrorLoginFailed(format string, args ...interface{}) *errors.Error {
-	return errors.New(401, NesgoWebAPIErrorReason_LOGIN_FAILED.String(), fmt.Sprintf(format, args...))
+	return errors.New(500, NesgoWebAPIErrorReason_LOGIN_FAILED.String(), fmt.Sprintf(format, args...))
 }
 
 func IsUsernameConflict(err error) bool {
@@ -40,11 +40,11 @@ func IsUsernameConflict(err error) bool {
 		return false
 	}
 	e := errors.FromError(err)
-	return e.Reason == NesgoWebAPIErrorReason_USERNAME_CONFLICT.String() && e.Code == 409
+	return e.Reason == NesgoWebAPIErrorReason_USERNAME_CONFLICT.String() && e.Code == 500
 }
 
 func ErrorUsernameConflict(format string, args ...interface{}) *errors.Error {
-	return errors.New(409, NesgoWebAPIErrorReason_USERNAME_CONFLICT.String(), fmt.Sprintf(format, args...))
+	return errors.New(500, NesgoWebAPIErrorReason_USERNAME_CONFLICT.String(), fmt.Sprintf(format, args...))
 }
 
 func IsRegisterFailed(err error) bool {
@@ -52,9 +52,21 @@ func IsRegisterFailed(err error) bool {
 		return false
 	}
 	e := errors.FromError(err)
-	return e.Reason == NesgoWebAPIErrorReason_REGISTER_FAILED.String() && e.Code == 541
+	return e.Reason == NesgoWebAPIErrorReason_REGISTER_FAILED.String() && e.Code == 500
 }
 
 func ErrorRegisterFailed(format string, args ...interface{}) *errors.Error {
-	return errors.New(541, NesgoWebAPIErrorReason_REGISTER_FAILED.String(), fmt.Sprintf(format, args...))
+	return errors.New(500, NesgoWebAPIErrorReason_REGISTER_FAILED.String(), fmt.Sprintf(format, args...))
+}
+
+func IsOperationFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == NesgoWebAPIErrorReason_OPERATION_FAILED.String() && e.Code == 500
+}
+
+func ErrorOperationFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, NesgoWebAPIErrorReason_OPERATION_FAILED.String(), fmt.Sprintf(format, args...))
 }

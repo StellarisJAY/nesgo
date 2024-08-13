@@ -9,7 +9,8 @@ enum NesgoWebAPIErrorReason {
   option (errors.default_code) = 500;
 
   UNKNOWN_ERROR = 0;
-  LOGIN_FAILED = 1 [(errors.code) = 401];
-  USERNAME_CONFLICT = 2 [(errors.code) = 409];
-  REGISTER_FAILED = 3 [(errors.code) = 541];
+  LOGIN_FAILED = 1;
+  USERNAME_CONFLICT = 2;
+  REGISTER_FAILED = 3;
+  OPERATION_FAILED = 4;
 }
