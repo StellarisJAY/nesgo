@@ -307,7 +307,7 @@ export default {
       this.listGames();
   },
   unmounted() {
-    this.rtcSession.pc.close()
+    if (this.rtcSession && this.rtcSession.pc) this.rtcSession.pc.close();
   },
   methods: {
       openRoomMemberDrawer() {
@@ -315,11 +315,16 @@ export default {
       },
 
       getMemberSelf: async function() {
-        const resp = await api.get("api/v1/member/"+this.roomId);
-        const member = resp["member"];
-        this.memberSelf = member;
-        if (member.role === RoleNameHost) {
-          this.fullRoomInfo = await api.get("api/v1/room/"+this.roomId);
+        try {
+          const resp = await api.get("api/v1/member/"+this.roomId);
+          const member = resp["member"];
+          this.memberSelf = member;
+          if (member.role === RoleNameHost) {
+            this.fullRoomInfo = await api.get("api/v1/room/"+this.roomId);
+          }
+        }catch (_) {
+          message.warn("无法访问房间");
+          router.push("/home");
         }
         await this.listRoomMembers();
       },
@@ -470,17 +475,19 @@ export default {
       message.warn("连接断开");
       this.disableControlButtons();
       this.rtcSession.pc.close();
-      this.connectBtnDisabled = false;
       this.saveBtnDisabled = true;
       this.restartBtnDisabled = true;
       this.loadBtnDisabled = true;
       this.chatBtnDisabled = true;
+      this.getMemberSelf().then(_=>{
+        this.connectBtnDisabled = false;
+      }).catch(_=>{
+        message.warn("无法访问该房间");
+        router.back();
+      })
     },
     sendAction(code, pressed) {
-        // TODO send control message
       const msg = JSON.stringify({
-        "from": 0,
-        "to": 0,
         "type": pressed,
         "data": code,
       });
@@ -489,10 +496,26 @@ export default {
 
     onRoleRatioChange(ev, member) {
         member.role = ev.target.value;
-        console.log("change member role: " + member.role);
+        const _this = this;
+        api.put("api/v1/member/role", {
+          "roomId": this.roomId,
+          "userId": member["userId"],
+          "role": member["role"],
+        }).then(_=>{
+          message.success("操作成功");
+          _this.listRoomMembers();
+        }).catch(_=>{
+          message.warn("操作失败");
+        });
     },
     kickMember(member) {
-        console.log("kick member: " + member);
+        const _this = this;
+        api.delete("api/v1/member?roomId="+this.roomId+"&userId="+member["userId"]).then(_=>{
+          message.success("操作成功");
+          _this.listRoomMembers();
+        }).catch(err=>{
+          message.error("操作失败");
+        });
     },
     initControlButtons() {
         const mapping = this.configs.controlButtonMapping
