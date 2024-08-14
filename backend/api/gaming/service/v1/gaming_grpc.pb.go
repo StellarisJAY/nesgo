@@ -34,6 +34,7 @@ const (
 	Gaming_GetGameInstanceStats_FullMethodName   = "/gaming.v1.Gaming/GetGameInstanceStats"
 	Gaming_ListGameInstances_FullMethodName      = "/gaming.v1.Gaming/ListGameInstances"
 	Gaming_DeleteMemberConnection_FullMethodName = "/gaming.v1.Gaming/DeleteMemberConnection"
+	Gaming_GetEndpointStats_FullMethodName       = "/gaming.v1.Gaming/GetEndpointStats"
 )
 
 // GamingClient is the client API for Gaming service.
@@ -55,6 +56,7 @@ type GamingClient interface {
 	GetGameInstanceStats(ctx context.Context, in *GetGameInstanceStatsRequest, opts ...grpc.CallOption) (*GetGameInstanceStatsResponse, error)
 	ListGameInstances(ctx context.Context, in *ListGameInstancesRequest, opts ...grpc.CallOption) (*ListGameInstancesResponse, error)
 	DeleteMemberConnection(ctx context.Context, in *DeleteMemberConnectionRequest, opts ...grpc.CallOption) (*DeleteMemberConnectionResponse, error)
+	GetEndpointStats(ctx context.Context, in *GetEndpointStatsRequest, opts ...grpc.CallOption) (*GetEndpointStatsResponse, error)
 }
 
 type gamingClient struct {
@@ -215,6 +217,16 @@ func (c *gamingClient) DeleteMemberConnection(ctx context.Context, in *DeleteMem
 	return out, nil
 }
 
+func (c *gamingClient) GetEndpointStats(ctx context.Context, in *GetEndpointStatsRequest, opts ...grpc.CallOption) (*GetEndpointStatsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetEndpointStatsResponse)
+	err := c.cc.Invoke(ctx, Gaming_GetEndpointStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GamingServer is the server API for Gaming service.
 // All implementations must embed UnimplementedGamingServer
 // for forward compatibility.
@@ -234,6 +246,7 @@ type GamingServer interface {
 	GetGameInstanceStats(context.Context, *GetGameInstanceStatsRequest) (*GetGameInstanceStatsResponse, error)
 	ListGameInstances(context.Context, *ListGameInstancesRequest) (*ListGameInstancesResponse, error)
 	DeleteMemberConnection(context.Context, *DeleteMemberConnectionRequest) (*DeleteMemberConnectionResponse, error)
+	GetEndpointStats(context.Context, *GetEndpointStatsRequest) (*GetEndpointStatsResponse, error)
 	mustEmbedUnimplementedGamingServer()
 }
 
@@ -288,6 +301,9 @@ func (UnimplementedGamingServer) ListGameInstances(context.Context, *ListGameIns
 }
 func (UnimplementedGamingServer) DeleteMemberConnection(context.Context, *DeleteMemberConnectionRequest) (*DeleteMemberConnectionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteMemberConnection not implemented")
+}
+func (UnimplementedGamingServer) GetEndpointStats(context.Context, *GetEndpointStatsRequest) (*GetEndpointStatsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetEndpointStats not implemented")
 }
 func (UnimplementedGamingServer) mustEmbedUnimplementedGamingServer() {}
 func (UnimplementedGamingServer) testEmbeddedByValue()                {}
@@ -580,6 +596,24 @@ func _Gaming_DeleteMemberConnection_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Gaming_GetEndpointStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEndpointStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).GetEndpointStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_GetEndpointStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).GetEndpointStats(ctx, req.(*GetEndpointStatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Gaming_ServiceDesc is the grpc.ServiceDesc for Gaming service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -646,6 +680,10 @@ var Gaming_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteMemberConnection",
 			Handler:    _Gaming_DeleteMemberConnection_Handler,
+		},
+		{
+			MethodName: "GetEndpointStats",
+			Handler:    _Gaming_GetEndpointStats_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

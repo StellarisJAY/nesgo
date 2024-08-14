@@ -28,6 +28,8 @@ service Gaming {
   rpc ListGameInstances(ListGameInstancesRequest) returns (ListGameInstancesResponse) {}
 
   rpc DeleteMemberConnection(DeleteMemberConnectionRequest) returns (DeleteMemberConnectionResponse) {}
+
+  rpc GetEndpointStats(GetEndpointStatsRequest) returns (GetEndpointStatsResponse) {}
 }
 
 message CreateGameInstanceRequest {
@@ -181,3 +183,15 @@ message DeleteMemberConnectionRequest {
 }
 
 message DeleteMemberConnectionResponse {}
+
+message GetEndpointStatsRequest {
+
+}
+
+message GetEndpointStatsResponse {
+  int32 emulatorCount = 1;
+  int32 cpuUsage = 2;
+  int64 memoryUsed = 3;
+  int64 memoryTotal = 4;
+  int64 uptime = 5;
+}

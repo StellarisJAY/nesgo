@@ -54,10 +54,30 @@ func (g *gamingRepo) ListGamingServiceEndpoints(ctx context.Context, page, pageS
 	endpoints := make([]*biz.ServiceEndpoint, 0, pageSize)
 	total := int32(len(instances))
 	for i := page * pageSize; i < total && i < (page+1)*pageSize; i++ {
-		endpoints = append(endpoints, &biz.ServiceEndpoint{
-			Address: instances[i].Endpoints[0],
+		u, _ := url.Parse(instances[i].Endpoints[0])
+		address := u.Host
+		endpoint := &biz.ServiceEndpoint{
+			Address: address,
 			Id:      instances[i].ID,
-		})
+		}
+		conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(address))
+		if err != nil {
+			g.logger.Errorf("get endponint stats error: %v", err)
+			endpoints = append(endpoints, endpoint)
+			continue
+		}
+		stats, err := gamingAPI.NewGamingClient(conn).GetEndpointStats(ctx, &gamingAPI.GetEndpointStatsRequest{})
+		if err == nil {
+			endpoint.CpuUsage = stats.CpuUsage
+			endpoint.MemoryUsed = stats.MemoryUsed
+			endpoint.MemoryTotal = stats.MemoryTotal
+			endpoint.Uptime = stats.Uptime
+			endpoint.EmulatorCount = stats.EmulatorCount
+		} else {
+			g.logger.Errorf("get endpoint stats error: %v", err)
+		}
+		_ = conn.Close()
+		endpoints = append(endpoints, endpoint)
 	}
 	return endpoints, total, nil
 }

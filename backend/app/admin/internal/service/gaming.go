@@ -13,8 +13,13 @@ func (s *AdminService) ListGamingServiceEndpoints(ctx context.Context, request *
 	result := make([]*adminAPI.GamingServiceEndpoint, 0, len(endpoints))
 	for _, endpoint := range endpoints {
 		result = append(result, &adminAPI.GamingServiceEndpoint{
-			Address: endpoint.Address,
-			Id:      endpoint.Id,
+			Address:       endpoint.Address,
+			Id:            endpoint.Id,
+			CpuUsage:      endpoint.CpuUsage,
+			MemoryUsed:    endpoint.MemoryUsed,
+			MemoryTotal:   endpoint.MemoryTotal,
+			EmulatorCount: endpoint.EmulatorCount,
+			Uptime:        endpoint.Uptime,
 		})
 	}
 	return &adminAPI.ListEndpointsResponse{Endpoints: result, Total: total}, nil

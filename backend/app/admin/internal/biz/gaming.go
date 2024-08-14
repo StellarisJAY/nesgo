@@ -13,8 +13,13 @@ type RoomGameStats struct {
 }
 
 type ServiceEndpoint struct {
-	Address string `json:"address"`
-	Id      string `json:"id"`
+	Address       string `json:"address"`
+	Id            string `json:"id"`
+	EmulatorCount int32  `json:"emulatorCount"`
+	CpuUsage      int32  `json:"cpuUsage"`
+	MemoryUsed    int64  `json:"memoryUsed"`
+	MemoryTotal   int64  `json:"memoryTotal"`
+	Uptime        int64  `json:"uptime"`
 }
 
 type GamingRepo interface {

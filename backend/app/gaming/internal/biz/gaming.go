@@ -12,6 +12,7 @@ import (
 	"github.com/stellarisJAY/nesgo/emulator/config"
 	"github.com/stellarisJAY/nesgo/emulator/ppu"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
+	"runtime"
 	"sync"
 	"time"
 )
@@ -37,6 +38,14 @@ type GameInstanceStats struct {
 	Uptime            time.Duration `json:"uptime"`
 }
 
+type EndpointStats struct {
+	EmulatorCount int32 `json:"emulatorCount"`
+	CpuUsage      int32 `json:"cpuUsage"`
+	MemoryUsed    int64 `json:"memoryUsed"`
+	MemoryTotal   int64 `json:"memoryTotal"`
+	Uptime        int64 `json:"uptime"`
+}
+
 type GameInstanceRepo interface {
 	CreateGameInstance(ctx context.Context, game *GameInstance) (int64, error)
 	DeleteGameInstance(ctx context.Context, roomId int64) error
@@ -57,6 +66,7 @@ type GameInstanceUseCase struct {
 	repo         GameInstanceRepo
 	gameFileRepo GameFileRepo
 	logger       *log.Helper
+	startupTime  time.Time
 }
 
 func NewGameInstanceUseCase(repo GameInstanceRepo, gameFileRepo GameFileRepo, logger log.Logger) *GameInstanceUseCase {
@@ -64,6 +74,7 @@ func NewGameInstanceUseCase(repo GameInstanceRepo, gameFileRepo GameFileRepo, lo
 		repo:         repo,
 		gameFileRepo: gameFileRepo,
 		logger:       log.NewHelper(log.With(logger, "module", "biz/gameInstance")),
+		startupTime:  time.Now(),
 	}
 }
 
@@ -294,4 +305,18 @@ func (uc *GameInstanceUseCase) DeleteMemberConnection(ctx context.Context, roomI
 	}
 	instance.DeleteConnection(userId)
 	return nil
+}
+
+func (uc *GameInstanceUseCase) GetEndpointStats(ctx context.Context) (*EndpointStats, error) {
+	instances, _ := uc.repo.ListGameInstances(ctx)
+	memStats := runtime.MemStats{}
+	runtime.ReadMemStats(&memStats)
+	// TODO collect OS stats
+	return &EndpointStats{
+		EmulatorCount: int32(len(instances)),
+		CpuUsage:      0,
+		MemoryUsed:    int64(memStats.Alloc),
+		MemoryTotal:   int64(memStats.Sys),
+		Uptime:        time.Now().Sub(uc.startupTime).Milliseconds(),
+	}, nil
 }

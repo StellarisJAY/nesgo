@@ -179,3 +179,17 @@ func (g *GamingService) DeleteMemberConnection(ctx context.Context, request *v1.
 	}
 	return &v1.DeleteMemberConnectionResponse{}, nil
 }
+
+func (g *GamingService) GetEndpointStats(ctx context.Context, request *v1.GetEndpointStatsRequest) (*v1.GetEndpointStatsResponse, error) {
+	stats, err := g.gi.GetEndpointStats(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.GetEndpointStatsResponse{
+		EmulatorCount: stats.EmulatorCount,
+		CpuUsage:      stats.CpuUsage,
+		MemoryUsed:    stats.MemoryUsed,
+		MemoryTotal:   stats.MemoryTotal,
+		Uptime:        stats.Uptime,
+	}, nil
+}

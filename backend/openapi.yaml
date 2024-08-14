@@ -593,6 +593,18 @@ components:
                     type: string
                 id:
                     type: string
+                emulatorCount:
+                    type: integer
+                    format: int32
+                cpuUsage:
+                    type: integer
+                    format: int32
+                memoryUsed:
+                    type: string
+                memoryTotal:
+                    type: string
+                uptime:
+                    type: string
         nesgo.admin.v1.GetRoomStatsResponse:
             type: object
             properties:

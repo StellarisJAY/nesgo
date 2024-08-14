@@ -144,6 +144,11 @@ message GetRoomStatsResponse {
 message GamingServiceEndpoint {
   string address = 1;
   string id = 2;
+  int32 emulatorCount = 3;
+  int32 cpuUsage = 4;
+  int64 memoryUsed = 5;
+  int64 memoryTotal = 6;
+  int64 uptime = 7;
 }
 
 message ListEndpointsRequest {
