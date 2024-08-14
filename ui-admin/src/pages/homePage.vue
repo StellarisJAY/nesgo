@@ -11,6 +11,7 @@
         <a-row style="margin-top: 64px;">
             <a-col :xs="{offset: 2, span: 20}" :sm="{offset: 2, span: 20}" :md="{offset: 4, span: 16}" :lg="{offset: 4, span: 16}">
                 <EmulatorList v-if="headerSelectedKeys[0]==='1'"></EmulatorList>
+                <GameList v-if="headerSelectedKeys[0]==='3'"></GameList>
             </a-col>
         </a-row>
     </a-layout>
@@ -20,6 +21,7 @@
 import { Layout, Menu, Card, Button } from 'ant-design-vue';
 import { Row, Col } from "ant-design-vue";
 import EmulatorList from "../components/emulatorList.vue"
+import GameList from "../components/gameList.vue"
 
 export default {
     components: {
@@ -33,6 +35,7 @@ export default {
         ACard: Card,
         AButton: Button,
         EmulatorList: EmulatorList,
+        GameList: GameList,
     },
     data() {
         return {

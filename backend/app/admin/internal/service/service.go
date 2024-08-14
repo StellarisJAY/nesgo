@@ -38,12 +38,12 @@ func (s *AdminService) UploadGame(ctx context.Context, request *v1.UploadFileReq
 	return &v1.UploadFileResponse{}, nil
 }
 
-func (s *AdminService) ListGames(ctx context.Context, _ *v1.ListGamesRequest) (*v1.ListGamesResponse, error) {
-	games, err := s.gf.ListGames(ctx)
+func (s *AdminService) ListGames(ctx context.Context, request *v1.ListGamesRequest) (*v1.ListGamesResponse, error) {
+	games, total, err := s.gf.ListGames(ctx, request.Page, request.PageSize)
 	if err != nil {
 		return nil, err
 	}
-	return &v1.ListGamesResponse{Games: games}, nil
+	return &v1.ListGamesResponse{Games: games, Total: total}, nil
 }
 
 func (s *AdminService) DeleteGameFiles(ctx context.Context, request *v1.DeleteGameFileRequest) (*v1.DeleteGameFileResponse, error) {

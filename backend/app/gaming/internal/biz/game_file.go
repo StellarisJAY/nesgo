@@ -36,12 +36,12 @@ func (uc *GameFileUseCase) UploadGameFile(ctx context.Context, game string, data
 	return nil
 }
 
-func (uc *GameFileUseCase) ListGames(ctx context.Context) ([]*GameFileMetadata, error) {
-	games, err := uc.repo.ListGames(ctx)
+func (uc *GameFileUseCase) ListGames(ctx context.Context, page, pageSize int) ([]*GameFileMetadata, int, error) {
+	games, total, err := uc.repo.ListGames(ctx, page, pageSize)
 	if err != nil {
-		return nil, v1.ErrorListGameFailed("list games failed: %v", err)
+		return nil, 0, v1.ErrorListGameFailed("list games failed: %v", err)
 	}
-	return games, nil
+	return games, total, nil
 }
 
 func (uc *GameFileUseCase) DeleteGames(ctx context.Context, games []string) (int, error) {

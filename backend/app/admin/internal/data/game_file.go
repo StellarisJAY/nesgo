@@ -28,10 +28,10 @@ func (g *gameFileRepo) UploadGame(ctx context.Context, name string, data []byte)
 	return nil
 }
 
-func (g *gameFileRepo) ListGames(ctx context.Context) ([]*adminAPI.GameFileMetadata, error) {
-	response, err := g.data.gamingCli.ListGames(ctx, &gamingAPI.ListGamesRequest{})
+func (g *gameFileRepo) ListGames(ctx context.Context, page, pageSize int32) ([]*adminAPI.GameFileMetadata, int32, error) {
+	response, err := g.data.gamingCli.ListGames(ctx, &gamingAPI.ListGamesRequest{Page: page, PageSize: pageSize})
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	result := make([]*adminAPI.GameFileMetadata, 0, len(response.Games))
 	for _, game := range response.Games {
@@ -41,7 +41,7 @@ func (g *gameFileRepo) ListGames(ctx context.Context) ([]*adminAPI.GameFileMetad
 			Mirroring: game.Mirroring,
 		})
 	}
-	return result, nil
+	return result, response.Total, nil
 }
 
 func (g *gameFileRepo) DeleteGames(ctx context.Context, games []string) (int32, error) {

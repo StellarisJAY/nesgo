@@ -75,18 +75,18 @@ func (g *gameFileRepo) UploadGameData(ctx context.Context, game string, data []b
 	}
 }
 
-func (g *gameFileRepo) ListGames(ctx context.Context) ([]*biz.GameFileMetadata, error) {
+func (g *gameFileRepo) ListGames(ctx context.Context, page, pageSize int) ([]*biz.GameFileMetadata, int, error) {
 	db := g.data.mongo.Database("nesgo")
 	bucket, err := gridfs.NewBucket(db, options.GridFSBucket().SetName(gameFileBucketName))
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	cursor, err := bucket.GetFilesCollection().Find(ctx, bson.M{})
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		return []*biz.GameFileMetadata{}, nil
+		return []*biz.GameFileMetadata{}, 0, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer cursor.Close(ctx)
 
@@ -95,11 +95,13 @@ func (g *gameFileRepo) ListGames(ctx context.Context) ([]*biz.GameFileMetadata, 
 		metadata := new(biz.GameFileMetadata)
 		err = cursor.Current.Lookup("metadata").Unmarshal(&metadata)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		result = append(result, metadata)
 	}
-	return result, nil
+	offset := page * pageSize
+	total := len(result)
+	return result[offset:min(offset+pageSize, total)], total, nil
 }
 
 func (g *gameFileRepo) DeleteGames(ctx context.Context, games []string) (int, error) {

@@ -56,7 +56,7 @@ type GameInstanceRepo interface {
 type GameFileRepo interface {
 	GetGameData(ctx context.Context, game string) ([]byte, error)
 	UploadGameData(ctx context.Context, game string, data []byte, metadata *GameFileMetadata) error
-	ListGames(ctx context.Context) ([]*GameFileMetadata, error)
+	ListGames(ctx context.Context, page, pageSize int) ([]*GameFileMetadata, int, error)
 	DeleteGames(ctx context.Context, games []string) (int, error)
 	GetSavedGame(ctx context.Context, id int64) (*GameSave, error)
 	SaveGame(ctx context.Context, save *GameSave) error

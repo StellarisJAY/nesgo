@@ -8,7 +8,7 @@ import (
 
 type GameFileRepo interface {
 	UploadGame(ctx context.Context, name string, data []byte) error
-	ListGames(ctx context.Context) ([]*v1.GameFileMetadata, error)
+	ListGames(ctx context.Context, page, pageSize int32) ([]*v1.GameFileMetadata, int32, error)
 	DeleteGames(ctx context.Context, games []string) (int32, error)
 }
 
@@ -29,12 +29,12 @@ func (uc *GameFileUseCase) UploadGame(ctx context.Context, name string, data []b
 	return err
 }
 
-func (uc *GameFileUseCase) ListGames(ctx context.Context) ([]*v1.GameFileMetadata, error) {
-	games, err := uc.repo.ListGames(ctx)
+func (uc *GameFileUseCase) ListGames(ctx context.Context, page, pageSize int32) ([]*v1.GameFileMetadata, int32, error) {
+	games, total, err := uc.repo.ListGames(ctx, page, pageSize)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return games, nil
+	return games, total, nil
 }
 
 func (uc *GameFileUseCase) DeleteGames(ctx context.Context, games []string) (int32, error) {

@@ -85,8 +85,8 @@ func (g *GamingService) UploadGame(ctx context.Context, request *v1.UploadGameRe
 	return &v1.UploadGameResponse{}, nil
 }
 
-func (g *GamingService) ListGames(ctx context.Context, _ *v1.ListGamesRequest) (*v1.ListGamesResponse, error) {
-	games, err := g.gf.ListGames(ctx)
+func (g *GamingService) ListGames(ctx context.Context, request *v1.ListGamesRequest) (*v1.ListGamesResponse, error) {
+	games, total, err := g.gf.ListGames(ctx, int(request.Page), int(request.PageSize))
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +98,7 @@ func (g *GamingService) ListGames(ctx context.Context, _ *v1.ListGamesRequest) (
 			Mirroring: game.Mirroring,
 		})
 	}
-	return &v1.ListGamesResponse{Games: result}, nil
+	return &v1.ListGamesResponse{Games: result, Total: int32(total)}, nil
 }
 
 func (g *GamingService) DeleteGameFile(ctx context.Context, request *v1.DeleteGameFileRequest) (*v1.DeleteGameFileResponse, error) {
