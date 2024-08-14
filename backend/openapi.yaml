@@ -24,6 +24,29 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.admin.v1.CreateAdminResponse'
+    /api/v1/admin/endpoints:
+        get:
+            tags:
+                - Admin
+            operationId: Admin_ListGamingServiceEndpoints
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.admin.v1.ListEndpointsResponse'
     /api/v1/admin/games:
         get:
             tags:
@@ -72,11 +95,11 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.admin.v1.LoginResponse'
-    /api/v1/admin/rooms/active:
+    /api/v1/admin/rooms:
         get:
             tags:
                 - Admin
-            operationId: Admin_ListActiveRooms
+            operationId: Admin_ListRooms
             parameters:
                 - name: page
                   in: query
@@ -94,7 +117,42 @@ paths:
                     content:
                         application/json:
                             schema:
+                                $ref: '#/components/schemas/nesgo.admin.v1.ListRoomsResponse'
+    /api/v1/admin/rooms/active:
+        get:
+            tags:
+                - Admin
+            operationId: Admin_ListActiveRooms
+            parameters:
+                - name: id
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
                                 $ref: '#/components/schemas/nesgo.admin.v1.ListActiveRoomsResponse'
+    /api/v1/admin/rooms/stats/{roomId}:
+        get:
+            tags:
+                - Admin
+            operationId: Admin_GetRoomStats
+            parameters:
+                - name: roomId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.admin.v1.GetRoomStatsResponse'
     /api/v1/game/connection:
         post:
             tags:
@@ -462,6 +520,8 @@ components:
                     format: int32
                 game:
                     type: string
+                uptime:
+                    type: string
         nesgo.admin.v1.CreateAdminRequest:
             type: object
             properties:
@@ -487,6 +547,18 @@ components:
                     type: string
                 mirroring:
                     type: string
+        nesgo.admin.v1.GamingServiceEndpoint:
+            type: object
+            properties:
+                address:
+                    type: string
+                id:
+                    type: string
+        nesgo.admin.v1.GetRoomStatsResponse:
+            type: object
+            properties:
+                stats:
+                    $ref: '#/components/schemas/nesgo.admin.v1.ActiveRoom'
         nesgo.admin.v1.ListActiveRoomsResponse:
             type: object
             properties:
@@ -494,6 +566,13 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/nesgo.admin.v1.ActiveRoom'
+        nesgo.admin.v1.ListEndpointsResponse:
+            type: object
+            properties:
+                endpoints:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/nesgo.admin.v1.GamingServiceEndpoint'
                 total:
                     type: integer
                     format: int32
@@ -504,6 +583,16 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/nesgo.admin.v1.GameFileMetadata'
+        nesgo.admin.v1.ListRoomsResponse:
+            type: object
+            properties:
+                rooms:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/nesgo.admin.v1.Room'
+                total:
+                    type: integer
+                    format: int32
         nesgo.admin.v1.LoginRequest:
             type: object
             properties:
@@ -516,6 +605,25 @@ components:
             properties:
                 token:
                     type: string
+        nesgo.admin.v1.Room:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                host:
+                    type: string
+                hostName:
+                    type: string
+                memberCount:
+                    type: integer
+                    format: int32
+                memberLimit:
+                    type: integer
+                    format: int32
+                private:
+                    type: boolean
         nesgo.webapi.v1.AddICECandidateRequest:
             type: object
             properties:

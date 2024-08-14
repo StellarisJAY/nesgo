@@ -153,3 +153,21 @@ func (g *GamingService) GetGameInstanceStats(ctx context.Context, request *v1.Ge
 		},
 	}, nil
 }
+
+func (g *GamingService) ListGameInstances(ctx context.Context, _ *v1.ListGameInstancesRequest) (*v1.ListGameInstancesResponse, error) {
+	instances, err := g.gi.ListGameInstances(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*v1.GameInstanceStats, 0, len(instances))
+	for _, instance := range instances {
+		result = append(result, &v1.GameInstanceStats{
+			RoomId:            instance.RoomId,
+			Connections:       int32(instance.Connections),
+			ActiveConnections: int32(instance.ActiveConnections),
+			Game:              instance.Game,
+			Uptime:            instance.Uptime.Milliseconds(),
+		})
+	}
+	return &v1.ListGameInstancesResponse{Instances: result}, nil
+}

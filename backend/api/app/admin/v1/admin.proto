@@ -30,9 +30,24 @@ service Admin {
       body: "*"
     };
   }
+  rpc ListGamingServiceEndpoints(ListEndpointsRequest) returns (ListEndpointsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/admin/endpoints"
+    };
+  }
   rpc ListActiveRooms(ListActiveRoomsRequest) returns (ListActiveRoomsResponse) {
     option (google.api.http) = {
       get: "/api/v1/admin/rooms/active"
+    };
+  }
+  rpc ListRooms(ListRoomsRequest) returns (ListRoomsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/admin/rooms"
+    };
+  }
+  rpc GetRoomStats(GetRoomStatsRequest) returns (GetRoomStatsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/admin/rooms/stats/{roomId}"
     };
   }
 }
@@ -95,14 +110,56 @@ message ActiveRoom {
   int32 connections = 8;
   int32 activeConnections = 9;
   string game = 10;
+  int64 uptime = 11;
 }
 
-message ListActiveRoomsRequest {
+message Room {
+  int64 id = 1;
+  string name = 2;
+  int64 host = 3;
+  string hostName = 4;
+  int32 memberCount = 5;
+  int32 memberLimit = 6;
+  bool private = 7;
+}
+
+message ListRoomsRequest {
   int32 page = 1;
   int32 pageSize = 2;
 }
 
+message ListRoomsResponse {
+  repeated Room rooms = 1;
+  int32 total = 2;
+}
+
+message GetRoomStatsRequest {
+  int64 roomId = 1;
+}
+
+message GetRoomStatsResponse {
+  ActiveRoom stats = 1;
+}
+
+message GamingServiceEndpoint {
+  string address = 1;
+  string id = 2;
+}
+
+message ListEndpointsRequest {
+  int32 page = 1;
+  int32 pageSize = 2;
+}
+
+message ListEndpointsResponse {
+  repeated GamingServiceEndpoint endpoints = 1;
+  int32 total = 2;
+}
+
+message ListActiveRoomsRequest {
+  string id = 1;
+}
+
 message ListActiveRoomsResponse {
   repeated ActiveRoom rooms = 1;
-  int32 total = 2;
 }

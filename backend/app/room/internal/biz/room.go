@@ -195,11 +195,11 @@ func (uc *RoomUseCase) GetCreateRoomSession(ctx context.Context, roomId, userId 
 
 func (uc *RoomUseCase) GetRoomSession(ctx context.Context, roomId int64) (*RoomSession, error) {
 	session, err := uc.rr.GetRoomSession(ctx, roomId)
-	if session != nil {
-		return session, nil
-	}
 	if err != nil {
 		return nil, v1.ErrorGetRoomFailed("database error: %v", err)
+	}
+	if session == nil {
+		return nil, v1.ErrorGetRoomFailed("session not available")
 	}
 	return session, nil
 }

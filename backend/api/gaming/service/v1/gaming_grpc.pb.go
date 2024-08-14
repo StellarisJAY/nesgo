@@ -32,6 +32,7 @@ const (
 	Gaming_SetController_FullMethodName        = "/gaming.v1.Gaming/SetController"
 	Gaming_GetControllers_FullMethodName       = "/gaming.v1.Gaming/GetControllers"
 	Gaming_GetGameInstanceStats_FullMethodName = "/gaming.v1.Gaming/GetGameInstanceStats"
+	Gaming_ListGameInstances_FullMethodName    = "/gaming.v1.Gaming/ListGameInstances"
 )
 
 // GamingClient is the client API for Gaming service.
@@ -51,6 +52,7 @@ type GamingClient interface {
 	SetController(ctx context.Context, in *SetControllerRequest, opts ...grpc.CallOption) (*SetControllerResponse, error)
 	GetControllers(ctx context.Context, in *GetControllersRequest, opts ...grpc.CallOption) (*GetControllersResponse, error)
 	GetGameInstanceStats(ctx context.Context, in *GetGameInstanceStatsRequest, opts ...grpc.CallOption) (*GetGameInstanceStatsResponse, error)
+	ListGameInstances(ctx context.Context, in *ListGameInstancesRequest, opts ...grpc.CallOption) (*ListGameInstancesResponse, error)
 }
 
 type gamingClient struct {
@@ -191,6 +193,16 @@ func (c *gamingClient) GetGameInstanceStats(ctx context.Context, in *GetGameInst
 	return out, nil
 }
 
+func (c *gamingClient) ListGameInstances(ctx context.Context, in *ListGameInstancesRequest, opts ...grpc.CallOption) (*ListGameInstancesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListGameInstancesResponse)
+	err := c.cc.Invoke(ctx, Gaming_ListGameInstances_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GamingServer is the server API for Gaming service.
 // All implementations must embed UnimplementedGamingServer
 // for forward compatibility.
@@ -208,6 +220,7 @@ type GamingServer interface {
 	SetController(context.Context, *SetControllerRequest) (*SetControllerResponse, error)
 	GetControllers(context.Context, *GetControllersRequest) (*GetControllersResponse, error)
 	GetGameInstanceStats(context.Context, *GetGameInstanceStatsRequest) (*GetGameInstanceStatsResponse, error)
+	ListGameInstances(context.Context, *ListGameInstancesRequest) (*ListGameInstancesResponse, error)
 	mustEmbedUnimplementedGamingServer()
 }
 
@@ -256,6 +269,9 @@ func (UnimplementedGamingServer) GetControllers(context.Context, *GetControllers
 }
 func (UnimplementedGamingServer) GetGameInstanceStats(context.Context, *GetGameInstanceStatsRequest) (*GetGameInstanceStatsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetGameInstanceStats not implemented")
+}
+func (UnimplementedGamingServer) ListGameInstances(context.Context, *ListGameInstancesRequest) (*ListGameInstancesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListGameInstances not implemented")
 }
 func (UnimplementedGamingServer) mustEmbedUnimplementedGamingServer() {}
 func (UnimplementedGamingServer) testEmbeddedByValue()                {}
@@ -512,6 +528,24 @@ func _Gaming_GetGameInstanceStats_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Gaming_ListGameInstances_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListGameInstancesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).ListGameInstances(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_ListGameInstances_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).ListGameInstances(ctx, req.(*ListGameInstancesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Gaming_ServiceDesc is the grpc.ServiceDesc for Gaming service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -570,6 +604,10 @@ var Gaming_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetGameInstanceStats",
 			Handler:    _Gaming_GetGameInstanceStats_Handler,
+		},
+		{
+			MethodName: "ListGameInstances",
+			Handler:    _Gaming_ListGameInstances_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -20,7 +20,7 @@ import (
 )
 
 // ProviderSet is data providers.
-var ProviderSet = wire.NewSet(NewData, NewGameFileRepo, NewAdminRepo)
+var ProviderSet = wire.NewSet(NewData, NewGameFileRepo, NewAdminRepo, NewUserRepo, NewRoomRepo, NewGamingRepo)
 
 // Data .
 type Data struct {
@@ -29,6 +29,7 @@ type Data struct {
 	userCli   userAPI.UserClient
 	db        *gorm.DB
 	logger    *log.Helper
+	discovery registry.Discovery
 }
 
 // NewData .
@@ -86,8 +87,9 @@ func NewData(c *conf.Data, r registry.Discovery, logger log.Logger) (*Data, func
 	return &Data{
 		logger:    logHelper,
 		gamingCli: gaming.NewGamingClient(gamingConn),
-		roomCli:   roomAPI.NewRoomClient(gamingConn),
+		roomCli:   roomAPI.NewRoomClient(roomConn),
 		userCli:   userAPI.NewUserClient(userConn),
+		discovery: r,
 		db:        db,
 	}, cleanup, nil
 }

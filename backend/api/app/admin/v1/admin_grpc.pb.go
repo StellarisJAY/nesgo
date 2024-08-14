@@ -19,12 +19,15 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Admin_UploadGame_FullMethodName      = "/nesgo.admin.v1.Admin/UploadGame"
-	Admin_ListGames_FullMethodName       = "/nesgo.admin.v1.Admin/ListGames"
-	Admin_DeleteGameFiles_FullMethodName = "/nesgo.admin.v1.Admin/DeleteGameFiles"
-	Admin_Login_FullMethodName           = "/nesgo.admin.v1.Admin/Login"
-	Admin_CreateAdmin_FullMethodName     = "/nesgo.admin.v1.Admin/CreateAdmin"
-	Admin_ListActiveRooms_FullMethodName = "/nesgo.admin.v1.Admin/ListActiveRooms"
+	Admin_UploadGame_FullMethodName                 = "/nesgo.admin.v1.Admin/UploadGame"
+	Admin_ListGames_FullMethodName                  = "/nesgo.admin.v1.Admin/ListGames"
+	Admin_DeleteGameFiles_FullMethodName            = "/nesgo.admin.v1.Admin/DeleteGameFiles"
+	Admin_Login_FullMethodName                      = "/nesgo.admin.v1.Admin/Login"
+	Admin_CreateAdmin_FullMethodName                = "/nesgo.admin.v1.Admin/CreateAdmin"
+	Admin_ListGamingServiceEndpoints_FullMethodName = "/nesgo.admin.v1.Admin/ListGamingServiceEndpoints"
+	Admin_ListActiveRooms_FullMethodName            = "/nesgo.admin.v1.Admin/ListActiveRooms"
+	Admin_ListRooms_FullMethodName                  = "/nesgo.admin.v1.Admin/ListRooms"
+	Admin_GetRoomStats_FullMethodName               = "/nesgo.admin.v1.Admin/GetRoomStats"
 )
 
 // AdminClient is the client API for Admin service.
@@ -36,7 +39,10 @@ type AdminClient interface {
 	DeleteGameFiles(ctx context.Context, in *DeleteGameFileRequest, opts ...grpc.CallOption) (*DeleteGameFileResponse, error)
 	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 	CreateAdmin(ctx context.Context, in *CreateAdminRequest, opts ...grpc.CallOption) (*CreateAdminResponse, error)
+	ListGamingServiceEndpoints(ctx context.Context, in *ListEndpointsRequest, opts ...grpc.CallOption) (*ListEndpointsResponse, error)
 	ListActiveRooms(ctx context.Context, in *ListActiveRoomsRequest, opts ...grpc.CallOption) (*ListActiveRoomsResponse, error)
+	ListRooms(ctx context.Context, in *ListRoomsRequest, opts ...grpc.CallOption) (*ListRoomsResponse, error)
+	GetRoomStats(ctx context.Context, in *GetRoomStatsRequest, opts ...grpc.CallOption) (*GetRoomStatsResponse, error)
 }
 
 type adminClient struct {
@@ -97,10 +103,40 @@ func (c *adminClient) CreateAdmin(ctx context.Context, in *CreateAdminRequest, o
 	return out, nil
 }
 
+func (c *adminClient) ListGamingServiceEndpoints(ctx context.Context, in *ListEndpointsRequest, opts ...grpc.CallOption) (*ListEndpointsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListEndpointsResponse)
+	err := c.cc.Invoke(ctx, Admin_ListGamingServiceEndpoints_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *adminClient) ListActiveRooms(ctx context.Context, in *ListActiveRoomsRequest, opts ...grpc.CallOption) (*ListActiveRoomsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListActiveRoomsResponse)
 	err := c.cc.Invoke(ctx, Admin_ListActiveRooms_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *adminClient) ListRooms(ctx context.Context, in *ListRoomsRequest, opts ...grpc.CallOption) (*ListRoomsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListRoomsResponse)
+	err := c.cc.Invoke(ctx, Admin_ListRooms_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *adminClient) GetRoomStats(ctx context.Context, in *GetRoomStatsRequest, opts ...grpc.CallOption) (*GetRoomStatsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRoomStatsResponse)
+	err := c.cc.Invoke(ctx, Admin_GetRoomStats_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +152,10 @@ type AdminServer interface {
 	DeleteGameFiles(context.Context, *DeleteGameFileRequest) (*DeleteGameFileResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	CreateAdmin(context.Context, *CreateAdminRequest) (*CreateAdminResponse, error)
+	ListGamingServiceEndpoints(context.Context, *ListEndpointsRequest) (*ListEndpointsResponse, error)
 	ListActiveRooms(context.Context, *ListActiveRoomsRequest) (*ListActiveRoomsResponse, error)
+	ListRooms(context.Context, *ListRoomsRequest) (*ListRoomsResponse, error)
+	GetRoomStats(context.Context, *GetRoomStatsRequest) (*GetRoomStatsResponse, error)
 	mustEmbedUnimplementedAdminServer()
 }
 
@@ -142,8 +181,17 @@ func (UnimplementedAdminServer) Login(context.Context, *LoginRequest) (*LoginRes
 func (UnimplementedAdminServer) CreateAdmin(context.Context, *CreateAdminRequest) (*CreateAdminResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateAdmin not implemented")
 }
+func (UnimplementedAdminServer) ListGamingServiceEndpoints(context.Context, *ListEndpointsRequest) (*ListEndpointsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListGamingServiceEndpoints not implemented")
+}
 func (UnimplementedAdminServer) ListActiveRooms(context.Context, *ListActiveRoomsRequest) (*ListActiveRoomsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListActiveRooms not implemented")
+}
+func (UnimplementedAdminServer) ListRooms(context.Context, *ListRoomsRequest) (*ListRoomsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListRooms not implemented")
+}
+func (UnimplementedAdminServer) GetRoomStats(context.Context, *GetRoomStatsRequest) (*GetRoomStatsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRoomStats not implemented")
 }
 func (UnimplementedAdminServer) mustEmbedUnimplementedAdminServer() {}
 func (UnimplementedAdminServer) testEmbeddedByValue()               {}
@@ -256,6 +304,24 @@ func _Admin_CreateAdmin_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Admin_ListGamingServiceEndpoints_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListEndpointsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdminServer).ListGamingServiceEndpoints(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Admin_ListGamingServiceEndpoints_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdminServer).ListGamingServiceEndpoints(ctx, req.(*ListEndpointsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Admin_ListActiveRooms_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListActiveRoomsRequest)
 	if err := dec(in); err != nil {
@@ -270,6 +336,42 @@ func _Admin_ListActiveRooms_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AdminServer).ListActiveRooms(ctx, req.(*ListActiveRoomsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Admin_ListRooms_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListRoomsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdminServer).ListRooms(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Admin_ListRooms_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdminServer).ListRooms(ctx, req.(*ListRoomsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Admin_GetRoomStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRoomStatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AdminServer).GetRoomStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Admin_GetRoomStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AdminServer).GetRoomStats(ctx, req.(*GetRoomStatsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -302,8 +404,20 @@ var Admin_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Admin_CreateAdmin_Handler,
 		},
 		{
+			MethodName: "ListGamingServiceEndpoints",
+			Handler:    _Admin_ListGamingServiceEndpoints_Handler,
+		},
+		{
 			MethodName: "ListActiveRooms",
 			Handler:    _Admin_ListActiveRooms_Handler,
+		},
+		{
+			MethodName: "ListRooms",
+			Handler:    _Admin_ListRooms_Handler,
+		},
+		{
+			MethodName: "GetRoomStats",
+			Handler:    _Admin_GetRoomStats_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

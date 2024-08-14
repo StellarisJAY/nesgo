@@ -15,13 +15,17 @@ type AdminService struct {
 	v1.UnimplementedAdminServer
 	gf     *biz.GameFileUseCase
 	a      *biz.AdminUseCase
+	r      *biz.RoomUseCase
+	g      *biz.GamingUseCase
 	logger *log.Helper
 }
 
-func NewAdminService(gf *biz.GameFileUseCase, a *biz.AdminUseCase, logger log.Logger) *AdminService {
+func NewAdminService(gf *biz.GameFileUseCase, a *biz.AdminUseCase, r *biz.RoomUseCase, g *biz.GamingUseCase, logger log.Logger) *AdminService {
 	return &AdminService{
 		gf:     gf,
 		a:      a,
+		r:      r,
+		g:      g,
 		logger: log.NewHelper(log.With(logger, "module", "service/admin")),
 	}
 }

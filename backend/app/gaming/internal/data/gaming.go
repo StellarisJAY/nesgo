@@ -64,3 +64,13 @@ func (g *gameInstanceRepo) GetGameInstance(ctx context.Context, roomId int64) (*
 	defer g.mutex.RUnlock()
 	return g.instances[roomId], nil
 }
+
+func (g *gameInstanceRepo) ListGameInstances(ctx context.Context) ([]*biz.GameInstance, error) {
+	g.mutex.RLock()
+	defer g.mutex.RUnlock()
+	var instances []*biz.GameInstance
+	for _, instance := range g.instances {
+		instances = append(instances, instance)
+	}
+	return instances, nil
+}

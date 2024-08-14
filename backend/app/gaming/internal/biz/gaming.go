@@ -41,6 +41,7 @@ type GameInstanceRepo interface {
 	CreateGameInstance(ctx context.Context, game *GameInstance) (int64, error)
 	DeleteGameInstance(ctx context.Context, roomId int64) error
 	GetGameInstance(ctx context.Context, roomId int64) (*GameInstance, error)
+	ListGameInstances(ctx context.Context) ([]*GameInstance, error)
 }
 
 type GameFileRepo interface {
@@ -275,4 +276,13 @@ func (uc *GameInstanceUseCase) GetGameInstanceStats(ctx context.Context, roomId 
 		return nil, v1.ErrorGameInstanceNotAccessible("game instance not found")
 	}
 	return instance.DumpStats(), nil
+}
+
+func (uc *GameInstanceUseCase) ListGameInstances(ctx context.Context) ([]*GameInstanceStats, error) {
+	instances, _ := uc.repo.ListGameInstances(ctx)
+	result := make([]*GameInstanceStats, 0, len(instances))
+	for _, instance := range instances {
+		result = append(result, instance.DumpStats())
+	}
+	return result, nil
 }

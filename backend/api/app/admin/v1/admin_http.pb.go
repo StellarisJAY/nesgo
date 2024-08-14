@@ -21,15 +21,21 @@ const _ = http.SupportPackageIsVersion1
 
 const OperationAdminCreateAdmin = "/nesgo.admin.v1.Admin/CreateAdmin"
 const OperationAdminDeleteGameFiles = "/nesgo.admin.v1.Admin/DeleteGameFiles"
+const OperationAdminGetRoomStats = "/nesgo.admin.v1.Admin/GetRoomStats"
 const OperationAdminListActiveRooms = "/nesgo.admin.v1.Admin/ListActiveRooms"
 const OperationAdminListGames = "/nesgo.admin.v1.Admin/ListGames"
+const OperationAdminListGamingServiceEndpoints = "/nesgo.admin.v1.Admin/ListGamingServiceEndpoints"
+const OperationAdminListRooms = "/nesgo.admin.v1.Admin/ListRooms"
 const OperationAdminLogin = "/nesgo.admin.v1.Admin/Login"
 
 type AdminHTTPServer interface {
 	CreateAdmin(context.Context, *CreateAdminRequest) (*CreateAdminResponse, error)
 	DeleteGameFiles(context.Context, *DeleteGameFileRequest) (*DeleteGameFileResponse, error)
+	GetRoomStats(context.Context, *GetRoomStatsRequest) (*GetRoomStatsResponse, error)
 	ListActiveRooms(context.Context, *ListActiveRoomsRequest) (*ListActiveRoomsResponse, error)
 	ListGames(context.Context, *ListGamesRequest) (*ListGamesResponse, error)
+	ListGamingServiceEndpoints(context.Context, *ListEndpointsRequest) (*ListEndpointsResponse, error)
+	ListRooms(context.Context, *ListRoomsRequest) (*ListRoomsResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 }
 
@@ -39,7 +45,10 @@ func RegisterAdminHTTPServer(s *http.Server, srv AdminHTTPServer) {
 	r.DELETE("/api/v1/admin/games", _Admin_DeleteGameFiles0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin/login", _Admin_Login0_HTTP_Handler(srv))
 	r.POST("/api/v1/admin", _Admin_CreateAdmin0_HTTP_Handler(srv))
+	r.GET("/api/v1/admin/endpoints", _Admin_ListGamingServiceEndpoints0_HTTP_Handler(srv))
 	r.GET("/api/v1/admin/rooms/active", _Admin_ListActiveRooms0_HTTP_Handler(srv))
+	r.GET("/api/v1/admin/rooms", _Admin_ListRooms0_HTTP_Handler(srv))
+	r.GET("/api/v1/admin/rooms/stats/{roomId}", _Admin_GetRoomStats0_HTTP_Handler(srv))
 }
 
 func _Admin_ListGames0_HTTP_Handler(srv AdminHTTPServer) func(ctx http.Context) error {
@@ -124,6 +133,25 @@ func _Admin_CreateAdmin0_HTTP_Handler(srv AdminHTTPServer) func(ctx http.Context
 	}
 }
 
+func _Admin_ListGamingServiceEndpoints0_HTTP_Handler(srv AdminHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListEndpointsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAdminListGamingServiceEndpoints)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListGamingServiceEndpoints(ctx, req.(*ListEndpointsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListEndpointsResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 func _Admin_ListActiveRooms0_HTTP_Handler(srv AdminHTTPServer) func(ctx http.Context) error {
 	return func(ctx http.Context) error {
 		var in ListActiveRoomsRequest
@@ -143,11 +171,55 @@ func _Admin_ListActiveRooms0_HTTP_Handler(srv AdminHTTPServer) func(ctx http.Con
 	}
 }
 
+func _Admin_ListRooms0_HTTP_Handler(srv AdminHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListRoomsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAdminListRooms)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListRooms(ctx, req.(*ListRoomsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListRoomsResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _Admin_GetRoomStats0_HTTP_Handler(srv AdminHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetRoomStatsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationAdminGetRoomStats)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetRoomStats(ctx, req.(*GetRoomStatsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetRoomStatsResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type AdminHTTPClient interface {
 	CreateAdmin(ctx context.Context, req *CreateAdminRequest, opts ...http.CallOption) (rsp *CreateAdminResponse, err error)
 	DeleteGameFiles(ctx context.Context, req *DeleteGameFileRequest, opts ...http.CallOption) (rsp *DeleteGameFileResponse, err error)
+	GetRoomStats(ctx context.Context, req *GetRoomStatsRequest, opts ...http.CallOption) (rsp *GetRoomStatsResponse, err error)
 	ListActiveRooms(ctx context.Context, req *ListActiveRoomsRequest, opts ...http.CallOption) (rsp *ListActiveRoomsResponse, err error)
 	ListGames(ctx context.Context, req *ListGamesRequest, opts ...http.CallOption) (rsp *ListGamesResponse, err error)
+	ListGamingServiceEndpoints(ctx context.Context, req *ListEndpointsRequest, opts ...http.CallOption) (rsp *ListEndpointsResponse, err error)
+	ListRooms(ctx context.Context, req *ListRoomsRequest, opts ...http.CallOption) (rsp *ListRoomsResponse, err error)
 	Login(ctx context.Context, req *LoginRequest, opts ...http.CallOption) (rsp *LoginResponse, err error)
 }
 
@@ -185,6 +257,19 @@ func (c *AdminHTTPClientImpl) DeleteGameFiles(ctx context.Context, in *DeleteGam
 	return &out, nil
 }
 
+func (c *AdminHTTPClientImpl) GetRoomStats(ctx context.Context, in *GetRoomStatsRequest, opts ...http.CallOption) (*GetRoomStatsResponse, error) {
+	var out GetRoomStatsResponse
+	pattern := "/api/v1/admin/rooms/stats/{roomId}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationAdminGetRoomStats))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *AdminHTTPClientImpl) ListActiveRooms(ctx context.Context, in *ListActiveRoomsRequest, opts ...http.CallOption) (*ListActiveRoomsResponse, error) {
 	var out ListActiveRoomsResponse
 	pattern := "/api/v1/admin/rooms/active"
@@ -203,6 +288,32 @@ func (c *AdminHTTPClientImpl) ListGames(ctx context.Context, in *ListGamesReques
 	pattern := "/api/v1/admin/games"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationAdminListGames))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *AdminHTTPClientImpl) ListGamingServiceEndpoints(ctx context.Context, in *ListEndpointsRequest, opts ...http.CallOption) (*ListEndpointsResponse, error) {
+	var out ListEndpointsResponse
+	pattern := "/api/v1/admin/endpoints"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationAdminListGamingServiceEndpoints))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *AdminHTTPClientImpl) ListRooms(ctx context.Context, in *ListRoomsRequest, opts ...http.CallOption) (*ListRoomsResponse, error) {
+	var out ListRoomsResponse
+	pattern := "/api/v1/admin/rooms"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationAdminListRooms))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

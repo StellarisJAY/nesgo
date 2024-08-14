@@ -25,6 +25,7 @@ service Gaming {
   rpc GetControllers(GetControllersRequest) returns (GetControllersResponse) {}
 
   rpc GetGameInstanceStats(GetGameInstanceStatsRequest) returns (GetGameInstanceStatsResponse) {}
+  rpc ListGameInstances(ListGameInstancesRequest) returns (ListGameInstancesResponse) {}
 }
 
 message CreateGameInstanceRequest {
@@ -163,4 +164,11 @@ message GetGameInstanceStatsRequest {
 
 message GetGameInstanceStatsResponse {
   GameInstanceStats stats = 1;
+}
+
+message ListGameInstancesRequest {
+}
+
+message ListGameInstancesResponse {
+  repeated GameInstanceStats instances = 1;
 }
