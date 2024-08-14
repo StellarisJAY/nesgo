@@ -52,6 +52,17 @@ paths:
             tags:
                 - Admin
             operationId: Admin_ListGames
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
             responses:
                 "200":
                     description: OK
@@ -634,6 +645,9 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/nesgo.admin.v1.GameFileMetadata'
+                total:
+                    type: integer
+                    format: int32
         nesgo.admin.v1.ListRoomsResponse:
             type: object
             properties:

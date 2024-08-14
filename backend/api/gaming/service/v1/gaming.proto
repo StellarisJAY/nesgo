@@ -106,7 +106,8 @@ message UploadGameResponse {
 }
 
 message ListGamesRequest {
-
+  int32 page = 1;
+  int32 pageSize = 2;
 }
 
 message GameFileMetadata {
@@ -117,6 +118,7 @@ message GameFileMetadata {
 
 message ListGamesResponse {
   repeated GameFileMetadata games = 1;
+  int32 total = 2;
 }
 
 message DeleteGameFileRequest {
