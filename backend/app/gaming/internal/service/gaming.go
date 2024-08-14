@@ -171,3 +171,11 @@ func (g *GamingService) ListGameInstances(ctx context.Context, _ *v1.ListGameIns
 	}
 	return &v1.ListGameInstancesResponse{Instances: result}, nil
 }
+
+func (g *GamingService) DeleteMemberConnection(ctx context.Context, request *v1.DeleteMemberConnectionRequest) (*v1.DeleteMemberConnectionResponse, error) {
+	err := g.gi.DeleteMemberConnection(ctx, request.RoomId, request.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.DeleteMemberConnectionResponse{}, nil
+}

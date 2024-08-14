@@ -177,3 +177,23 @@ func (ws *WebApiService) GetRoomMember(ctx context.Context, request *v1.GetRoomM
 		JoinedAt: member.JoinedAt.UnixMilli(),
 	}}, nil
 }
+
+func (ws *WebApiService) UpdateMemberRole(ctx context.Context, request *v1.UpdateMemberRoleRequest) (*v1.UpdateMemberRoleResponse, error) {
+	claims, _ := jwt.FromContext(ctx)
+	c := claims.(*biz.LoginClaims)
+	err := ws.rc.UpdateMemberRole(ctx, request.RoomId, request.UserId, request.Role, c.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.UpdateMemberRoleResponse{}, nil
+}
+
+func (ws *WebApiService) DeleteMember(ctx context.Context, request *v1.DeleteMemberRequest) (*v1.DeleteMemberResponse, error) {
+	claims, _ := jwt.FromContext(ctx)
+	c := claims.(*biz.LoginClaims)
+	err := ws.rc.DeleteMember(ctx, request.RoomId, request.UserId, c.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.DeleteMemberResponse{}, nil
+}

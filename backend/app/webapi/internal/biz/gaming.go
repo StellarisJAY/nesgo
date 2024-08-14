@@ -23,6 +23,7 @@ type GameMetadata struct {
 
 type GamingRepo interface {
 	ListGames(ctx context.Context) ([]*GameMetadata, error)
+	DeleteMemberConnection(ctx context.Context, roomId, userId int64, endpoint string) error
 }
 
 func NewGamingUseCase(roomRepo RoomRepo, gamingRepo GamingRepo, logger log.Logger) *GamingUseCase {
@@ -119,7 +120,7 @@ func (uc *GamingUseCase) SetController(ctx context.Context, roomId, userId, play
 	_, err = client.SetController(ctx, &gamingAPI.SetControllerRequest{
 		Controller: controller,
 		RoomId:     roomId,
-		UserId:     userId,
+		UserId:     playerId,
 	})
 	if err != nil {
 		return err

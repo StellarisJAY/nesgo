@@ -3,6 +3,7 @@ package data
 import (
 	"context"
 	"github.com/go-kratos/kratos/v2/log"
+	"github.com/go-kratos/kratos/v2/transport/grpc"
 	gamingAPI "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
 	"github.com/stellarisJAY/nesgo/backend/app/webapi/internal/biz"
 )
@@ -33,4 +34,21 @@ func (r *gamingRepo) ListGames(ctx context.Context) ([]*biz.GameMetadata, error)
 		})
 	}
 	return result, nil
+}
+
+func (r *gamingRepo) DeleteMemberConnection(ctx context.Context, roomId, userId int64, endpoint string) error {
+	conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(endpoint))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	gamingCli := gamingAPI.NewGamingClient(conn)
+	_, err = gamingCli.DeleteMemberConnection(ctx, &gamingAPI.DeleteMemberConnectionRequest{
+		RoomId: roomId,
+		UserId: userId,
+	})
+	if err != nil {
+		return err
+	}
+	return nil
 }

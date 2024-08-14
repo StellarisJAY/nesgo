@@ -200,3 +200,20 @@ func (r *roomRepo) GetRoomMember(ctx context.Context, roomId, userId int64) (*bi
 		JoinedAt: time.UnixMilli(response.Member.JoinedAt).Local(),
 	}, nil
 }
+
+func (r *roomRepo) UpdateMember(ctx context.Context, roomId, userId int64, role roomAPI.RoomRole) error {
+	_, err := r.data.rc.UpdateMember(ctx, &roomAPI.UpdateMemberRequest{
+		RoomId: roomId,
+		UserId: userId,
+		Role:   role,
+	})
+	return err
+}
+
+func (r *roomRepo) DeleteMember(ctx context.Context, roomId, userId int64) error {
+	_, err := r.data.rc.DeleteMember(ctx, &roomAPI.DeleteMemberRequest{
+		RoomId: roomId,
+		UserId: userId,
+	})
+	return err
+}

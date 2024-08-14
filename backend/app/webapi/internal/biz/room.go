@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
+	v12 "github.com/stellarisJAY/nesgo/backend/api/app/webapi/v1"
 	gamingAPI "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
 	roomAPI "github.com/stellarisJAY/nesgo/backend/api/room/service/v1"
 	"time"
@@ -12,6 +13,7 @@ import (
 type RoomUseCase struct {
 	repo   RoomRepo
 	ur     UserRepo
+	gr     GamingRepo
 	logger *log.Helper
 }
 
@@ -58,12 +60,15 @@ type RoomRepo interface {
 	UpdateRoom(ctx context.Context, room *Room, userId int64) error
 	DeleteRoom(ctx context.Context, roomId, userId int64) error
 	GetRoomMember(ctx context.Context, roomId, userId int64) (*Member, error)
+	UpdateMember(ctx context.Context, roomId, userId int64, role roomAPI.RoomRole) error
+	DeleteMember(ctx context.Context, roomId, userId int64) error
 }
 
-func NewRoomUseCase(repo RoomRepo, ur UserRepo, logger log.Logger) *RoomUseCase {
+func NewRoomUseCase(repo RoomRepo, ur UserRepo, gr GamingRepo, logger log.Logger) *RoomUseCase {
 	return &RoomUseCase{
 		repo:   repo,
 		ur:     ur,
+		gr:     gr,
 		logger: log.NewHelper(log.With(logger, "module", "biz/room")),
 	}
 }
@@ -180,4 +185,38 @@ func (uc *RoomUseCase) GetRoomMember(ctx context.Context, roomId, userId int64) 
 	}
 	member.Name = user.Name
 	return member, nil
+}
+
+func (uc *RoomUseCase) UpdateMemberRole(ctx context.Context, roomId, userId int64, role roomAPI.RoomRole, operator int64) error {
+	room, err := uc.repo.GetRoom(ctx, roomId)
+	if err != nil {
+		return err
+	}
+	if room.Host != operator {
+		return v12.ErrorOperationFailed("you are not the host of this room")
+	}
+	return uc.repo.UpdateMember(ctx, roomId, userId, role)
+}
+
+func (uc *RoomUseCase) DeleteMember(ctx context.Context, roomId, userId int64, operator int64) error {
+	room, err := uc.repo.GetRoom(ctx, roomId)
+	if err != nil {
+		return err
+	}
+	if room.Host != operator {
+		return v12.ErrorOperationFailed("you are not the host of this room")
+	}
+	member, _ := uc.repo.GetRoomMember(ctx, roomId, userId)
+	if member == nil {
+		return v12.ErrorOperationFailed("member not found")
+	}
+	session, _ := uc.repo.GetRoomSession(ctx, roomId)
+	if session == nil {
+		return uc.repo.DeleteMember(ctx, roomId, userId)
+	}
+	err = uc.gr.DeleteMemberConnection(ctx, roomId, userId, session.Endpoint)
+	if err != nil {
+		return v12.ErrorOperationFailed("delete member connection failed: %v", err)
+	}
+	return uc.repo.DeleteMember(ctx, roomId, userId)
 }

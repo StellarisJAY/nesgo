@@ -190,3 +190,23 @@ func (r *RoomService) GetRoomMember(ctx context.Context, request *v1.GetRoomMemb
 		},
 	}, nil
 }
+
+func (r *RoomService) UpdateMember(ctx context.Context, request *v1.UpdateMemberRequest) (*v1.UpdateMemberResponse, error) {
+	err := r.ruc.UpdateMember(ctx, &biz.RoomMember{
+		UserId: request.UserId,
+		Role:   request.Role,
+		RoomId: request.RoomId,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &v1.UpdateMemberResponse{}, nil
+}
+
+func (r *RoomService) DeleteMember(ctx context.Context, request *v1.DeleteMemberRequest) (*v1.DeleteMemberResponse, error) {
+	err := r.ruc.DeleteMember(ctx, request.RoomId, request.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.DeleteMemberResponse{}, nil
+}

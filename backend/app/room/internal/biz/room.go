@@ -60,6 +60,8 @@ type RoomRepo interface {
 	ListMembers(ctx context.Context, roomId int64) ([]*RoomMember, error)
 	UpdateRoom(ctx context.Context, room *Room) error
 	DeleteRoom(ctx context.Context, roomId int64) error
+	UpdateMember(ctx context.Context, member *RoomMember) error
+	DeleteMember(ctx context.Context, roomId, userId int64) error
 }
 
 var ErrMemberLimitReached = errors.New("member limit reached")
@@ -279,4 +281,25 @@ func generatePassword(length int) string {
 		builder.WriteByte(dict[rand.Intn(len(dict))])
 	}
 	return builder.String()
+}
+
+func (uc *RoomUseCase) UpdateMember(ctx context.Context, member *RoomMember) error {
+	old, err := uc.rr.GetRoomMember(ctx, member.RoomId, member.UserId)
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return v1.ErrorUpdateMemberFailed("room member not found")
+	}
+	if err != nil {
+		return v1.ErrorUpdateMemberFailed("database error: %v", err)
+	}
+	if old.Role == member.Role {
+		return nil
+	}
+	if old.Role == v1.RoomRole_Host {
+		return nil
+	}
+	return uc.rr.UpdateMember(ctx, member)
+}
+
+func (uc *RoomUseCase) DeleteMember(ctx context.Context, roomId, userId int64) error {
+	return uc.rr.DeleteMember(ctx, roomId, userId)
 }

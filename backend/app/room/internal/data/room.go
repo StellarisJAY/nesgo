@@ -400,6 +400,23 @@ func (r *roomRepo) UpdateRoom(ctx context.Context, room *biz.Room) error {
 	return nil
 }
 
+func (r *roomRepo) UpdateMember(ctx context.Context, member *biz.RoomMember) error {
+	return r.data.db.Model(&RoomMember{}).
+		Where("room_id = ? AND user_id = ?", member.RoomId, member.UserId).
+		Updates(map[string]interface{}{
+			"role": int(member.Role),
+		}).
+		WithContext(ctx).
+		Error
+}
+
+func (r *roomRepo) DeleteMember(ctx context.Context, roomId, userId int64) error {
+	return r.data.db.Debug().Where("room_id = ? AND user_id = ?", roomId, userId).
+		Delete(&RoomMember{}).
+		WithContext(ctx).
+		Error
+}
+
 func (m *RoomMember) ToBizRoomMember() *biz.RoomMember {
 	return &biz.RoomMember{
 		UserId:   m.UserId,

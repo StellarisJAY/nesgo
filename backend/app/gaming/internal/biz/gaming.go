@@ -286,3 +286,12 @@ func (uc *GameInstanceUseCase) ListGameInstances(ctx context.Context) ([]*GameIn
 	}
 	return result, nil
 }
+
+func (uc *GameInstanceUseCase) DeleteMemberConnection(ctx context.Context, roomId, userId int64) error {
+	instance, _ := uc.repo.GetGameInstance(ctx, roomId)
+	if instance == nil {
+		return nil
+	}
+	instance.DeleteConnection(userId)
+	return nil
+}

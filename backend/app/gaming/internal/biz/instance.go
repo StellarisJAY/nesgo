@@ -320,3 +320,13 @@ func (g *GameInstance) DumpStats() *GameInstanceStats {
 		Uptime:            time.Now().Sub(g.createTime),
 	}
 }
+
+func (g *GameInstance) DeleteConnection(userId int64) {
+	g.mutex.Lock()
+	conn, ok := g.connections[userId]
+	if ok {
+		delete(g.connections, userId)
+	}
+	g.mutex.Unlock()
+	conn.Close()
+}
