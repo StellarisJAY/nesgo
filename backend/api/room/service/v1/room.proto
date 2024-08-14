@@ -19,6 +19,8 @@ service Room {
   rpc UpdateRoom(UpdateRoomRequest) returns (UpdateRoomResponse) {}
 
   rpc GetRoomMember(GetRoomMemberRequest) returns (GetRoomMemberResponse) {}
+  rpc UpdateMember(UpdateMemberRequest) returns (UpdateMemberResponse) {}
+  rpc DeleteMember(DeleteMemberRequest) returns (DeleteMemberResponse) {}
 }
 
 enum RoomRole {
@@ -149,3 +151,18 @@ message GetRoomMemberRequest {
 message GetRoomMemberResponse {
   RoomMember member = 1;
 }
+
+message UpdateMemberRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  RoomRole role = 3;
+}
+
+message UpdateMemberResponse {}
+
+message DeleteMemberRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message DeleteMemberResponse {}

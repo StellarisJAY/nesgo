@@ -19,20 +19,21 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Gaming_CreateGameInstance_FullMethodName   = "/gaming.v1.Gaming/CreateGameInstance"
-	Gaming_OpenGameConnection_FullMethodName   = "/gaming.v1.Gaming/OpenGameConnection"
-	Gaming_SDPAnswer_FullMethodName            = "/gaming.v1.Gaming/SDPAnswer"
-	Gaming_ICECandidate_FullMethodName         = "/gaming.v1.Gaming/ICECandidate"
-	Gaming_PauseEmulator_FullMethodName        = "/gaming.v1.Gaming/PauseEmulator"
-	Gaming_RestartEmulator_FullMethodName      = "/gaming.v1.Gaming/RestartEmulator"
-	Gaming_DeleteGameInstance_FullMethodName   = "/gaming.v1.Gaming/DeleteGameInstance"
-	Gaming_UploadGame_FullMethodName           = "/gaming.v1.Gaming/UploadGame"
-	Gaming_ListGames_FullMethodName            = "/gaming.v1.Gaming/ListGames"
-	Gaming_DeleteGameFile_FullMethodName       = "/gaming.v1.Gaming/DeleteGameFile"
-	Gaming_SetController_FullMethodName        = "/gaming.v1.Gaming/SetController"
-	Gaming_GetControllers_FullMethodName       = "/gaming.v1.Gaming/GetControllers"
-	Gaming_GetGameInstanceStats_FullMethodName = "/gaming.v1.Gaming/GetGameInstanceStats"
-	Gaming_ListGameInstances_FullMethodName    = "/gaming.v1.Gaming/ListGameInstances"
+	Gaming_CreateGameInstance_FullMethodName     = "/gaming.v1.Gaming/CreateGameInstance"
+	Gaming_OpenGameConnection_FullMethodName     = "/gaming.v1.Gaming/OpenGameConnection"
+	Gaming_SDPAnswer_FullMethodName              = "/gaming.v1.Gaming/SDPAnswer"
+	Gaming_ICECandidate_FullMethodName           = "/gaming.v1.Gaming/ICECandidate"
+	Gaming_PauseEmulator_FullMethodName          = "/gaming.v1.Gaming/PauseEmulator"
+	Gaming_RestartEmulator_FullMethodName        = "/gaming.v1.Gaming/RestartEmulator"
+	Gaming_DeleteGameInstance_FullMethodName     = "/gaming.v1.Gaming/DeleteGameInstance"
+	Gaming_UploadGame_FullMethodName             = "/gaming.v1.Gaming/UploadGame"
+	Gaming_ListGames_FullMethodName              = "/gaming.v1.Gaming/ListGames"
+	Gaming_DeleteGameFile_FullMethodName         = "/gaming.v1.Gaming/DeleteGameFile"
+	Gaming_SetController_FullMethodName          = "/gaming.v1.Gaming/SetController"
+	Gaming_GetControllers_FullMethodName         = "/gaming.v1.Gaming/GetControllers"
+	Gaming_GetGameInstanceStats_FullMethodName   = "/gaming.v1.Gaming/GetGameInstanceStats"
+	Gaming_ListGameInstances_FullMethodName      = "/gaming.v1.Gaming/ListGameInstances"
+	Gaming_DeleteMemberConnection_FullMethodName = "/gaming.v1.Gaming/DeleteMemberConnection"
 )
 
 // GamingClient is the client API for Gaming service.
@@ -53,6 +54,7 @@ type GamingClient interface {
 	GetControllers(ctx context.Context, in *GetControllersRequest, opts ...grpc.CallOption) (*GetControllersResponse, error)
 	GetGameInstanceStats(ctx context.Context, in *GetGameInstanceStatsRequest, opts ...grpc.CallOption) (*GetGameInstanceStatsResponse, error)
 	ListGameInstances(ctx context.Context, in *ListGameInstancesRequest, opts ...grpc.CallOption) (*ListGameInstancesResponse, error)
+	DeleteMemberConnection(ctx context.Context, in *DeleteMemberConnectionRequest, opts ...grpc.CallOption) (*DeleteMemberConnectionResponse, error)
 }
 
 type gamingClient struct {
@@ -203,6 +205,16 @@ func (c *gamingClient) ListGameInstances(ctx context.Context, in *ListGameInstan
 	return out, nil
 }
 
+func (c *gamingClient) DeleteMemberConnection(ctx context.Context, in *DeleteMemberConnectionRequest, opts ...grpc.CallOption) (*DeleteMemberConnectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteMemberConnectionResponse)
+	err := c.cc.Invoke(ctx, Gaming_DeleteMemberConnection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GamingServer is the server API for Gaming service.
 // All implementations must embed UnimplementedGamingServer
 // for forward compatibility.
@@ -221,6 +233,7 @@ type GamingServer interface {
 	GetControllers(context.Context, *GetControllersRequest) (*GetControllersResponse, error)
 	GetGameInstanceStats(context.Context, *GetGameInstanceStatsRequest) (*GetGameInstanceStatsResponse, error)
 	ListGameInstances(context.Context, *ListGameInstancesRequest) (*ListGameInstancesResponse, error)
+	DeleteMemberConnection(context.Context, *DeleteMemberConnectionRequest) (*DeleteMemberConnectionResponse, error)
 	mustEmbedUnimplementedGamingServer()
 }
 
@@ -272,6 +285,9 @@ func (UnimplementedGamingServer) GetGameInstanceStats(context.Context, *GetGameI
 }
 func (UnimplementedGamingServer) ListGameInstances(context.Context, *ListGameInstancesRequest) (*ListGameInstancesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListGameInstances not implemented")
+}
+func (UnimplementedGamingServer) DeleteMemberConnection(context.Context, *DeleteMemberConnectionRequest) (*DeleteMemberConnectionResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteMemberConnection not implemented")
 }
 func (UnimplementedGamingServer) mustEmbedUnimplementedGamingServer() {}
 func (UnimplementedGamingServer) testEmbeddedByValue()                {}
@@ -546,6 +562,24 @@ func _Gaming_ListGameInstances_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Gaming_DeleteMemberConnection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteMemberConnectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).DeleteMemberConnection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_DeleteMemberConnection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).DeleteMemberConnection(ctx, req.(*DeleteMemberConnectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Gaming_ServiceDesc is the grpc.ServiceDesc for Gaming service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -608,6 +642,10 @@ var Gaming_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListGameInstances",
 			Handler:    _Gaming_ListGameInstances_Handler,
+		},
+		{
+			MethodName: "DeleteMemberConnection",
+			Handler:    _Gaming_DeleteMemberConnection_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

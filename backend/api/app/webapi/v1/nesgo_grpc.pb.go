@@ -37,6 +37,8 @@ const (
 	WebApi_GetRoomMember_FullMethodName      = "/nesgo.webapi.v1.WebApi/GetRoomMember"
 	WebApi_ListGames_FullMethodName          = "/nesgo.webapi.v1.WebApi/ListGames"
 	WebApi_SetController_FullMethodName      = "/nesgo.webapi.v1.WebApi/SetController"
+	WebApi_UpdateMemberRole_FullMethodName   = "/nesgo.webapi.v1.WebApi/UpdateMemberRole"
+	WebApi_DeleteMember_FullMethodName       = "/nesgo.webapi.v1.WebApi/DeleteMember"
 )
 
 // WebApiClient is the client API for WebApi service.
@@ -61,6 +63,8 @@ type WebApiClient interface {
 	GetRoomMember(ctx context.Context, in *GetRoomMemberRequest, opts ...grpc.CallOption) (*GetRoomMemberResponse, error)
 	ListGames(ctx context.Context, in *ListGamesRequest, opts ...grpc.CallOption) (*ListGamesResponse, error)
 	SetController(ctx context.Context, in *SetControllerRequest, opts ...grpc.CallOption) (*SetControllerResponse, error)
+	UpdateMemberRole(ctx context.Context, in *UpdateMemberRoleRequest, opts ...grpc.CallOption) (*UpdateMemberRoleResponse, error)
+	DeleteMember(ctx context.Context, in *DeleteMemberRequest, opts ...grpc.CallOption) (*DeleteMemberResponse, error)
 }
 
 type webApiClient struct {
@@ -251,6 +255,26 @@ func (c *webApiClient) SetController(ctx context.Context, in *SetControllerReque
 	return out, nil
 }
 
+func (c *webApiClient) UpdateMemberRole(ctx context.Context, in *UpdateMemberRoleRequest, opts ...grpc.CallOption) (*UpdateMemberRoleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateMemberRoleResponse)
+	err := c.cc.Invoke(ctx, WebApi_UpdateMemberRole_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *webApiClient) DeleteMember(ctx context.Context, in *DeleteMemberRequest, opts ...grpc.CallOption) (*DeleteMemberResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteMemberResponse)
+	err := c.cc.Invoke(ctx, WebApi_DeleteMember_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WebApiServer is the server API for WebApi service.
 // All implementations must embed UnimplementedWebApiServer
 // for forward compatibility.
@@ -273,6 +297,8 @@ type WebApiServer interface {
 	GetRoomMember(context.Context, *GetRoomMemberRequest) (*GetRoomMemberResponse, error)
 	ListGames(context.Context, *ListGamesRequest) (*ListGamesResponse, error)
 	SetController(context.Context, *SetControllerRequest) (*SetControllerResponse, error)
+	UpdateMemberRole(context.Context, *UpdateMemberRoleRequest) (*UpdateMemberRoleResponse, error)
+	DeleteMember(context.Context, *DeleteMemberRequest) (*DeleteMemberResponse, error)
 	mustEmbedUnimplementedWebApiServer()
 }
 
@@ -336,6 +362,12 @@ func (UnimplementedWebApiServer) ListGames(context.Context, *ListGamesRequest) (
 }
 func (UnimplementedWebApiServer) SetController(context.Context, *SetControllerRequest) (*SetControllerResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetController not implemented")
+}
+func (UnimplementedWebApiServer) UpdateMemberRole(context.Context, *UpdateMemberRoleRequest) (*UpdateMemberRoleResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateMemberRole not implemented")
+}
+func (UnimplementedWebApiServer) DeleteMember(context.Context, *DeleteMemberRequest) (*DeleteMemberResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteMember not implemented")
 }
 func (UnimplementedWebApiServer) mustEmbedUnimplementedWebApiServer() {}
 func (UnimplementedWebApiServer) testEmbeddedByValue()                {}
@@ -682,6 +714,42 @@ func _WebApi_SetController_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WebApi_UpdateMemberRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateMemberRoleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).UpdateMemberRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_UpdateMemberRole_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).UpdateMemberRole(ctx, req.(*UpdateMemberRoleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WebApi_DeleteMember_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteMemberRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).DeleteMember(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_DeleteMember_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).DeleteMember(ctx, req.(*DeleteMemberRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WebApi_ServiceDesc is the grpc.ServiceDesc for WebApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -760,6 +828,14 @@ var WebApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetController",
 			Handler:    _WebApi_SetController_Handler,
+		},
+		{
+			MethodName: "UpdateMemberRole",
+			Handler:    _WebApi_UpdateMemberRole_Handler,
+		},
+		{
+			MethodName: "DeleteMember",
+			Handler:    _WebApi_DeleteMember_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

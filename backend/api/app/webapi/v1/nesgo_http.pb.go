@@ -21,6 +21,7 @@ const _ = http.SupportPackageIsVersion1
 
 const OperationWebApiAddICECandidate = "/nesgo.webapi.v1.WebApi/AddICECandidate"
 const OperationWebApiCreateRoom = "/nesgo.webapi.v1.WebApi/CreateRoom"
+const OperationWebApiDeleteMember = "/nesgo.webapi.v1.WebApi/DeleteMember"
 const OperationWebApiDeleteRoom = "/nesgo.webapi.v1.WebApi/DeleteRoom"
 const OperationWebApiGetRoom = "/nesgo.webapi.v1.WebApi/GetRoom"
 const OperationWebApiGetRoomMember = "/nesgo.webapi.v1.WebApi/GetRoomMember"
@@ -36,11 +37,13 @@ const OperationWebApiOpenGameConnection = "/nesgo.webapi.v1.WebApi/OpenGameConne
 const OperationWebApiRegister = "/nesgo.webapi.v1.WebApi/Register"
 const OperationWebApiSDPAnswer = "/nesgo.webapi.v1.WebApi/SDPAnswer"
 const OperationWebApiSetController = "/nesgo.webapi.v1.WebApi/SetController"
+const OperationWebApiUpdateMemberRole = "/nesgo.webapi.v1.WebApi/UpdateMemberRole"
 const OperationWebApiUpdateRoom = "/nesgo.webapi.v1.WebApi/UpdateRoom"
 
 type WebApiHTTPServer interface {
 	AddICECandidate(context.Context, *AddICECandidateRequest) (*AddICECandidateResponse, error)
 	CreateRoom(context.Context, *CreateRoomRequest) (*CreateRoomResponse, error)
+	DeleteMember(context.Context, *DeleteMemberRequest) (*DeleteMemberResponse, error)
 	DeleteRoom(context.Context, *DeleteRoomRequest) (*DeleteRoomResponse, error)
 	GetRoom(context.Context, *GetRoomRequest) (*GetRoomResponse, error)
 	GetRoomMember(context.Context, *GetRoomMemberRequest) (*GetRoomMemberResponse, error)
@@ -56,6 +59,7 @@ type WebApiHTTPServer interface {
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
 	SDPAnswer(context.Context, *SDPAnswerRequest) (*SDPAnswerResponse, error)
 	SetController(context.Context, *SetControllerRequest) (*SetControllerResponse, error)
+	UpdateMemberRole(context.Context, *UpdateMemberRoleRequest) (*UpdateMemberRoleResponse, error)
 	UpdateRoom(context.Context, *UpdateRoomRequest) (*UpdateRoomResponse, error)
 }
 
@@ -79,6 +83,8 @@ func RegisterWebApiHTTPServer(s *http.Server, srv WebApiHTTPServer) {
 	r.GET("/api/v1/member/{roomId}", _WebApi_GetRoomMember0_HTTP_Handler(srv))
 	r.GET("/api/v1/games", _WebApi_ListGames1_HTTP_Handler(srv))
 	r.POST("/api/v1/game/controller", _WebApi_SetController0_HTTP_Handler(srv))
+	r.PUT("/api/v1/member/role", _WebApi_UpdateMemberRole0_HTTP_Handler(srv))
+	r.DELETE("/api/v1/member", _WebApi_DeleteMember0_HTTP_Handler(srv))
 }
 
 func _WebApi_Register0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
@@ -471,9 +477,51 @@ func _WebApi_SetController0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Con
 	}
 }
 
+func _WebApi_UpdateMemberRole0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateMemberRoleRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiUpdateMemberRole)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateMemberRole(ctx, req.(*UpdateMemberRoleRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*UpdateMemberRoleResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _WebApi_DeleteMember0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteMemberRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiDeleteMember)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteMember(ctx, req.(*DeleteMemberRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteMemberResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type WebApiHTTPClient interface {
 	AddICECandidate(ctx context.Context, req *AddICECandidateRequest, opts ...http.CallOption) (rsp *AddICECandidateResponse, err error)
 	CreateRoom(ctx context.Context, req *CreateRoomRequest, opts ...http.CallOption) (rsp *CreateRoomResponse, err error)
+	DeleteMember(ctx context.Context, req *DeleteMemberRequest, opts ...http.CallOption) (rsp *DeleteMemberResponse, err error)
 	DeleteRoom(ctx context.Context, req *DeleteRoomRequest, opts ...http.CallOption) (rsp *DeleteRoomResponse, err error)
 	GetRoom(ctx context.Context, req *GetRoomRequest, opts ...http.CallOption) (rsp *GetRoomResponse, err error)
 	GetRoomMember(ctx context.Context, req *GetRoomMemberRequest, opts ...http.CallOption) (rsp *GetRoomMemberResponse, err error)
@@ -489,6 +537,7 @@ type WebApiHTTPClient interface {
 	Register(ctx context.Context, req *RegisterRequest, opts ...http.CallOption) (rsp *RegisterResponse, err error)
 	SDPAnswer(ctx context.Context, req *SDPAnswerRequest, opts ...http.CallOption) (rsp *SDPAnswerResponse, err error)
 	SetController(ctx context.Context, req *SetControllerRequest, opts ...http.CallOption) (rsp *SetControllerResponse, err error)
+	UpdateMemberRole(ctx context.Context, req *UpdateMemberRoleRequest, opts ...http.CallOption) (rsp *UpdateMemberRoleResponse, err error)
 	UpdateRoom(ctx context.Context, req *UpdateRoomRequest, opts ...http.CallOption) (rsp *UpdateRoomResponse, err error)
 }
 
@@ -520,6 +569,19 @@ func (c *WebApiHTTPClientImpl) CreateRoom(ctx context.Context, in *CreateRoomReq
 	opts = append(opts, http.Operation(OperationWebApiCreateRoom))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) DeleteMember(ctx context.Context, in *DeleteMemberRequest, opts ...http.CallOption) (*DeleteMemberResponse, error) {
+	var out DeleteMemberResponse
+	pattern := "/api/v1/member"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationWebApiDeleteMember))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -715,6 +777,19 @@ func (c *WebApiHTTPClientImpl) SetController(ctx context.Context, in *SetControl
 	opts = append(opts, http.Operation(OperationWebApiSetController))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) UpdateMemberRole(ctx context.Context, in *UpdateMemberRoleRequest, opts ...http.CallOption) (*UpdateMemberRoleResponse, error) {
+	var out UpdateMemberRoleResponse
+	pattern := "/api/v1/member/role"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationWebApiUpdateMemberRole))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

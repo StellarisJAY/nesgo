@@ -111,6 +111,19 @@ service WebApi {
       body: "*"
     };
   }
+
+  rpc UpdateMemberRole(UpdateMemberRoleRequest) returns (UpdateMemberRoleResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/member/role"
+      body: "*"
+    };
+  }
+
+  rpc DeleteMember(DeleteMemberRequest) returns (DeleteMemberResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/member"
+    };
+  }
 }
 
 message RegisterRequest {
@@ -318,3 +331,18 @@ message SetControllerRequest {
 message SetControllerResponse {
 
 }
+
+message UpdateMemberRoleRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  room.v1.RoomRole role = 3;
+}
+
+message UpdateMemberRoleResponse {}
+
+message DeleteMemberRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message DeleteMemberResponse {}

@@ -26,6 +26,8 @@ service Gaming {
 
   rpc GetGameInstanceStats(GetGameInstanceStatsRequest) returns (GetGameInstanceStatsResponse) {}
   rpc ListGameInstances(ListGameInstancesRequest) returns (ListGameInstancesResponse) {}
+
+  rpc DeleteMemberConnection(DeleteMemberConnectionRequest) returns (DeleteMemberConnectionResponse) {}
 }
 
 message CreateGameInstanceRequest {
@@ -172,3 +174,10 @@ message ListGameInstancesRequest {
 message ListGameInstancesResponse {
   repeated GameInstanceStats instances = 1;
 }
+
+message DeleteMemberConnectionRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message DeleteMemberConnectionResponse {}
