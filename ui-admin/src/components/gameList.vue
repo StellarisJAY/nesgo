@@ -1,7 +1,7 @@
 <template>
   <a-card :bordered="false">
     <!--游戏列表-->
-    <a-table :data-source="games" :columns="columns">
+    <a-table :data-source="games" :columns="columns" :pagination="false">
       <template #bodyCell="{column, text ,record}">
         <template v-if="column.dataIndex === 'operation'">
           <a-button type="primary" danger @click="deleteGame(record['name'])">删除</a-button>
@@ -19,7 +19,7 @@
     <a-pagination v-model:current="page" :total="total" v-model:pageSize="pageSize" @change="onPageChange" />
 
     <!--上传游戏-->
-    <a-modal :open="uploadGameModalOpen" title="上传游戏" @cancel="_=>{uploadGameModalOpen=false}">
+    <a-modal :open="uploadGameModalOpen" title="上传游戏" @cancel="cancelUpload">
       <template #footer>
         <a-button type="primary" @click="cancelUpload">取消</a-button>
         <a-button type="primary" @click="uploadGame">上传</a-button>
@@ -44,8 +44,6 @@ import {InboxOutlined} from '@ant-design/icons-vue';
 import { Row, Col } from "ant-design-vue";
 import {message} from "ant-design-vue";
 import api from "../api/request.js";
-// import router from "../router/index.js";
-// import {RouterLink} from "vue-router";
 
 export default {
   props: {
@@ -141,7 +139,7 @@ export default {
         _this.listGames();
         _this.uploadGameModalOpen = false;
       }).catch(err=>{
-        message.error("上传失败");
+        message.error("上传失败，请检查文件格式");
       });
     },
 

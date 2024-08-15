@@ -24,7 +24,7 @@
     <!--活跃房间列表-->
     <a-modal :open="endpointDetailOpen" title="活跃房间列表" @cancel="_=>{endpointDetailOpen=false;}" width="100%">
       <template #footer></template>
-      <a-table :data-source="activeRooms" :columns="activeRoomsTableColumns">
+      <a-table :data-source="activeRooms" :columns="activeRoomsTableColumns" :pagination="false">
         <template #bodyCell="{column, record}">
           <template v-if="column.dataIndex==='members'">
             {{record["memberCount"]}}/{{record["memberLimit"]}}
