@@ -124,6 +124,33 @@ service WebApi {
       delete: "/api/v1/member"
     };
   }
+
+  rpc SaveGame(SaveGameRequest) returns (SaveGameResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/game/save"
+      body: "*"
+    };
+  }
+
+  rpc LoadSave(LoadSaveRequest) returns (LoadSaveResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/game/load"
+      body: "*"
+    };
+  }
+
+  rpc ListSaves(ListSavesRequest) returns (ListSavesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/game/saves"
+    };
+  }
+
+  rpc RestartEmulator(RestartEmulatorRequest) returns (RestartEmulatorResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/game/restart"
+      body: "*"
+    };
+  }
 }
 
 message RegisterRequest {
@@ -346,3 +373,41 @@ message DeleteMemberRequest {
 }
 
 message DeleteMemberResponse {}
+
+message Save {
+  int64 id = 1;
+  int64 roomId = 2;
+  string game = 3;
+  int64 createTime = 4;
+}
+
+message SaveGameRequest {
+  int64 roomId = 1;
+}
+
+message SaveGameResponse {}
+
+message LoadSaveRequest {
+  int64 roomId = 1;
+  int64 saveId = 2;
+}
+
+message LoadSaveResponse {}
+
+message ListSavesRequest {
+  int64 roomId = 1;
+  int32 page = 2;
+  int32 pageSize = 3;
+}
+
+message ListSavesResponse {
+  repeated Save saves = 1;
+  int32 total = 2;
+}
+
+message RestartEmulatorRequest {
+  int64 roomId = 1;
+  string game = 2;
+}
+
+message RestartEmulatorResponse {}

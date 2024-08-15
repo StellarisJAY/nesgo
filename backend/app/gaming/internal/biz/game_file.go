@@ -54,3 +54,11 @@ func (uc *GameFileUseCase) DeleteGames(ctx context.Context, games []string) (int
 	}
 	return deleted, nil
 }
+
+func (uc *GameFileUseCase) ListSaves(ctx context.Context, roomId int64, page, pageSize int32) ([]*GameSave, int32, error) {
+	saves, total, err := uc.repo.ListSaves(ctx, roomId, page, pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+	return saves, total, nil
+}

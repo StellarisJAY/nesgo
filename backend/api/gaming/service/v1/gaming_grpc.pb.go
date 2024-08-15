@@ -35,6 +35,9 @@ const (
 	Gaming_ListGameInstances_FullMethodName      = "/gaming.v1.Gaming/ListGameInstances"
 	Gaming_DeleteMemberConnection_FullMethodName = "/gaming.v1.Gaming/DeleteMemberConnection"
 	Gaming_GetEndpointStats_FullMethodName       = "/gaming.v1.Gaming/GetEndpointStats"
+	Gaming_SaveGame_FullMethodName               = "/gaming.v1.Gaming/SaveGame"
+	Gaming_LoadSave_FullMethodName               = "/gaming.v1.Gaming/LoadSave"
+	Gaming_ListSaves_FullMethodName              = "/gaming.v1.Gaming/ListSaves"
 )
 
 // GamingClient is the client API for Gaming service.
@@ -57,6 +60,9 @@ type GamingClient interface {
 	ListGameInstances(ctx context.Context, in *ListGameInstancesRequest, opts ...grpc.CallOption) (*ListGameInstancesResponse, error)
 	DeleteMemberConnection(ctx context.Context, in *DeleteMemberConnectionRequest, opts ...grpc.CallOption) (*DeleteMemberConnectionResponse, error)
 	GetEndpointStats(ctx context.Context, in *GetEndpointStatsRequest, opts ...grpc.CallOption) (*GetEndpointStatsResponse, error)
+	SaveGame(ctx context.Context, in *SaveGameRequest, opts ...grpc.CallOption) (*SaveGameResponse, error)
+	LoadSave(ctx context.Context, in *LoadSaveRequest, opts ...grpc.CallOption) (*LoadSaveResponse, error)
+	ListSaves(ctx context.Context, in *ListSavesRequest, opts ...grpc.CallOption) (*ListSavesResponse, error)
 }
 
 type gamingClient struct {
@@ -227,6 +233,36 @@ func (c *gamingClient) GetEndpointStats(ctx context.Context, in *GetEndpointStat
 	return out, nil
 }
 
+func (c *gamingClient) SaveGame(ctx context.Context, in *SaveGameRequest, opts ...grpc.CallOption) (*SaveGameResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SaveGameResponse)
+	err := c.cc.Invoke(ctx, Gaming_SaveGame_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gamingClient) LoadSave(ctx context.Context, in *LoadSaveRequest, opts ...grpc.CallOption) (*LoadSaveResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LoadSaveResponse)
+	err := c.cc.Invoke(ctx, Gaming_LoadSave_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gamingClient) ListSaves(ctx context.Context, in *ListSavesRequest, opts ...grpc.CallOption) (*ListSavesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSavesResponse)
+	err := c.cc.Invoke(ctx, Gaming_ListSaves_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GamingServer is the server API for Gaming service.
 // All implementations must embed UnimplementedGamingServer
 // for forward compatibility.
@@ -247,6 +283,9 @@ type GamingServer interface {
 	ListGameInstances(context.Context, *ListGameInstancesRequest) (*ListGameInstancesResponse, error)
 	DeleteMemberConnection(context.Context, *DeleteMemberConnectionRequest) (*DeleteMemberConnectionResponse, error)
 	GetEndpointStats(context.Context, *GetEndpointStatsRequest) (*GetEndpointStatsResponse, error)
+	SaveGame(context.Context, *SaveGameRequest) (*SaveGameResponse, error)
+	LoadSave(context.Context, *LoadSaveRequest) (*LoadSaveResponse, error)
+	ListSaves(context.Context, *ListSavesRequest) (*ListSavesResponse, error)
 	mustEmbedUnimplementedGamingServer()
 }
 
@@ -304,6 +343,15 @@ func (UnimplementedGamingServer) DeleteMemberConnection(context.Context, *Delete
 }
 func (UnimplementedGamingServer) GetEndpointStats(context.Context, *GetEndpointStatsRequest) (*GetEndpointStatsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetEndpointStats not implemented")
+}
+func (UnimplementedGamingServer) SaveGame(context.Context, *SaveGameRequest) (*SaveGameResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SaveGame not implemented")
+}
+func (UnimplementedGamingServer) LoadSave(context.Context, *LoadSaveRequest) (*LoadSaveResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoadSave not implemented")
+}
+func (UnimplementedGamingServer) ListSaves(context.Context, *ListSavesRequest) (*ListSavesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSaves not implemented")
 }
 func (UnimplementedGamingServer) mustEmbedUnimplementedGamingServer() {}
 func (UnimplementedGamingServer) testEmbeddedByValue()                {}
@@ -614,6 +662,60 @@ func _Gaming_GetEndpointStats_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Gaming_SaveGame_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SaveGameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).SaveGame(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_SaveGame_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).SaveGame(ctx, req.(*SaveGameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Gaming_LoadSave_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoadSaveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).LoadSave(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_LoadSave_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).LoadSave(ctx, req.(*LoadSaveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Gaming_ListSaves_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSavesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).ListSaves(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_ListSaves_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).ListSaves(ctx, req.(*ListSavesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Gaming_ServiceDesc is the grpc.ServiceDesc for Gaming service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -684,6 +786,18 @@ var Gaming_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetEndpointStats",
 			Handler:    _Gaming_GetEndpointStats_Handler,
+		},
+		{
+			MethodName: "SaveGame",
+			Handler:    _Gaming_SaveGame_Handler,
+		},
+		{
+			MethodName: "LoadSave",
+			Handler:    _Gaming_LoadSave_Handler,
+		},
+		{
+			MethodName: "ListSaves",
+			Handler:    _Gaming_ListSaves_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

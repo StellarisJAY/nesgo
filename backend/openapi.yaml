@@ -218,6 +218,87 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.AddICECandidateResponse'
+    /api/v1/game/load:
+        post:
+            tags:
+                - WebApi
+            operationId: WebApi_LoadSave
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.LoadSaveRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.LoadSaveResponse'
+    /api/v1/game/restart:
+        post:
+            tags:
+                - WebApi
+            operationId: WebApi_RestartEmulator
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.RestartEmulatorRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.RestartEmulatorResponse'
+    /api/v1/game/save:
+        post:
+            tags:
+                - WebApi
+            operationId: WebApi_SaveGame
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.SaveGameRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.SaveGameResponse'
+    /api/v1/game/saves:
+        get:
+            tags:
+                - WebApi
+            operationId: WebApi_ListSaves
+            parameters:
+                - name: roomId
+                  in: query
+                  schema:
+                    type: string
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.ListSavesResponse'
     /api/v1/game/sdp:
         post:
             tags:
@@ -841,6 +922,26 @@ components:
                 total:
                     type: integer
                     format: int32
+        nesgo.webapi.v1.ListSavesResponse:
+            type: object
+            properties:
+                saves:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/nesgo.webapi.v1.Save'
+                total:
+                    type: integer
+                    format: int32
+        nesgo.webapi.v1.LoadSaveRequest:
+            type: object
+            properties:
+                roomId:
+                    type: string
+                saveId:
+                    type: string
+        nesgo.webapi.v1.LoadSaveResponse:
+            type: object
+            properties: {}
         nesgo.webapi.v1.LoginRequest:
             type: object
             properties:
@@ -897,6 +998,16 @@ components:
         nesgo.webapi.v1.RegisterResponse:
             type: object
             properties: {}
+        nesgo.webapi.v1.RestartEmulatorRequest:
+            type: object
+            properties:
+                roomId:
+                    type: string
+                game:
+                    type: string
+        nesgo.webapi.v1.RestartEmulatorResponse:
+            type: object
+            properties: {}
         nesgo.webapi.v1.Room:
             type: object
             properties:
@@ -936,6 +1047,25 @@ components:
                     type: string
                 userId:
                     type: string
+        nesgo.webapi.v1.Save:
+            type: object
+            properties:
+                id:
+                    type: string
+                roomId:
+                    type: string
+                game:
+                    type: string
+                createTime:
+                    type: string
+        nesgo.webapi.v1.SaveGameRequest:
+            type: object
+            properties:
+                roomId:
+                    type: string
+        nesgo.webapi.v1.SaveGameResponse:
+            type: object
+            properties: {}
         nesgo.webapi.v1.SetControllerRequest:
             type: object
             properties:

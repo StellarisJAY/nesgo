@@ -21,9 +21,19 @@ type GameMetadata struct {
 	Mirroring string `json:"mirroring"`
 }
 
+type SaveMetadata struct {
+	Id         int64  `json:"id"`
+	RoomId     int64  `json:"roomId"`
+	Game       string `json:"game"`
+	CreateTime int64  `json:"createTime"`
+}
+
 type GamingRepo interface {
 	ListGames(ctx context.Context) ([]*GameMetadata, error)
 	DeleteMemberConnection(ctx context.Context, roomId, userId int64, endpoint string) error
+	RestartEmulator(ctx context.Context, roomId int64, game string, endpoint string) error
+	ListSaves(ctx context.Context, roomId int64, page, pageSize int32) ([]*SaveMetadata, int32, error)
+	SaveGame(ctx context.Context, roomId int64, endpoint string) error
 }
 
 func NewGamingUseCase(roomRepo RoomRepo, gamingRepo GamingRepo, logger log.Logger) *GamingUseCase {
@@ -126,4 +136,38 @@ func (uc *GamingUseCase) SetController(ctx context.Context, roomId, userId, play
 		return err
 	}
 	return nil
+}
+
+func (uc *GamingUseCase) RestartEmulator(ctx context.Context, roomId, userId int64, game string) error {
+	room, _ := uc.roomRepo.GetRoom(ctx, roomId)
+	if room == nil {
+		return v1.ErrorOperationFailed("room not found")
+	}
+	if room.Host != userId {
+		return v1.ErrorOperationFailed("only host can restart emulator")
+	}
+	session, _ := uc.roomRepo.GetRoomSession(ctx, roomId)
+	if session == nil {
+		return v1.ErrorOperationFailed("room session not found")
+	}
+	return uc.repo.RestartEmulator(ctx, roomId, game, session.Endpoint)
+}
+
+func (uc *GamingUseCase) ListSaves(ctx context.Context, roomId int64, page, pageSize int32) ([]*SaveMetadata, int32, error) {
+	return uc.repo.ListSaves(ctx, roomId, page, pageSize)
+}
+
+func (uc *GamingUseCase) SaveGame(ctx context.Context, roomId, userId int64) error {
+	room, _ := uc.roomRepo.GetRoom(ctx, roomId)
+	if room == nil {
+		return v1.ErrorOperationFailed("room not found")
+	}
+	if room.Host != userId {
+		return v1.ErrorOperationFailed("only host can restart emulator")
+	}
+	session, _ := uc.roomRepo.GetRoomSession(ctx, roomId)
+	if session == nil {
+		return v1.ErrorOperationFailed("room session not found")
+	}
+	return uc.repo.SaveGame(ctx, roomId, session.Endpoint)
 }

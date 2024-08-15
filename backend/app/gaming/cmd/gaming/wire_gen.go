@@ -26,7 +26,7 @@ import (
 func wireApp(confServer *conf.Server, confData *conf.Data, registry *conf.Registry, logger log.Logger) (*kratos.App, func(), error) {
 	client := server.NewEtcdClient(registry)
 	gameInstanceRepo := data.NewGameInstanceRepo(client, logger)
-	dataData, cleanup, err := data.NewData(confData, logger)
+	dataData, cleanup, err := data.NewData(confData, confServer, logger)
 	if err != nil {
 		return nil, nil, err
 	}

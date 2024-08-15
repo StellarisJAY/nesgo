@@ -72,3 +72,40 @@ func (ws *WebApiService) SetController(ctx context.Context, request *v1.SetContr
 	}
 	return &v1.SetControllerResponse{}, nil
 }
+
+func (ws *WebApiService) RestartEmulator(ctx context.Context, request *v1.RestartEmulatorRequest) (*v1.RestartEmulatorResponse, error) {
+	c, _ := jwt.FromContext(ctx)
+	claims := c.(*biz.LoginClaims)
+	err := ws.gc.RestartEmulator(ctx, request.RoomId, claims.UserId, request.Game)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.RestartEmulatorResponse{}, nil
+}
+
+func (ws *WebApiService) ListSaves(ctx context.Context, request *v1.ListSavesRequest) (*v1.ListSavesResponse, error) {
+	saves, total, err := ws.gc.ListSaves(ctx, request.RoomId, request.Page, request.PageSize)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*v1.Save, 0, len(saves))
+	for _, save := range saves {
+		result = append(result, &v1.Save{
+			RoomId:     save.RoomId,
+			Id:         save.Id,
+			Game:       save.Game,
+			CreateTime: save.CreateTime,
+		})
+	}
+	return &v1.ListSavesResponse{Saves: result, Total: total}, nil
+}
+
+func (ws *WebApiService) SaveGame(ctx context.Context, request *v1.SaveGameRequest) (*v1.SaveGameResponse, error) {
+	c, _ := jwt.FromContext(ctx)
+	claims := c.(*biz.LoginClaims)
+	err := ws.gc.SaveGame(ctx, request.RoomId, claims.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.SaveGameResponse{}, nil
+}

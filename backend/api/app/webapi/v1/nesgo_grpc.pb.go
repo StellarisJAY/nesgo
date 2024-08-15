@@ -39,6 +39,10 @@ const (
 	WebApi_SetController_FullMethodName      = "/nesgo.webapi.v1.WebApi/SetController"
 	WebApi_UpdateMemberRole_FullMethodName   = "/nesgo.webapi.v1.WebApi/UpdateMemberRole"
 	WebApi_DeleteMember_FullMethodName       = "/nesgo.webapi.v1.WebApi/DeleteMember"
+	WebApi_SaveGame_FullMethodName           = "/nesgo.webapi.v1.WebApi/SaveGame"
+	WebApi_LoadSave_FullMethodName           = "/nesgo.webapi.v1.WebApi/LoadSave"
+	WebApi_ListSaves_FullMethodName          = "/nesgo.webapi.v1.WebApi/ListSaves"
+	WebApi_RestartEmulator_FullMethodName    = "/nesgo.webapi.v1.WebApi/RestartEmulator"
 )
 
 // WebApiClient is the client API for WebApi service.
@@ -65,6 +69,10 @@ type WebApiClient interface {
 	SetController(ctx context.Context, in *SetControllerRequest, opts ...grpc.CallOption) (*SetControllerResponse, error)
 	UpdateMemberRole(ctx context.Context, in *UpdateMemberRoleRequest, opts ...grpc.CallOption) (*UpdateMemberRoleResponse, error)
 	DeleteMember(ctx context.Context, in *DeleteMemberRequest, opts ...grpc.CallOption) (*DeleteMemberResponse, error)
+	SaveGame(ctx context.Context, in *SaveGameRequest, opts ...grpc.CallOption) (*SaveGameResponse, error)
+	LoadSave(ctx context.Context, in *LoadSaveRequest, opts ...grpc.CallOption) (*LoadSaveResponse, error)
+	ListSaves(ctx context.Context, in *ListSavesRequest, opts ...grpc.CallOption) (*ListSavesResponse, error)
+	RestartEmulator(ctx context.Context, in *RestartEmulatorRequest, opts ...grpc.CallOption) (*RestartEmulatorResponse, error)
 }
 
 type webApiClient struct {
@@ -275,6 +283,46 @@ func (c *webApiClient) DeleteMember(ctx context.Context, in *DeleteMemberRequest
 	return out, nil
 }
 
+func (c *webApiClient) SaveGame(ctx context.Context, in *SaveGameRequest, opts ...grpc.CallOption) (*SaveGameResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SaveGameResponse)
+	err := c.cc.Invoke(ctx, WebApi_SaveGame_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *webApiClient) LoadSave(ctx context.Context, in *LoadSaveRequest, opts ...grpc.CallOption) (*LoadSaveResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(LoadSaveResponse)
+	err := c.cc.Invoke(ctx, WebApi_LoadSave_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *webApiClient) ListSaves(ctx context.Context, in *ListSavesRequest, opts ...grpc.CallOption) (*ListSavesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSavesResponse)
+	err := c.cc.Invoke(ctx, WebApi_ListSaves_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *webApiClient) RestartEmulator(ctx context.Context, in *RestartEmulatorRequest, opts ...grpc.CallOption) (*RestartEmulatorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RestartEmulatorResponse)
+	err := c.cc.Invoke(ctx, WebApi_RestartEmulator_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WebApiServer is the server API for WebApi service.
 // All implementations must embed UnimplementedWebApiServer
 // for forward compatibility.
@@ -299,6 +347,10 @@ type WebApiServer interface {
 	SetController(context.Context, *SetControllerRequest) (*SetControllerResponse, error)
 	UpdateMemberRole(context.Context, *UpdateMemberRoleRequest) (*UpdateMemberRoleResponse, error)
 	DeleteMember(context.Context, *DeleteMemberRequest) (*DeleteMemberResponse, error)
+	SaveGame(context.Context, *SaveGameRequest) (*SaveGameResponse, error)
+	LoadSave(context.Context, *LoadSaveRequest) (*LoadSaveResponse, error)
+	ListSaves(context.Context, *ListSavesRequest) (*ListSavesResponse, error)
+	RestartEmulator(context.Context, *RestartEmulatorRequest) (*RestartEmulatorResponse, error)
 	mustEmbedUnimplementedWebApiServer()
 }
 
@@ -368,6 +420,18 @@ func (UnimplementedWebApiServer) UpdateMemberRole(context.Context, *UpdateMember
 }
 func (UnimplementedWebApiServer) DeleteMember(context.Context, *DeleteMemberRequest) (*DeleteMemberResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteMember not implemented")
+}
+func (UnimplementedWebApiServer) SaveGame(context.Context, *SaveGameRequest) (*SaveGameResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SaveGame not implemented")
+}
+func (UnimplementedWebApiServer) LoadSave(context.Context, *LoadSaveRequest) (*LoadSaveResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoadSave not implemented")
+}
+func (UnimplementedWebApiServer) ListSaves(context.Context, *ListSavesRequest) (*ListSavesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSaves not implemented")
+}
+func (UnimplementedWebApiServer) RestartEmulator(context.Context, *RestartEmulatorRequest) (*RestartEmulatorResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RestartEmulator not implemented")
 }
 func (UnimplementedWebApiServer) mustEmbedUnimplementedWebApiServer() {}
 func (UnimplementedWebApiServer) testEmbeddedByValue()                {}
@@ -750,6 +814,78 @@ func _WebApi_DeleteMember_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WebApi_SaveGame_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SaveGameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).SaveGame(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_SaveGame_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).SaveGame(ctx, req.(*SaveGameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WebApi_LoadSave_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoadSaveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).LoadSave(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_LoadSave_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).LoadSave(ctx, req.(*LoadSaveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WebApi_ListSaves_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSavesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).ListSaves(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_ListSaves_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).ListSaves(ctx, req.(*ListSavesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WebApi_RestartEmulator_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RestartEmulatorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).RestartEmulator(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_RestartEmulator_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).RestartEmulator(ctx, req.(*RestartEmulatorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WebApi_ServiceDesc is the grpc.ServiceDesc for WebApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -836,6 +972,22 @@ var WebApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteMember",
 			Handler:    _WebApi_DeleteMember_Handler,
+		},
+		{
+			MethodName: "SaveGame",
+			Handler:    _WebApi_SaveGame_Handler,
+		},
+		{
+			MethodName: "LoadSave",
+			Handler:    _WebApi_LoadSave_Handler,
+		},
+		{
+			MethodName: "ListSaves",
+			Handler:    _WebApi_ListSaves_Handler,
+		},
+		{
+			MethodName: "RestartEmulator",
+			Handler:    _WebApi_RestartEmulator_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

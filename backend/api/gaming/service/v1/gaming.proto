@@ -30,6 +30,10 @@ service Gaming {
   rpc DeleteMemberConnection(DeleteMemberConnectionRequest) returns (DeleteMemberConnectionResponse) {}
 
   rpc GetEndpointStats(GetEndpointStatsRequest) returns (GetEndpointStatsResponse) {}
+
+  rpc SaveGame(SaveGameRequest) returns (SaveGameResponse) {}
+  rpc LoadSave(LoadSaveRequest) returns (LoadSaveResponse) {}
+  rpc ListSaves(ListSavesRequest) returns (ListSavesResponse) {}
 }
 
 message CreateGameInstanceRequest {
@@ -198,4 +202,35 @@ message GetEndpointStatsResponse {
   int64 memoryUsed = 3;
   int64 memoryTotal = 4;
   int64 uptime = 5;
+}
+
+message SaveGameRequest {
+  int64 roomId = 1;
+}
+
+message SaveGameResponse {}
+
+message LoadSaveRequest {
+  int64 roomId = 1;
+  int64 saveId = 2;
+}
+
+message LoadSaveResponse {}
+
+message Save {
+  int64 id = 1;
+  int64 roomId = 2;
+  string game = 3;
+  int64 createTime = 4;
+}
+
+message ListSavesRequest {
+  int64 roomId = 1;
+  int32 page = 2;
+  int32 pageSize = 3;
+}
+
+message ListSavesResponse {
+  repeated Save saves = 1;
+  int32 total = 2;
 }

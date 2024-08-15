@@ -190,3 +190,39 @@ func IsOperationFailed(err error) bool {
 func ErrorOperationFailed(format string, args ...interface{}) *errors.Error {
 	return errors.New(500, UserServiceErrorReason_OPERATION_FAILED.String(), fmt.Sprintf(format, args...))
 }
+
+func IsSaveGameFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_SAVE_GAME_FAILED.String() && e.Code == 500
+}
+
+func ErrorSaveGameFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_SAVE_GAME_FAILED.String(), fmt.Sprintf(format, args...))
+}
+
+func IsLoadSaveFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_LOAD_SAVE_FAILED.String() && e.Code == 500
+}
+
+func ErrorLoadSaveFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_LOAD_SAVE_FAILED.String(), fmt.Sprintf(format, args...))
+}
+
+func IsRestartFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_RESTART_FAILED.String() && e.Code == 500
+}
+
+func ErrorRestartFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_RESTART_FAILED.String(), fmt.Sprintf(format, args...))
+}

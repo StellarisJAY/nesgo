@@ -73,8 +73,11 @@ func (g *GamingService) PauseEmulator(ctx context.Context, request *v1.PauseEmul
 }
 
 func (g *GamingService) RestartEmulator(ctx context.Context, request *v1.RestartEmulatorRequest) (*v1.RestartEmulatorResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	err := g.gi.RestartEmulator(ctx, request.RoomId, request.Game)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.RestartEmulatorResponse{}, nil
 }
 
 func (g *GamingService) UploadGame(ctx context.Context, request *v1.UploadGameRequest) (*v1.UploadGameResponse, error) {
@@ -194,4 +197,37 @@ func (g *GamingService) GetEndpointStats(ctx context.Context, request *v1.GetEnd
 		MemoryTotal:   stats.MemoryTotal,
 		Uptime:        stats.Uptime,
 	}, nil
+}
+
+func (g *GamingService) SaveGame(ctx context.Context, request *v1.SaveGameRequest) (*v1.SaveGameResponse, error) {
+	err := g.gi.SaveGame(ctx, request.RoomId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.SaveGameResponse{}, nil
+}
+
+func (g *GamingService) LoadSave(ctx context.Context, request *v1.LoadSaveRequest) (*v1.LoadSaveResponse, error) {
+	err := g.gi.LoadSave(ctx, request.SaveId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.LoadSaveResponse{}, nil
+}
+
+func (g *GamingService) ListSaves(ctx context.Context, request *v1.ListSavesRequest) (*v1.ListSavesResponse, error) {
+	saves, total, err := g.gf.ListSaves(ctx, request.RoomId, request.Page, request.PageSize)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*v1.Save, 0, len(saves))
+	for _, save := range saves {
+		result = append(result, &v1.Save{
+			RoomId:     save.RoomId,
+			Id:         save.Id,
+			CreateTime: save.CreateTime,
+			Game:       save.Game,
+		})
+	}
+	return &v1.ListSavesResponse{Saves: result, Total: total}, nil
 }

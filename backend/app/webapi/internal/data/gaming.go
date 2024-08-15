@@ -52,3 +52,51 @@ func (r *gamingRepo) DeleteMemberConnection(ctx context.Context, roomId, userId 
 	}
 	return nil
 }
+
+func (r *gamingRepo) RestartEmulator(ctx context.Context, roomId int64, game string, endpoint string) error {
+	conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(endpoint))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	gamingCli := gamingAPI.NewGamingClient(conn)
+	_, err = gamingCli.RestartEmulator(ctx, &gamingAPI.RestartEmulatorRequest{
+		RoomId: roomId,
+		Game:   game,
+	})
+	return err
+}
+
+func (r *gamingRepo) ListSaves(ctx context.Context, roomId int64, page, pageSize int32) ([]*biz.SaveMetadata, int32, error) {
+	response, err := r.data.gc.ListSaves(ctx, &gamingAPI.ListSavesRequest{
+		RoomId:   roomId,
+		Page:     page,
+		PageSize: pageSize,
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+	saves := make([]*biz.SaveMetadata, 0, len(response.Saves))
+	for _, save := range response.Saves {
+		saves = append(saves, &biz.SaveMetadata{
+			RoomId:     roomId,
+			Id:         save.Id,
+			Game:       save.Game,
+			CreateTime: save.CreateTime,
+		})
+	}
+	return saves, response.Total, nil
+}
+
+func (r *gamingRepo) SaveGame(ctx context.Context, roomId int64, endpoint string) error {
+	conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(endpoint))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	gamingCli := gamingAPI.NewGamingClient(conn)
+	_, err = gamingCli.SaveGame(ctx, &gamingAPI.SaveGameRequest{
+		RoomId: roomId,
+	})
+	return err
+}

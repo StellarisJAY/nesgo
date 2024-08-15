@@ -18,10 +18,11 @@ import (
 )
 
 type GameSave struct {
-	Id     int64  `json:"id"`
-	RoomId int64  `json:"roomId"`
-	Game   string `json:"game"`
-	Data   string `json:"data"`
+	Id         int64  `json:"id"`
+	RoomId     int64  `json:"roomId"`
+	Game       string `json:"game"`
+	Data       []byte `json:"data"`
+	CreateTime int64  `json:"createTime"`
 }
 
 type GameFileMetadata struct {
@@ -62,6 +63,7 @@ type GameFileRepo interface {
 	DeleteGames(ctx context.Context, games []string) (int, error)
 	GetSavedGame(ctx context.Context, id int64) (*GameSave, error)
 	SaveGame(ctx context.Context, save *GameSave) error
+	ListSaves(ctx context.Context, roomId int64, page, pageSize int32) ([]*GameSave, int32, error)
 }
 
 type GameInstanceUseCase struct {
@@ -99,11 +101,12 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 		createTime:  time.Now(),
 	}
 	emulatorConfig := config.Config{
-		Game:        game,
-		EnableTrace: false,
-		Disassemble: false,
-		MuteApu:     false,
-		Debug:       false,
+		Game:               game,
+		EnableTrace:        false,
+		Disassemble:        false,
+		MuteApu:            false,
+		Debug:              false,
+		SnapshotSerializer: "gob",
 	}
 	instance.audioSampleRate = 48000
 	instance.audioSampleChan = make(chan float32, instance.audioSampleRate)
@@ -321,4 +324,54 @@ func (uc *GameInstanceUseCase) GetEndpointStats(ctx context.Context) (*EndpointS
 		MemoryTotal:   int64(memStats.Sys),
 		Uptime:        time.Now().Sub(uc.startupTime).Milliseconds(),
 	}, nil
+}
+
+func (uc *GameInstanceUseCase) SaveGame(ctx context.Context, roomId int64) error {
+	instance, _ := uc.repo.GetGameInstance(ctx, roomId)
+	if instance == nil {
+		return v1.ErrorGameInstanceNotAccessible("game instance not found")
+	}
+	save, err := instance.SaveGame()
+	if err != nil {
+		return v1.ErrorSaveGameFailed("emulator error: %v", err)
+	}
+	save.RoomId = roomId
+	err = uc.gameFileRepo.SaveGame(ctx, save)
+	if err != nil {
+		return v1.ErrorSaveGameFailed("database error: %v", err)
+	}
+	return nil
+}
+
+func (uc *GameInstanceUseCase) LoadSave(ctx context.Context, saveId int64) error {
+	save, err := uc.gameFileRepo.GetSavedGame(ctx, saveId)
+	if err != nil {
+		return v1.ErrorLoadSaveFailed("database error: %v", err)
+	}
+	instance, _ := uc.repo.GetGameInstance(ctx, save.RoomId)
+	if instance == nil {
+		return v1.ErrorGameInstanceNotAccessible("game instance not found")
+	}
+	err = instance.LoadSave(save.Data, save.Game, uc.gameFileRepo)
+	if err != nil {
+		return v1.ErrorLoadSaveFailed("emulator error: %v", err)
+	}
+	return nil
+}
+
+func (uc *GameInstanceUseCase) RestartEmulator(ctx context.Context, roomId int64, game string) error {
+	instance, _ := uc.repo.GetGameInstance(ctx, roomId)
+	if instance == nil {
+		return v1.ErrorGameInstanceNotAccessible("game instance not found")
+	}
+
+	data, err := uc.gameFileRepo.GetGameData(ctx, game)
+	if err != nil {
+		return v1.ErrorRestartFailed("get game data error: %v", err)
+	}
+	err = instance.RestartEmulator(game, data)
+	if err != nil {
+		return v1.ErrorRestartFailed("restart emulator error: %v", err)
+	}
+	return nil
 }

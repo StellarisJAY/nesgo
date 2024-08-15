@@ -3,12 +3,14 @@ package biz
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/codec"
 	"github.com/stellarisJAY/nesgo/emulator"
 	"github.com/stellarisJAY/nesgo/emulator/bus"
+	"github.com/stellarisJAY/nesgo/emulator/config"
 	"github.com/stellarisJAY/nesgo/emulator/ppu"
 	"sync"
 	"sync/atomic"
@@ -25,6 +27,11 @@ const (
 	MsgSetController2
 	MsgResetController
 	MsgPeerConnected
+	MsgPauseEmulator
+	MsgResumeEmulator
+	MsgSaveGame
+	MsgLoadSave
+	MsgRestartEmulator
 )
 
 const (
@@ -40,6 +47,7 @@ type ConsumerResult struct {
 	Success bool
 	Error   error
 	Message string
+	Data    any
 }
 
 type Message struct {
@@ -161,18 +169,23 @@ func (g *GameInstance) messageConsumer(ctx context.Context) {
 				g.handlePlayerControl(keyCode, msg.Type, msg.From)
 			case MsgChat: // TODO handle chat message
 			case MsgNewConn:
-				g.handleMsgNewConn(msg.Data.(*Connection))
-				msg.resultChan <- ConsumerResult{Success: true}
+				msg.resultChan <- g.handleMsgNewConn(msg.Data.(*Connection))
 			case MsgPeerConnected:
 				g.handlePeerConnected(msg.Data.(*Connection))
 			case MsgCloseConn:
 				g.handleMsgCloseConn(msg.Data.(*Connection))
 			case MsgSetController1:
-				msg.resultChan <- ConsumerResult{Success: g.handleSetController(msg.Data.(int64), 0)}
+				msg.resultChan <- g.handleSetController(msg.Data.(int64), 0)
 			case MsgSetController2:
-				msg.resultChan <- ConsumerResult{Success: g.handleSetController(msg.Data.(int64), 1)}
+				msg.resultChan <- g.handleSetController(msg.Data.(int64), 1)
 			case MsgResetController:
-				msg.resultChan <- ConsumerResult{Success: g.handleResetController(msg.Data.(int64))}
+				msg.resultChan <- g.handleResetController(msg.Data.(int64))
+			case MsgSaveGame:
+				msg.resultChan <- g.handleSaveGame()
+			case MsgLoadSave:
+				msg.resultChan <- g.handleLoadSave(msg.Data.(*gameSaveLoader))
+			case MsgRestartEmulator:
+				msg.resultChan <- g.handleRestartEmulator(msg.Data.(*emulatorRestartRequest))
 			default: // TODO handle unknown message
 			}
 		}
@@ -203,7 +216,7 @@ func (g *GameInstance) filterConnection(filter func(*Connection) bool) []*Connec
 	return result
 }
 
-func (g *GameInstance) handleMsgNewConn(conn *Connection) {
+func (g *GameInstance) handleMsgNewConn(conn *Connection) ConsumerResult {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 	if old, ok := g.connections[conn.userId]; ok {
@@ -211,6 +224,7 @@ func (g *GameInstance) handleMsgNewConn(conn *Connection) {
 		delete(g.connections, conn.userId)
 	}
 	g.connections[conn.userId] = conn
+	return ConsumerResult{Success: true}
 }
 
 func (g *GameInstance) handlePeerConnected(_ *Connection) {
@@ -271,11 +285,11 @@ func (g *GameInstance) handlePlayerControl(keyCode string, action byte, player i
 	}
 }
 
-func (g *GameInstance) handleSetController(playerId int64, id int) bool {
+func (g *GameInstance) handleSetController(playerId int64, id int) ConsumerResult {
 	g.mutex.RLock()
 	defer g.mutex.RUnlock()
 	if _, ok := g.connections[playerId]; !ok {
-		return false
+		return ConsumerResult{Success: false}
 	}
 	if id == 0 {
 		g.controller1 = playerId
@@ -288,14 +302,14 @@ func (g *GameInstance) handleSetController(playerId int64, id int) bool {
 			g.controller1 = 0
 		}
 	}
-	return true
+	return ConsumerResult{Success: true}
 }
 
-func (g *GameInstance) handleResetController(playerId int64) bool {
+func (g *GameInstance) handleResetController(playerId int64) ConsumerResult {
 	g.mutex.RLock()
 	defer g.mutex.RUnlock()
 	if _, ok := g.connections[playerId]; !ok {
-		return false
+		return ConsumerResult{Success: false}
 	}
 	if g.controller1 == playerId {
 		g.controller1 = 0
@@ -303,7 +317,7 @@ func (g *GameInstance) handleResetController(playerId int64) bool {
 	if g.controller2 == playerId {
 		g.controller2 = 0
 	}
-	return true
+	return ConsumerResult{Success: true}
 }
 
 func (g *GameInstance) DumpStats() *GameInstanceStats {
@@ -329,4 +343,125 @@ func (g *GameInstance) DeleteConnection(userId int64) {
 	}
 	g.mutex.Unlock()
 	conn.Close()
+}
+
+func (g *GameInstance) handleSaveGame() ConsumerResult {
+	g.e.Pause()
+	defer g.e.Resume()
+	data, err := g.e.GetSaveData()
+	success := err == nil
+	return ConsumerResult{Success: success, Data: data, Error: err}
+}
+
+// handleLoadSave 加载存档，如果存档的游戏与当前模拟器运行的游戏不同，需要先重启模拟器
+func (g *GameInstance) handleLoadSave(loader *gameSaveLoader) ConsumerResult {
+	if g.game == loader.game {
+		g.e.Pause()
+		defer g.e.Resume()
+		err := g.e.Load(loader.data)
+		return ConsumerResult{Success: err == nil, Error: err}
+	}
+	// 加载存档需要切换游戏，从repo获取游戏数据
+	data, err := loader.gameFileRepo.GetGameData(context.Background(), loader.game)
+	if err != nil {
+		return ConsumerResult{Error: err}
+	}
+	// 加载新游戏，重启模拟器
+	err = g.restartEmulator(loader.game, data)
+	if err != nil {
+		return ConsumerResult{Error: fmt.Errorf("restart emulator error: %v", err)}
+	}
+	// 模拟器加载存档数据
+	g.e.Pause()
+	defer g.e.Resume()
+	err = g.e.Load(loader.data)
+	return ConsumerResult{Success: err == nil, Error: err}
+}
+
+func (g *GameInstance) handleRestartEmulator(request *emulatorRestartRequest) ConsumerResult {
+	err := g.restartEmulator(request.game, request.gameData)
+	return ConsumerResult{Success: err == nil, Error: err}
+}
+
+func (g *GameInstance) restartEmulator(game string, gameData []byte) error {
+	// 结束旧模拟器goroutine
+	g.emulatorCancel()
+
+	g.game = game
+	// 创建新模拟器
+	emulatorConfig := config.Config{
+		Game:               game,
+		EnableTrace:        false,
+		Disassemble:        false,
+		MuteApu:            false,
+		Debug:              false,
+		SnapshotSerializer: "gob",
+	}
+	renderCallback := func(p *ppu.PPU) {
+		g.RenderCallback(p, log.NewHelper(log.With(log.DefaultLogger, "module", "emulator")))
+	}
+	e, err := emulator.NewEmulatorWithGameData(gameData, emulatorConfig, renderCallback, g.audioSampleChan, g.audioSampleRate)
+	if err != nil {
+		return fmt.Errorf("create new emulator error: %v", err)
+	}
+	g.e = e
+	// 启动新模拟器goroutine
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	g.emulatorCancel = cancelFunc
+	go e.LoadAndRun(ctx, false)
+	return nil
+}
+
+func (g *GameInstance) SaveGame() (*GameSave, error) {
+	ch := make(chan ConsumerResult)
+	g.messageChan <- &Message{Type: MsgSaveGame, resultChan: ch}
+	result := <-ch
+	close(ch)
+	if result.Success {
+		data := result.Data.([]byte)
+		return &GameSave{
+			Game:       g.game,
+			Data:       data,
+			CreateTime: time.Now().UnixMilli(),
+		}, nil
+	} else {
+		return nil, result.Error
+	}
+}
+
+type gameSaveLoader struct {
+	data         []byte       // 存档数据
+	game         string       // 存档对应的游戏
+	gameFileRepo GameFileRepo // 游戏文件repo，如果需要重启模拟器，需要repo下载游戏文件
+}
+
+type emulatorRestartRequest struct {
+	game     string
+	gameData []byte
+}
+
+func (g *GameInstance) LoadSave(data []byte, game string, gameFileRepo GameFileRepo) error {
+	ch := make(chan ConsumerResult)
+	loader := &gameSaveLoader{data, game, gameFileRepo}
+	g.messageChan <- &Message{Type: MsgLoadSave, Data: loader, resultChan: ch}
+	result := <-ch
+	close(ch)
+	if result.Success {
+		return nil
+	} else {
+		return result.Error
+	}
+}
+
+func (g *GameInstance) RestartEmulator(game string, gameData []byte) error {
+	ch := make(chan ConsumerResult)
+	request := &emulatorRestartRequest{game, gameData}
+	g.messageChan <- &Message{Type: MsgRestartEmulator, Data: request, resultChan: ch}
+	result := <-ch
+	close(ch)
+	if result.Success {
+		return nil
+	} else {
+		return result.Error
+	}
 }

@@ -5,6 +5,7 @@ server:
   grpc:
     addr: 0.0.0.0:9040
     timeout: 5s
+  nodeId: 1000
 data:
   database:
     driver: mysql

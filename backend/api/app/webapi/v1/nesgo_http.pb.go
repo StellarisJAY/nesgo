@@ -32,10 +32,14 @@ const OperationWebApiListAllRooms = "/nesgo.webapi.v1.WebApi/ListAllRooms"
 const OperationWebApiListGames = "/nesgo.webapi.v1.WebApi/ListGames"
 const OperationWebApiListMembers = "/nesgo.webapi.v1.WebApi/ListMembers"
 const OperationWebApiListMyRooms = "/nesgo.webapi.v1.WebApi/ListMyRooms"
+const OperationWebApiListSaves = "/nesgo.webapi.v1.WebApi/ListSaves"
+const OperationWebApiLoadSave = "/nesgo.webapi.v1.WebApi/LoadSave"
 const OperationWebApiLogin = "/nesgo.webapi.v1.WebApi/Login"
 const OperationWebApiOpenGameConnection = "/nesgo.webapi.v1.WebApi/OpenGameConnection"
 const OperationWebApiRegister = "/nesgo.webapi.v1.WebApi/Register"
+const OperationWebApiRestartEmulator = "/nesgo.webapi.v1.WebApi/RestartEmulator"
 const OperationWebApiSDPAnswer = "/nesgo.webapi.v1.WebApi/SDPAnswer"
+const OperationWebApiSaveGame = "/nesgo.webapi.v1.WebApi/SaveGame"
 const OperationWebApiSetController = "/nesgo.webapi.v1.WebApi/SetController"
 const OperationWebApiUpdateMemberRole = "/nesgo.webapi.v1.WebApi/UpdateMemberRole"
 const OperationWebApiUpdateRoom = "/nesgo.webapi.v1.WebApi/UpdateRoom"
@@ -54,10 +58,14 @@ type WebApiHTTPServer interface {
 	ListGames(context.Context, *ListGamesRequest) (*ListGamesResponse, error)
 	ListMembers(context.Context, *ListMemberRequest) (*ListMemberResponse, error)
 	ListMyRooms(context.Context, *ListRoomRequest) (*ListRoomResponse, error)
+	ListSaves(context.Context, *ListSavesRequest) (*ListSavesResponse, error)
+	LoadSave(context.Context, *LoadSaveRequest) (*LoadSaveResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	OpenGameConnection(context.Context, *OpenGameConnectionRequest) (*OpenGameConnectionResponse, error)
 	Register(context.Context, *RegisterRequest) (*RegisterResponse, error)
+	RestartEmulator(context.Context, *RestartEmulatorRequest) (*RestartEmulatorResponse, error)
 	SDPAnswer(context.Context, *SDPAnswerRequest) (*SDPAnswerResponse, error)
+	SaveGame(context.Context, *SaveGameRequest) (*SaveGameResponse, error)
 	SetController(context.Context, *SetControllerRequest) (*SetControllerResponse, error)
 	UpdateMemberRole(context.Context, *UpdateMemberRoleRequest) (*UpdateMemberRoleResponse, error)
 	UpdateRoom(context.Context, *UpdateRoomRequest) (*UpdateRoomResponse, error)
@@ -85,6 +93,10 @@ func RegisterWebApiHTTPServer(s *http.Server, srv WebApiHTTPServer) {
 	r.POST("/api/v1/game/controller", _WebApi_SetController0_HTTP_Handler(srv))
 	r.PUT("/api/v1/member/role", _WebApi_UpdateMemberRole0_HTTP_Handler(srv))
 	r.DELETE("/api/v1/member", _WebApi_DeleteMember0_HTTP_Handler(srv))
+	r.POST("/api/v1/game/save", _WebApi_SaveGame0_HTTP_Handler(srv))
+	r.POST("/api/v1/game/load", _WebApi_LoadSave0_HTTP_Handler(srv))
+	r.GET("/api/v1/game/saves", _WebApi_ListSaves0_HTTP_Handler(srv))
+	r.POST("/api/v1/game/restart", _WebApi_RestartEmulator0_HTTP_Handler(srv))
 }
 
 func _WebApi_Register0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
@@ -518,6 +530,91 @@ func _WebApi_DeleteMember0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Cont
 	}
 }
 
+func _WebApi_SaveGame0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SaveGameRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiSaveGame)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SaveGame(ctx, req.(*SaveGameRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*SaveGameResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _WebApi_LoadSave0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in LoadSaveRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiLoadSave)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.LoadSave(ctx, req.(*LoadSaveRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*LoadSaveResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _WebApi_ListSaves0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListSavesRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiListSaves)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListSaves(ctx, req.(*ListSavesRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListSavesResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _WebApi_RestartEmulator0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in RestartEmulatorRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiRestartEmulator)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.RestartEmulator(ctx, req.(*RestartEmulatorRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*RestartEmulatorResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type WebApiHTTPClient interface {
 	AddICECandidate(ctx context.Context, req *AddICECandidateRequest, opts ...http.CallOption) (rsp *AddICECandidateResponse, err error)
 	CreateRoom(ctx context.Context, req *CreateRoomRequest, opts ...http.CallOption) (rsp *CreateRoomResponse, err error)
@@ -532,10 +629,14 @@ type WebApiHTTPClient interface {
 	ListGames(ctx context.Context, req *ListGamesRequest, opts ...http.CallOption) (rsp *ListGamesResponse, err error)
 	ListMembers(ctx context.Context, req *ListMemberRequest, opts ...http.CallOption) (rsp *ListMemberResponse, err error)
 	ListMyRooms(ctx context.Context, req *ListRoomRequest, opts ...http.CallOption) (rsp *ListRoomResponse, err error)
+	ListSaves(ctx context.Context, req *ListSavesRequest, opts ...http.CallOption) (rsp *ListSavesResponse, err error)
+	LoadSave(ctx context.Context, req *LoadSaveRequest, opts ...http.CallOption) (rsp *LoadSaveResponse, err error)
 	Login(ctx context.Context, req *LoginRequest, opts ...http.CallOption) (rsp *LoginResponse, err error)
 	OpenGameConnection(ctx context.Context, req *OpenGameConnectionRequest, opts ...http.CallOption) (rsp *OpenGameConnectionResponse, err error)
 	Register(ctx context.Context, req *RegisterRequest, opts ...http.CallOption) (rsp *RegisterResponse, err error)
+	RestartEmulator(ctx context.Context, req *RestartEmulatorRequest, opts ...http.CallOption) (rsp *RestartEmulatorResponse, err error)
 	SDPAnswer(ctx context.Context, req *SDPAnswerRequest, opts ...http.CallOption) (rsp *SDPAnswerResponse, err error)
+	SaveGame(ctx context.Context, req *SaveGameRequest, opts ...http.CallOption) (rsp *SaveGameResponse, err error)
 	SetController(ctx context.Context, req *SetControllerRequest, opts ...http.CallOption) (rsp *SetControllerResponse, err error)
 	UpdateMemberRole(ctx context.Context, req *UpdateMemberRoleRequest, opts ...http.CallOption) (rsp *UpdateMemberRoleResponse, err error)
 	UpdateRoom(ctx context.Context, req *UpdateRoomRequest, opts ...http.CallOption) (rsp *UpdateRoomResponse, err error)
@@ -718,6 +819,32 @@ func (c *WebApiHTTPClientImpl) ListMyRooms(ctx context.Context, in *ListRoomRequ
 	return &out, nil
 }
 
+func (c *WebApiHTTPClientImpl) ListSaves(ctx context.Context, in *ListSavesRequest, opts ...http.CallOption) (*ListSavesResponse, error) {
+	var out ListSavesResponse
+	pattern := "/api/v1/game/saves"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationWebApiListSaves))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) LoadSave(ctx context.Context, in *LoadSaveRequest, opts ...http.CallOption) (*LoadSaveResponse, error) {
+	var out LoadSaveResponse
+	pattern := "/api/v1/game/load"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationWebApiLoadSave))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *WebApiHTTPClientImpl) Login(ctx context.Context, in *LoginRequest, opts ...http.CallOption) (*LoginResponse, error) {
 	var out LoginResponse
 	pattern := "/api/v1/login"
@@ -757,11 +884,37 @@ func (c *WebApiHTTPClientImpl) Register(ctx context.Context, in *RegisterRequest
 	return &out, nil
 }
 
+func (c *WebApiHTTPClientImpl) RestartEmulator(ctx context.Context, in *RestartEmulatorRequest, opts ...http.CallOption) (*RestartEmulatorResponse, error) {
+	var out RestartEmulatorResponse
+	pattern := "/api/v1/game/restart"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationWebApiRestartEmulator))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *WebApiHTTPClientImpl) SDPAnswer(ctx context.Context, in *SDPAnswerRequest, opts ...http.CallOption) (*SDPAnswerResponse, error) {
 	var out SDPAnswerResponse
 	pattern := "/api/v1/game/sdp"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationWebApiSDPAnswer))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) SaveGame(ctx context.Context, in *SaveGameRequest, opts ...http.CallOption) (*SaveGameResponse, error) {
+	var out SaveGameResponse
+	pattern := "/api/v1/game/save"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationWebApiSaveGame))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
