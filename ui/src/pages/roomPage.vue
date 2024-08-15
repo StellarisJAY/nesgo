@@ -121,62 +121,12 @@ const tourSteps = [
       </a-row>
     </a-col>
     <!--room member list-->
-    <a-drawer
-        v-model:open="membersDrawerOpen"
-        :root-style="{ color: 'blue' }"
-        title="房间信息"
-        placement="right"
-    >
-      <a-form v-if="memberSelf.role === RoleNameHost">
-        <a-form-item label="私人">
-          <a-switch v-model:checked="fullRoomInfo.private" @change="alterRoomPrivacy"></a-switch>
-        </a-form-item>
-        <a-form-item label="密码" v-if="fullRoomInfo.private">
-          <a-input-password readonly :value="fullRoomInfo.password"></a-input-password>
-        </a-form-item>
-      </a-form>
-      <a-list item-layout="vertical" :data-source="members">
-        <template #renderItem="{item}">
-          <a-list-item>
-            <a-row>
-              <a-col :span="8"><CrownTwoTone v-if="item.role===RoleNameHost" />{{item.name}}</a-col>
-              <a-col :span="10">
-                <a-checkbox :disabled="memberSelf.role!==RoleNameHost||rtcSession.pc === undefined||rtcSession.pc.connectionState !== 'connected' "
-                            v-model:checked="item['player1']"
-                            @change="ev=>{onP1P2Change(ev, item, 1)}">P1</a-checkbox>
-                <a-checkbox :disabled="memberSelf.role!==RoleNameHost||rtcSession.pc === undefined||rtcSession.pc.connectionState !== 'connected' "
-                            v-model:checked="item['player2']"
-                            @change="ev=>{onP1P2Change(ev, item, 2)}">P2</a-checkbox>
-                <a-radio-group v-model:value="item.role" :disabled="memberSelf.role!==RoleNameHost || item.role===RoleNameHost"
-                               @change="ev=>{onRoleRatioChange(ev, item)}">
-                  <a-radio :value="RoleNamePlayer">玩家</a-radio>
-                  <a-radio :value="RoleNameObserver">观战</a-radio>
-                </a-radio-group>
-              </a-col>
-              <a-col :span="6">
-                <a-button type="primary" :hidden="memberSelf.role!==RoleNameHost"
-                          :disabled="item.role===RoleNameHost || memberSelf.role!==RoleNameHost"
-                          @click="kickMember(item)">踢出</a-button>
-              </a-col>
-            </a-row>
-          </a-list-item>
-        </template>
-      </a-list>
+    <a-drawer v-model:open="membersDrawerOpen" placement="right" title="房间信息" size="default">
+      <RoomInfoDrawer :member-self="memberSelf" :rtc-session="rtcSession" :full-room-info="fullRoomInfo" :room-id="roomId"></RoomInfoDrawer>
     </a-drawer>
     <!--saved games-->
     <a-drawer size="default" title="保存游戏" placement="right" v-model:open="savedGameOpen">
-      <a-list item-layout="vertical" :data-source="savedGames">
-        <template #renderItem="{item}">
-          <a-list-item>
-            <a-descriptions :column="1">
-              <a-descriptions-item label="游戏">{{item["game"]}}</a-descriptions-item>
-              <a-descriptions-item label="时间">{{item["createdAt"]}}</a-descriptions-item>
-            </a-descriptions>
-            <a-button type="primary" @click="loadSavedGame(item.id)">加载</a-button>
-            <a-button danger @click="deleteSavedGame(item.id)">删除</a-button>
-          </a-list-item>
-        </template>
-      </a-list>
+     <SaveList :room-id="roomId"></SaveList>
     </a-drawer>
 
     <a-modal title="聊天" v-model:open="chatModalOpen" @cancel="_=>{setChatModal(false)}">
@@ -198,24 +148,13 @@ import {CrownTwoTone} from '@ant-design/icons-vue';
 import {Card, Button, Drawer, List, Descriptions, RadioGroup, Radio, Select, Checkbox, InputPassword, Switch} from "ant-design-vue";
 import {message} from "ant-design-vue";
 import {Form, FormItem, Modal, Input} from "ant-design-vue";
-import tokenStorage from "../api/token.js";
 import router from "../router/index.js";
 import {ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, SaveOutlined} from "@ant-design/icons-vue"
-import {notification, Tour} from "ant-design-vue";
-
-// const MessageSDPOffer = 0
-// const MessageSDPAnswer = 1
-// const MessageICECandidate = 2
+import {Tour} from "ant-design-vue";
+import RoomInfoDrawer from "../components/roomInfoDrawer.vue";
+import SaveList from "../components/saveList.vue";
 const MessageGameButtonPressed = 0
 const MessageGameButtonReleased = 1
-// const MessageTurnServerInfo = 5
-// const MessageChat = 6
-// const MessagePing = 7
-// const MessagePong = 8
-
-// const RoleHost = 0
-// const RoleGamer = 1
-// const RoleObserver = 2
 
 const RoleNameHost = "Host";
 const RoleNamePlayer = "Player";
@@ -249,10 +188,11 @@ export default {
     AModal: Modal,
     AInput: Input,
     ATour: Tour,
+    RoomInfoDrawer,
+    SaveList,
   },
     data() {
         return {
-            members: [],
             membersDrawerOpen: false,
             memberSelf: {
               role: 3,
@@ -288,7 +228,6 @@ export default {
               existingGames: [],
             },
             savedGameOpen: false,
-            savedGames: [],
             p1p2Options: [
               {value: "1", label: "P1"},
               {value: "2", label: "P2"},
@@ -311,7 +250,7 @@ export default {
   },
   methods: {
       openRoomMemberDrawer() {
-          this.listRoomMembers().then(_=>this.membersDrawerOpen=true);
+          this.membersDrawerOpen = true;
       },
 
       getMemberSelf: async function() {
@@ -326,12 +265,6 @@ export default {
           message.warn("无法访问房间");
           router.push("/home");
         }
-        await this.listRoomMembers();
-      },
-
-      listRoomMembers: async function() {
-        const resp = await api.get("api/v1/members?roomId=" + this.roomId);
-        this.members = resp["members"];
       },
 
       listGames: async function() {
@@ -494,29 +427,6 @@ export default {
       this.rtcSession.dataChannel.send(msg);
     },
 
-    onRoleRatioChange(ev, member) {
-        member.role = ev.target.value;
-        const _this = this;
-        api.put("api/v1/member/role", {
-          "roomId": this.roomId,
-          "userId": member["userId"],
-          "role": member["role"],
-        }).then(_=>{
-          message.success("操作成功");
-          _this.listRoomMembers();
-        }).catch(_=>{
-          message.warn("操作失败");
-        });
-    },
-    kickMember(member) {
-        const _this = this;
-        api.delete("api/v1/member?roomId="+this.roomId+"&userId="+member["userId"]).then(_=>{
-          message.success("操作成功");
-          _this.listRoomMembers();
-        }).catch(err=>{
-          message.error("操作失败");
-        });
-    },
     initControlButtons() {
         const mapping = this.configs.controlButtonMapping
         for (const k in mapping) {
@@ -536,43 +446,41 @@ export default {
         button.disabled = true
       }
     },
-    getSavedGames() {
-      // TODO list saved games
-    },
+
     openSavedGamesDrawer() {
-        this.getSavedGames().then(_=>this.savedGameOpen=true)
+        this.savedGameOpen = true;
     },
     saveGame() {
-        // TODO save game
-    },
-    loadSavedGame(id) {
-        // TODO load save
-    },
-    deleteSavedGame(id) {
-        // TODO delete save
-    },
-    restart() {
-        // TODO restart emulator
+        const _this = this;
+        this.saveBtnDisabled = true;
+        api.post("api/v1/game/save", {
+          "roomId": this.roomId,
+        }).then(_=>{
+          return message.success("保存成功");
+        }).then(_=>{
+          _this.saveBtnDisabled = false;
+        }).catch(_=>{
+          message.error("保存失败");
+          _this.saveBtnDisabled = false;
+        })
     },
 
-    onP1P2Change(ev, m, which) {
-      if (m["role"] === RoleNameObserver) {
-        message.error("无法修改观战玩家的控制");
-        return;
-      }
+    restart() {
+      this.restartBtnDisabled = true;
       const _this = this;
-      api.post("api/v1/game/controller", {
+      api.post("api/v1/game/restart", {
         "roomId": this.roomId,
-        "playerId": m["userId"],
-        "controllerId": ev.target.checked ? which : -1,
+        "game":   this.selectedGame,
       }).then(_=>{
-        _this.listRoomMembers();
-        message.success("修改成功");
-      });
+        return message.success("重启成功")
+      }).then(_=>{
+        _this.restartBtnDisabled = false;
+      }).catch(_=>{
+        message.error("重启失败");
+        _this.restartBtnDisabled = false;
+      })
     },
-    alterRoomPrivacy() {
-      // TODO update room
-    },
+
     setChatModal(open) {
       this.setKeyboardControl(!open)
       this.chatModalOpen = open
