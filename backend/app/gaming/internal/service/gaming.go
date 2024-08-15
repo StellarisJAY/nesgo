@@ -93,9 +93,11 @@ func (g *GamingService) ListGames(ctx context.Context, request *v1.ListGamesRequ
 	result := make([]*v1.GameFileMetadata, 0, len(games))
 	for _, game := range games {
 		result = append(result, &v1.GameFileMetadata{
-			Name:      game.Name,
-			Mapper:    game.Mapper,
-			Mirroring: game.Mirroring,
+			Name:       game.Name,
+			Mapper:     game.Mapper,
+			Mirroring:  game.Mirroring,
+			Size:       game.Size,
+			UploadTime: game.UploadTime,
 		})
 	}
 	return &v1.ListGamesResponse{Games: result, Total: int32(total)}, nil

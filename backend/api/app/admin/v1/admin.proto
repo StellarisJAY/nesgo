@@ -70,6 +70,8 @@ message GameFileMetadata {
   string name = 1;
   string mapper = 2;
   string mirroring = 3;
+  int32 size = 4;
+  int64 uploadTime = 5;
 }
 
 message ListGamesResponse {

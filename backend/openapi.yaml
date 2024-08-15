@@ -597,6 +597,11 @@ components:
                     type: string
                 mirroring:
                     type: string
+                size:
+                    type: integer
+                    format: int32
+                uploadTime:
+                    type: string
         nesgo.admin.v1.GamingServiceEndpoint:
             type: object
             properties:

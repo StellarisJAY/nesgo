@@ -58,7 +58,7 @@ func NewHTTPServer(c *conf.Server, as *service.AdminService, ac *conf.Auth, logg
 	}
 	srv := http.NewServer(opts...)
 	route := srv.Route("/")
-	route.POST("api/v1/game/upload", as.HandleUploadGame)
+	route.POST("api/v1/admin/game/upload", as.HandleUploadGame)
 	v1.RegisterAdminHTTPServer(srv, as)
 	return srv
 }

@@ -25,9 +25,11 @@ type GameSave struct {
 }
 
 type GameFileMetadata struct {
-	Name      string `json:"name"`
-	Mapper    string `json:"mapper"`
-	Mirroring string `json:"mirroring"`
+	Name       string `json:"name"`
+	Mapper     string `json:"mapper"`
+	Mirroring  string `json:"mirroring"`
+	Size       int32  `json:"size"`
+	UploadTime int64  `json:"uploadTime"`
 }
 
 type GameInstanceStats struct {

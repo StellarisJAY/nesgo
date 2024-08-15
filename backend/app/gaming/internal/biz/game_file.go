@@ -5,6 +5,7 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 	v1 "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
 	"github.com/stellarisJAY/nesgo/emulator/cartridge"
+	"time"
 )
 
 type GameFileUseCase struct {
@@ -25,9 +26,11 @@ func (uc *GameFileUseCase) UploadGameFile(ctx context.Context, game string, data
 		return v1.ErrorInvalidGameFile("parse cartridge failed: %v", err)
 	}
 	metadata := &GameFileMetadata{
-		Name:      game,
-		Mapper:    cartridge.MapperToString(cart.Mapper),
-		Mirroring: cartridge.MirroringToString(cart.Mirroring),
+		Name:       game,
+		Mapper:     cartridge.MapperToString(cart.Mapper),
+		Mirroring:  cartridge.MirroringToString(cart.Mirroring),
+		Size:       int32(len(data)),
+		UploadTime: time.Now().UnixMilli(),
 	}
 	err = uc.repo.UploadGameData(ctx, game, data, metadata)
 	if err != nil {

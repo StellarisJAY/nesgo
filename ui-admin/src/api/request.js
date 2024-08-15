@@ -44,6 +44,13 @@ const api = {
     },
     delete(path) {
         return this.axios.delete(path).catch(err=>errorHandler(err));
+    },
+    upload(path, formData) {
+        return this.axios.postForm(path, formData, {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        });
     }
 }
 

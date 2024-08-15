@@ -36,9 +36,11 @@ func (g *gameFileRepo) ListGames(ctx context.Context, page, pageSize int32) ([]*
 	result := make([]*adminAPI.GameFileMetadata, 0, len(response.Games))
 	for _, game := range response.Games {
 		result = append(result, &adminAPI.GameFileMetadata{
-			Name:      game.Name,
-			Mapper:    game.Mapper,
-			Mirroring: game.Mirroring,
+			Name:       game.Name,
+			Mapper:     game.Mapper,
+			Mirroring:  game.Mirroring,
+			Size:       game.Size,
+			UploadTime: game.UploadTime,
 		})
 	}
 	return result, response.Total, nil

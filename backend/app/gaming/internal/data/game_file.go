@@ -81,7 +81,17 @@ func (g *gameFileRepo) ListGames(ctx context.Context, page, pageSize int) ([]*bi
 	if err != nil {
 		return nil, 0, err
 	}
-	cursor, err := bucket.GetFilesCollection().Find(ctx, bson.M{})
+
+	total, err := bucket.GetFilesCollection().CountDocuments(ctx, bson.M{})
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return []*biz.GameFileMetadata{}, 0, nil
+	}
+	if err != nil {
+		return nil, 0, err
+	}
+	offset := int64(page * pageSize)
+	opts := options.Find().SetSkip(offset).SetLimit(int64(pageSize))
+	cursor, err := bucket.GetFilesCollection().Find(ctx, bson.M{}, opts)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return []*biz.GameFileMetadata{}, 0, nil
 	}
@@ -99,9 +109,7 @@ func (g *gameFileRepo) ListGames(ctx context.Context, page, pageSize int) ([]*bi
 		}
 		result = append(result, metadata)
 	}
-	offset := page * pageSize
-	total := len(result)
-	return result[offset:min(offset+pageSize, total)], total, nil
+	return result, int(total), nil
 }
 
 func (g *gameFileRepo) DeleteGames(ctx context.Context, games []string) (int, error) {
