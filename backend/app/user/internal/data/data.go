@@ -1,17 +1,20 @@
 package data
 
 import (
+	"context"
 	"github.com/bwmarrin/snowflake"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-redis/redis"
 	"github.com/google/wire"
 	"github.com/stellarisJAY/nesgo/backend/app/user/internal/conf"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
 // ProviderSet is data providers.
-var ProviderSet = wire.NewSet(NewData, NewUserRepo)
+var ProviderSet = wire.NewSet(NewData, NewUserRepo, NewUserKeyboardBindingRepo)
 
 // Data .
 type Data struct {
@@ -19,6 +22,7 @@ type Data struct {
 	db        *gorm.DB
 	snowflake *snowflake.Node
 	logger    *log.Helper
+	mongo     *mongo.Client
 }
 
 func NewData(c *conf.Data, sc *conf.Server) (*Data, func(), error) {
@@ -36,6 +40,11 @@ func NewData(c *conf.Data, sc *conf.Server) (*Data, func(), error) {
 			panic(err)
 		}
 	}
+	clientOpts := options.Client().ApplyURI(c.Mongo.Addr)
+	mongoConn, err := mongo.Connect(context.Background(), clientOpts)
+	if err != nil {
+		panic(err)
+	}
 
 	logger := log.NewHelper(log.DefaultLogger)
 	cleanup := func() {
@@ -47,5 +56,6 @@ func NewData(c *conf.Data, sc *conf.Server) (*Data, func(), error) {
 		db:        db,
 		logger:    logger,
 		snowflake: node,
+		mongo:     mongoConn,
 	}, cleanup, nil
 }

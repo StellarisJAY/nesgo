@@ -157,6 +157,35 @@ service WebApi {
       delete: "/api/v1/game/save"
     };
   }
+
+  rpc CreateUserKeyboardBinding(CreateUserKeyboardBindingRequest) returns (CreateUserKeyboardBindingResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/keyboard/binding"
+      body: "*"
+    };
+  }
+
+  rpc ListUserKeyboardBinding(ListUserKeyboardBindingRequest) returns (ListUserKeyboardBindingResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/keyboard/bindings"
+    };
+  }
+  rpc GetUserKeyboardBinding(GetUserKeyboardBindingRequest) returns (GetUserKeyboardBindingResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/keyboard/binding/{id}"
+    };
+  }
+  rpc UpdateUserKeyboardBinding(UpdateUserKeyboardBindingRequest) returns (UpdateUserKeyboardBindingResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/keyboard/binding"
+      body: "*"
+    };
+  }
+  rpc DeleteUserKeyboardBinding(DeleteUserKeyboardBindingRequest) returns (DeleteUserKeyboardBindingResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/keyboard/binding/{id}"
+    };
+  }
 }
 
 message RegisterRequest {
@@ -424,3 +453,56 @@ message DeleteSaveRequest {
 }
 
 message DeleteSaveResponse {}
+
+message KeyboardBinding {
+  string keyboardKey = 1;
+  string emulatorKey = 2;
+  string keyboardKeyTranslated = 3;
+  string emulatorKeyTranslated = 4;
+}
+
+message UserKeyboardBinding {
+  int64 id = 1;
+  int64 userId = 2;
+  string name = 3;
+  repeated KeyboardBinding bindings = 4;
+}
+
+message GetUserKeyboardBindingRequest {
+  int64 id = 1;
+}
+
+message GetUserKeyboardBindingResponse {
+  UserKeyboardBinding binding = 1;
+}
+
+message ListUserKeyboardBindingRequest {
+  int32 page = 1;
+  int32 pageSize = 2;
+}
+
+message ListUserKeyboardBindingResponse {
+  repeated UserKeyboardBinding bindings = 1;
+  int32 total = 2;
+}
+
+message CreateUserKeyboardBindingRequest {
+  string name = 1;
+  repeated KeyboardBinding bindings = 2;
+}
+
+message CreateUserKeyboardBindingResponse {}
+
+message UpdateUserKeyboardBindingRequest {
+  int64 id = 1;
+  string name = 2;
+  repeated KeyboardBinding bindings = 3;
+}
+
+message UpdateUserKeyboardBindingResponse {}
+
+message DeleteUserKeyboardBindingRequest {
+  int64 id = 1;
+}
+
+message DeleteUserKeyboardBindingResponse {}

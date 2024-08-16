@@ -58,3 +58,39 @@ func IsVerifyPasswordFailed(err error) bool {
 func ErrorVerifyPasswordFailed(format string, args ...interface{}) *errors.Error {
 	return errors.New(401, UserServiceErrorReason_VERIFY_PASSWORD_FAILED.String(), fmt.Sprintf(format, args...))
 }
+
+func IsCreateKeyboardBindingFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_CREATE_KEYBOARD_BINDING_FAILED.String() && e.Code == 500
+}
+
+func ErrorCreateKeyboardBindingFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_CREATE_KEYBOARD_BINDING_FAILED.String(), fmt.Sprintf(format, args...))
+}
+
+func IsUpdateKeyboardBindingFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_UPDATE_KEYBOARD_BINDING_FAILED.String() && e.Code == 500
+}
+
+func ErrorUpdateKeyboardBindingFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_UPDATE_KEYBOARD_BINDING_FAILED.String(), fmt.Sprintf(format, args...))
+}
+
+func IsDeleteKeyboardBindingFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_DELETE_KEYBOARD_BINDING_FAILED.String() && e.Code == 500
+}
+
+func ErrorDeleteKeyboardBindingFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_DELETE_KEYBOARD_BINDING_FAILED.String(), fmt.Sprintf(format, args...))
+}

@@ -14,6 +14,8 @@ data:
     addr: localhost:6379
     read_timeout: 0.2s
     write_timeout: 0.2s
+  mongo:
+    addr: mongodb://localhost:27017
 registry:
   consul:
     address: localhost:8500

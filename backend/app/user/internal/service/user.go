@@ -10,12 +10,14 @@ import (
 type UserService struct {
 	v1.UnimplementedUserServer
 	uc     *biz.UserUseCase
+	kb     *biz.UserKeyboardBindingUseCase
 	logger *log.Helper
 }
 
-func NewUserService(uc *biz.UserUseCase, logger log.Logger) *UserService {
+func NewUserService(uc *biz.UserUseCase, kb *biz.UserKeyboardBindingUseCase, logger log.Logger) *UserService {
 	return &UserService{
 		uc:     uc,
+		kb:     kb,
 		logger: log.NewHelper(log.With(logger, "module", "service/user")),
 	}
 }

@@ -38,8 +38,14 @@ message Data {
     google.protobuf.Duration read_timeout = 3;
     google.protobuf.Duration write_timeout = 4;
   }
+  message Mongo {
+    string addr = 1;
+    string username = 2;
+    string password = 3;
+  }
   Database database = 1;
   Redis redis = 2;
+  Mongo mongo = 3;
 }
 
 message Registry {

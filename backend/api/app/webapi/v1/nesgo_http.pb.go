@@ -21,19 +21,23 @@ const _ = http.SupportPackageIsVersion1
 
 const OperationWebApiAddICECandidate = "/nesgo.webapi.v1.WebApi/AddICECandidate"
 const OperationWebApiCreateRoom = "/nesgo.webapi.v1.WebApi/CreateRoom"
+const OperationWebApiCreateUserKeyboardBinding = "/nesgo.webapi.v1.WebApi/CreateUserKeyboardBinding"
 const OperationWebApiDeleteMember = "/nesgo.webapi.v1.WebApi/DeleteMember"
 const OperationWebApiDeleteRoom = "/nesgo.webapi.v1.WebApi/DeleteRoom"
 const OperationWebApiDeleteSave = "/nesgo.webapi.v1.WebApi/DeleteSave"
+const OperationWebApiDeleteUserKeyboardBinding = "/nesgo.webapi.v1.WebApi/DeleteUserKeyboardBinding"
 const OperationWebApiGetRoom = "/nesgo.webapi.v1.WebApi/GetRoom"
 const OperationWebApiGetRoomMember = "/nesgo.webapi.v1.WebApi/GetRoomMember"
 const OperationWebApiGetRoomSession = "/nesgo.webapi.v1.WebApi/GetRoomSession"
 const OperationWebApiGetUser = "/nesgo.webapi.v1.WebApi/GetUser"
+const OperationWebApiGetUserKeyboardBinding = "/nesgo.webapi.v1.WebApi/GetUserKeyboardBinding"
 const OperationWebApiJoinRoom = "/nesgo.webapi.v1.WebApi/JoinRoom"
 const OperationWebApiListAllRooms = "/nesgo.webapi.v1.WebApi/ListAllRooms"
 const OperationWebApiListGames = "/nesgo.webapi.v1.WebApi/ListGames"
 const OperationWebApiListMembers = "/nesgo.webapi.v1.WebApi/ListMembers"
 const OperationWebApiListMyRooms = "/nesgo.webapi.v1.WebApi/ListMyRooms"
 const OperationWebApiListSaves = "/nesgo.webapi.v1.WebApi/ListSaves"
+const OperationWebApiListUserKeyboardBinding = "/nesgo.webapi.v1.WebApi/ListUserKeyboardBinding"
 const OperationWebApiLoadSave = "/nesgo.webapi.v1.WebApi/LoadSave"
 const OperationWebApiLogin = "/nesgo.webapi.v1.WebApi/Login"
 const OperationWebApiOpenGameConnection = "/nesgo.webapi.v1.WebApi/OpenGameConnection"
@@ -44,23 +48,28 @@ const OperationWebApiSaveGame = "/nesgo.webapi.v1.WebApi/SaveGame"
 const OperationWebApiSetController = "/nesgo.webapi.v1.WebApi/SetController"
 const OperationWebApiUpdateMemberRole = "/nesgo.webapi.v1.WebApi/UpdateMemberRole"
 const OperationWebApiUpdateRoom = "/nesgo.webapi.v1.WebApi/UpdateRoom"
+const OperationWebApiUpdateUserKeyboardBinding = "/nesgo.webapi.v1.WebApi/UpdateUserKeyboardBinding"
 
 type WebApiHTTPServer interface {
 	AddICECandidate(context.Context, *AddICECandidateRequest) (*AddICECandidateResponse, error)
 	CreateRoom(context.Context, *CreateRoomRequest) (*CreateRoomResponse, error)
+	CreateUserKeyboardBinding(context.Context, *CreateUserKeyboardBindingRequest) (*CreateUserKeyboardBindingResponse, error)
 	DeleteMember(context.Context, *DeleteMemberRequest) (*DeleteMemberResponse, error)
 	DeleteRoom(context.Context, *DeleteRoomRequest) (*DeleteRoomResponse, error)
 	DeleteSave(context.Context, *DeleteSaveRequest) (*DeleteSaveResponse, error)
+	DeleteUserKeyboardBinding(context.Context, *DeleteUserKeyboardBindingRequest) (*DeleteUserKeyboardBindingResponse, error)
 	GetRoom(context.Context, *GetRoomRequest) (*GetRoomResponse, error)
 	GetRoomMember(context.Context, *GetRoomMemberRequest) (*GetRoomMemberResponse, error)
 	GetRoomSession(context.Context, *GetRoomSessionRequest) (*GetRoomSessionResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
+	GetUserKeyboardBinding(context.Context, *GetUserKeyboardBindingRequest) (*GetUserKeyboardBindingResponse, error)
 	JoinRoom(context.Context, *JoinRoomRequest) (*JoinRoomResponse, error)
 	ListAllRooms(context.Context, *ListRoomRequest) (*ListRoomResponse, error)
 	ListGames(context.Context, *ListGamesRequest) (*ListGamesResponse, error)
 	ListMembers(context.Context, *ListMemberRequest) (*ListMemberResponse, error)
 	ListMyRooms(context.Context, *ListRoomRequest) (*ListRoomResponse, error)
 	ListSaves(context.Context, *ListSavesRequest) (*ListSavesResponse, error)
+	ListUserKeyboardBinding(context.Context, *ListUserKeyboardBindingRequest) (*ListUserKeyboardBindingResponse, error)
 	LoadSave(context.Context, *LoadSaveRequest) (*LoadSaveResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	OpenGameConnection(context.Context, *OpenGameConnectionRequest) (*OpenGameConnectionResponse, error)
@@ -71,6 +80,7 @@ type WebApiHTTPServer interface {
 	SetController(context.Context, *SetControllerRequest) (*SetControllerResponse, error)
 	UpdateMemberRole(context.Context, *UpdateMemberRoleRequest) (*UpdateMemberRoleResponse, error)
 	UpdateRoom(context.Context, *UpdateRoomRequest) (*UpdateRoomResponse, error)
+	UpdateUserKeyboardBinding(context.Context, *UpdateUserKeyboardBindingRequest) (*UpdateUserKeyboardBindingResponse, error)
 }
 
 func RegisterWebApiHTTPServer(s *http.Server, srv WebApiHTTPServer) {
@@ -100,6 +110,11 @@ func RegisterWebApiHTTPServer(s *http.Server, srv WebApiHTTPServer) {
 	r.GET("/api/v1/game/saves", _WebApi_ListSaves0_HTTP_Handler(srv))
 	r.POST("/api/v1/game/restart", _WebApi_RestartEmulator0_HTTP_Handler(srv))
 	r.DELETE("/api/v1/game/save", _WebApi_DeleteSave0_HTTP_Handler(srv))
+	r.POST("/api/v1/keyboard/binding", _WebApi_CreateUserKeyboardBinding0_HTTP_Handler(srv))
+	r.GET("/api/v1/keyboard/bindings", _WebApi_ListUserKeyboardBinding0_HTTP_Handler(srv))
+	r.GET("/api/v1/keyboard/binding/{id}", _WebApi_GetUserKeyboardBinding0_HTTP_Handler(srv))
+	r.PUT("/api/v1/keyboard/binding", _WebApi_UpdateUserKeyboardBinding0_HTTP_Handler(srv))
+	r.DELETE("/api/v1/keyboard/binding/{id}", _WebApi_DeleteUserKeyboardBinding0_HTTP_Handler(srv))
 }
 
 func _WebApi_Register0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
@@ -637,22 +652,133 @@ func _WebApi_DeleteSave0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Contex
 	}
 }
 
+func _WebApi_CreateUserKeyboardBinding0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateUserKeyboardBindingRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiCreateUserKeyboardBinding)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateUserKeyboardBinding(ctx, req.(*CreateUserKeyboardBindingRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CreateUserKeyboardBindingResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _WebApi_ListUserKeyboardBinding0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListUserKeyboardBindingRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiListUserKeyboardBinding)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListUserKeyboardBinding(ctx, req.(*ListUserKeyboardBindingRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListUserKeyboardBindingResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _WebApi_GetUserKeyboardBinding0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetUserKeyboardBindingRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiGetUserKeyboardBinding)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetUserKeyboardBinding(ctx, req.(*GetUserKeyboardBindingRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetUserKeyboardBindingResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _WebApi_UpdateUserKeyboardBinding0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in UpdateUserKeyboardBindingRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiUpdateUserKeyboardBinding)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.UpdateUserKeyboardBinding(ctx, req.(*UpdateUserKeyboardBindingRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*UpdateUserKeyboardBindingResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _WebApi_DeleteUserKeyboardBinding0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteUserKeyboardBindingRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiDeleteUserKeyboardBinding)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteUserKeyboardBinding(ctx, req.(*DeleteUserKeyboardBindingRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteUserKeyboardBindingResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type WebApiHTTPClient interface {
 	AddICECandidate(ctx context.Context, req *AddICECandidateRequest, opts ...http.CallOption) (rsp *AddICECandidateResponse, err error)
 	CreateRoom(ctx context.Context, req *CreateRoomRequest, opts ...http.CallOption) (rsp *CreateRoomResponse, err error)
+	CreateUserKeyboardBinding(ctx context.Context, req *CreateUserKeyboardBindingRequest, opts ...http.CallOption) (rsp *CreateUserKeyboardBindingResponse, err error)
 	DeleteMember(ctx context.Context, req *DeleteMemberRequest, opts ...http.CallOption) (rsp *DeleteMemberResponse, err error)
 	DeleteRoom(ctx context.Context, req *DeleteRoomRequest, opts ...http.CallOption) (rsp *DeleteRoomResponse, err error)
 	DeleteSave(ctx context.Context, req *DeleteSaveRequest, opts ...http.CallOption) (rsp *DeleteSaveResponse, err error)
+	DeleteUserKeyboardBinding(ctx context.Context, req *DeleteUserKeyboardBindingRequest, opts ...http.CallOption) (rsp *DeleteUserKeyboardBindingResponse, err error)
 	GetRoom(ctx context.Context, req *GetRoomRequest, opts ...http.CallOption) (rsp *GetRoomResponse, err error)
 	GetRoomMember(ctx context.Context, req *GetRoomMemberRequest, opts ...http.CallOption) (rsp *GetRoomMemberResponse, err error)
 	GetRoomSession(ctx context.Context, req *GetRoomSessionRequest, opts ...http.CallOption) (rsp *GetRoomSessionResponse, err error)
 	GetUser(ctx context.Context, req *GetUserRequest, opts ...http.CallOption) (rsp *GetUserResponse, err error)
+	GetUserKeyboardBinding(ctx context.Context, req *GetUserKeyboardBindingRequest, opts ...http.CallOption) (rsp *GetUserKeyboardBindingResponse, err error)
 	JoinRoom(ctx context.Context, req *JoinRoomRequest, opts ...http.CallOption) (rsp *JoinRoomResponse, err error)
 	ListAllRooms(ctx context.Context, req *ListRoomRequest, opts ...http.CallOption) (rsp *ListRoomResponse, err error)
 	ListGames(ctx context.Context, req *ListGamesRequest, opts ...http.CallOption) (rsp *ListGamesResponse, err error)
 	ListMembers(ctx context.Context, req *ListMemberRequest, opts ...http.CallOption) (rsp *ListMemberResponse, err error)
 	ListMyRooms(ctx context.Context, req *ListRoomRequest, opts ...http.CallOption) (rsp *ListRoomResponse, err error)
 	ListSaves(ctx context.Context, req *ListSavesRequest, opts ...http.CallOption) (rsp *ListSavesResponse, err error)
+	ListUserKeyboardBinding(ctx context.Context, req *ListUserKeyboardBindingRequest, opts ...http.CallOption) (rsp *ListUserKeyboardBindingResponse, err error)
 	LoadSave(ctx context.Context, req *LoadSaveRequest, opts ...http.CallOption) (rsp *LoadSaveResponse, err error)
 	Login(ctx context.Context, req *LoginRequest, opts ...http.CallOption) (rsp *LoginResponse, err error)
 	OpenGameConnection(ctx context.Context, req *OpenGameConnectionRequest, opts ...http.CallOption) (rsp *OpenGameConnectionResponse, err error)
@@ -663,6 +789,7 @@ type WebApiHTTPClient interface {
 	SetController(ctx context.Context, req *SetControllerRequest, opts ...http.CallOption) (rsp *SetControllerResponse, err error)
 	UpdateMemberRole(ctx context.Context, req *UpdateMemberRoleRequest, opts ...http.CallOption) (rsp *UpdateMemberRoleResponse, err error)
 	UpdateRoom(ctx context.Context, req *UpdateRoomRequest, opts ...http.CallOption) (rsp *UpdateRoomResponse, err error)
+	UpdateUserKeyboardBinding(ctx context.Context, req *UpdateUserKeyboardBindingRequest, opts ...http.CallOption) (rsp *UpdateUserKeyboardBindingResponse, err error)
 }
 
 type WebApiHTTPClientImpl struct {
@@ -691,6 +818,19 @@ func (c *WebApiHTTPClientImpl) CreateRoom(ctx context.Context, in *CreateRoomReq
 	pattern := "/api/v1/room"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationWebApiCreateRoom))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) CreateUserKeyboardBinding(ctx context.Context, in *CreateUserKeyboardBindingRequest, opts ...http.CallOption) (*CreateUserKeyboardBindingResponse, error) {
+	var out CreateUserKeyboardBindingResponse
+	pattern := "/api/v1/keyboard/binding"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationWebApiCreateUserKeyboardBinding))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -730,6 +870,19 @@ func (c *WebApiHTTPClientImpl) DeleteSave(ctx context.Context, in *DeleteSaveReq
 	pattern := "/api/v1/game/save"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationWebApiDeleteSave))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) DeleteUserKeyboardBinding(ctx context.Context, in *DeleteUserKeyboardBindingRequest, opts ...http.CallOption) (*DeleteUserKeyboardBindingResponse, error) {
+	var out DeleteUserKeyboardBindingResponse
+	pattern := "/api/v1/keyboard/binding/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationWebApiDeleteUserKeyboardBinding))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {
@@ -782,6 +935,19 @@ func (c *WebApiHTTPClientImpl) GetUser(ctx context.Context, in *GetUserRequest, 
 	pattern := "/api/v1/user/{id}"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationWebApiGetUser))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) GetUserKeyboardBinding(ctx context.Context, in *GetUserKeyboardBindingRequest, opts ...http.CallOption) (*GetUserKeyboardBindingResponse, error) {
+	var out GetUserKeyboardBindingResponse
+	pattern := "/api/v1/keyboard/binding/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationWebApiGetUserKeyboardBinding))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -860,6 +1026,19 @@ func (c *WebApiHTTPClientImpl) ListSaves(ctx context.Context, in *ListSavesReque
 	pattern := "/api/v1/game/saves"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationWebApiListSaves))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) ListUserKeyboardBinding(ctx context.Context, in *ListUserKeyboardBindingRequest, opts ...http.CallOption) (*ListUserKeyboardBindingResponse, error) {
+	var out ListUserKeyboardBindingResponse
+	pattern := "/api/v1/keyboard/bindings"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationWebApiListUserKeyboardBinding))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -990,6 +1169,19 @@ func (c *WebApiHTTPClientImpl) UpdateRoom(ctx context.Context, in *UpdateRoomReq
 	pattern := "/api/v1/room/{roomId}"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationWebApiUpdateRoom))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) UpdateUserKeyboardBinding(ctx context.Context, in *UpdateUserKeyboardBindingRequest, opts ...http.CallOption) (*UpdateUserKeyboardBindingResponse, error) {
+	var out UpdateUserKeyboardBindingResponse
+	pattern := "/api/v1/keyboard/binding"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationWebApiUpdateUserKeyboardBinding))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "PUT", path, in, &out, opts...)
 	if err != nil {

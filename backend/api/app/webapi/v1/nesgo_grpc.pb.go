@@ -19,31 +19,36 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	WebApi_Register_FullMethodName           = "/nesgo.webapi.v1.WebApi/Register"
-	WebApi_Login_FullMethodName              = "/nesgo.webapi.v1.WebApi/Login"
-	WebApi_ListMyRooms_FullMethodName        = "/nesgo.webapi.v1.WebApi/ListMyRooms"
-	WebApi_ListAllRooms_FullMethodName       = "/nesgo.webapi.v1.WebApi/ListAllRooms"
-	WebApi_CreateRoom_FullMethodName         = "/nesgo.webapi.v1.WebApi/CreateRoom"
-	WebApi_GetRoom_FullMethodName            = "/nesgo.webapi.v1.WebApi/GetRoom"
-	WebApi_GetUser_FullMethodName            = "/nesgo.webapi.v1.WebApi/GetUser"
-	WebApi_GetRoomSession_FullMethodName     = "/nesgo.webapi.v1.WebApi/GetRoomSession"
-	WebApi_OpenGameConnection_FullMethodName = "/nesgo.webapi.v1.WebApi/OpenGameConnection"
-	WebApi_SDPAnswer_FullMethodName          = "/nesgo.webapi.v1.WebApi/SDPAnswer"
-	WebApi_AddICECandidate_FullMethodName    = "/nesgo.webapi.v1.WebApi/AddICECandidate"
-	WebApi_ListMembers_FullMethodName        = "/nesgo.webapi.v1.WebApi/ListMembers"
-	WebApi_JoinRoom_FullMethodName           = "/nesgo.webapi.v1.WebApi/JoinRoom"
-	WebApi_DeleteRoom_FullMethodName         = "/nesgo.webapi.v1.WebApi/DeleteRoom"
-	WebApi_UpdateRoom_FullMethodName         = "/nesgo.webapi.v1.WebApi/UpdateRoom"
-	WebApi_GetRoomMember_FullMethodName      = "/nesgo.webapi.v1.WebApi/GetRoomMember"
-	WebApi_ListGames_FullMethodName          = "/nesgo.webapi.v1.WebApi/ListGames"
-	WebApi_SetController_FullMethodName      = "/nesgo.webapi.v1.WebApi/SetController"
-	WebApi_UpdateMemberRole_FullMethodName   = "/nesgo.webapi.v1.WebApi/UpdateMemberRole"
-	WebApi_DeleteMember_FullMethodName       = "/nesgo.webapi.v1.WebApi/DeleteMember"
-	WebApi_SaveGame_FullMethodName           = "/nesgo.webapi.v1.WebApi/SaveGame"
-	WebApi_LoadSave_FullMethodName           = "/nesgo.webapi.v1.WebApi/LoadSave"
-	WebApi_ListSaves_FullMethodName          = "/nesgo.webapi.v1.WebApi/ListSaves"
-	WebApi_RestartEmulator_FullMethodName    = "/nesgo.webapi.v1.WebApi/RestartEmulator"
-	WebApi_DeleteSave_FullMethodName         = "/nesgo.webapi.v1.WebApi/DeleteSave"
+	WebApi_Register_FullMethodName                  = "/nesgo.webapi.v1.WebApi/Register"
+	WebApi_Login_FullMethodName                     = "/nesgo.webapi.v1.WebApi/Login"
+	WebApi_ListMyRooms_FullMethodName               = "/nesgo.webapi.v1.WebApi/ListMyRooms"
+	WebApi_ListAllRooms_FullMethodName              = "/nesgo.webapi.v1.WebApi/ListAllRooms"
+	WebApi_CreateRoom_FullMethodName                = "/nesgo.webapi.v1.WebApi/CreateRoom"
+	WebApi_GetRoom_FullMethodName                   = "/nesgo.webapi.v1.WebApi/GetRoom"
+	WebApi_GetUser_FullMethodName                   = "/nesgo.webapi.v1.WebApi/GetUser"
+	WebApi_GetRoomSession_FullMethodName            = "/nesgo.webapi.v1.WebApi/GetRoomSession"
+	WebApi_OpenGameConnection_FullMethodName        = "/nesgo.webapi.v1.WebApi/OpenGameConnection"
+	WebApi_SDPAnswer_FullMethodName                 = "/nesgo.webapi.v1.WebApi/SDPAnswer"
+	WebApi_AddICECandidate_FullMethodName           = "/nesgo.webapi.v1.WebApi/AddICECandidate"
+	WebApi_ListMembers_FullMethodName               = "/nesgo.webapi.v1.WebApi/ListMembers"
+	WebApi_JoinRoom_FullMethodName                  = "/nesgo.webapi.v1.WebApi/JoinRoom"
+	WebApi_DeleteRoom_FullMethodName                = "/nesgo.webapi.v1.WebApi/DeleteRoom"
+	WebApi_UpdateRoom_FullMethodName                = "/nesgo.webapi.v1.WebApi/UpdateRoom"
+	WebApi_GetRoomMember_FullMethodName             = "/nesgo.webapi.v1.WebApi/GetRoomMember"
+	WebApi_ListGames_FullMethodName                 = "/nesgo.webapi.v1.WebApi/ListGames"
+	WebApi_SetController_FullMethodName             = "/nesgo.webapi.v1.WebApi/SetController"
+	WebApi_UpdateMemberRole_FullMethodName          = "/nesgo.webapi.v1.WebApi/UpdateMemberRole"
+	WebApi_DeleteMember_FullMethodName              = "/nesgo.webapi.v1.WebApi/DeleteMember"
+	WebApi_SaveGame_FullMethodName                  = "/nesgo.webapi.v1.WebApi/SaveGame"
+	WebApi_LoadSave_FullMethodName                  = "/nesgo.webapi.v1.WebApi/LoadSave"
+	WebApi_ListSaves_FullMethodName                 = "/nesgo.webapi.v1.WebApi/ListSaves"
+	WebApi_RestartEmulator_FullMethodName           = "/nesgo.webapi.v1.WebApi/RestartEmulator"
+	WebApi_DeleteSave_FullMethodName                = "/nesgo.webapi.v1.WebApi/DeleteSave"
+	WebApi_CreateUserKeyboardBinding_FullMethodName = "/nesgo.webapi.v1.WebApi/CreateUserKeyboardBinding"
+	WebApi_ListUserKeyboardBinding_FullMethodName   = "/nesgo.webapi.v1.WebApi/ListUserKeyboardBinding"
+	WebApi_GetUserKeyboardBinding_FullMethodName    = "/nesgo.webapi.v1.WebApi/GetUserKeyboardBinding"
+	WebApi_UpdateUserKeyboardBinding_FullMethodName = "/nesgo.webapi.v1.WebApi/UpdateUserKeyboardBinding"
+	WebApi_DeleteUserKeyboardBinding_FullMethodName = "/nesgo.webapi.v1.WebApi/DeleteUserKeyboardBinding"
 )
 
 // WebApiClient is the client API for WebApi service.
@@ -75,6 +80,11 @@ type WebApiClient interface {
 	ListSaves(ctx context.Context, in *ListSavesRequest, opts ...grpc.CallOption) (*ListSavesResponse, error)
 	RestartEmulator(ctx context.Context, in *RestartEmulatorRequest, opts ...grpc.CallOption) (*RestartEmulatorResponse, error)
 	DeleteSave(ctx context.Context, in *DeleteSaveRequest, opts ...grpc.CallOption) (*DeleteSaveResponse, error)
+	CreateUserKeyboardBinding(ctx context.Context, in *CreateUserKeyboardBindingRequest, opts ...grpc.CallOption) (*CreateUserKeyboardBindingResponse, error)
+	ListUserKeyboardBinding(ctx context.Context, in *ListUserKeyboardBindingRequest, opts ...grpc.CallOption) (*ListUserKeyboardBindingResponse, error)
+	GetUserKeyboardBinding(ctx context.Context, in *GetUserKeyboardBindingRequest, opts ...grpc.CallOption) (*GetUserKeyboardBindingResponse, error)
+	UpdateUserKeyboardBinding(ctx context.Context, in *UpdateUserKeyboardBindingRequest, opts ...grpc.CallOption) (*UpdateUserKeyboardBindingResponse, error)
+	DeleteUserKeyboardBinding(ctx context.Context, in *DeleteUserKeyboardBindingRequest, opts ...grpc.CallOption) (*DeleteUserKeyboardBindingResponse, error)
 }
 
 type webApiClient struct {
@@ -335,6 +345,56 @@ func (c *webApiClient) DeleteSave(ctx context.Context, in *DeleteSaveRequest, op
 	return out, nil
 }
 
+func (c *webApiClient) CreateUserKeyboardBinding(ctx context.Context, in *CreateUserKeyboardBindingRequest, opts ...grpc.CallOption) (*CreateUserKeyboardBindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateUserKeyboardBindingResponse)
+	err := c.cc.Invoke(ctx, WebApi_CreateUserKeyboardBinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *webApiClient) ListUserKeyboardBinding(ctx context.Context, in *ListUserKeyboardBindingRequest, opts ...grpc.CallOption) (*ListUserKeyboardBindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListUserKeyboardBindingResponse)
+	err := c.cc.Invoke(ctx, WebApi_ListUserKeyboardBinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *webApiClient) GetUserKeyboardBinding(ctx context.Context, in *GetUserKeyboardBindingRequest, opts ...grpc.CallOption) (*GetUserKeyboardBindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserKeyboardBindingResponse)
+	err := c.cc.Invoke(ctx, WebApi_GetUserKeyboardBinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *webApiClient) UpdateUserKeyboardBinding(ctx context.Context, in *UpdateUserKeyboardBindingRequest, opts ...grpc.CallOption) (*UpdateUserKeyboardBindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUserKeyboardBindingResponse)
+	err := c.cc.Invoke(ctx, WebApi_UpdateUserKeyboardBinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *webApiClient) DeleteUserKeyboardBinding(ctx context.Context, in *DeleteUserKeyboardBindingRequest, opts ...grpc.CallOption) (*DeleteUserKeyboardBindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteUserKeyboardBindingResponse)
+	err := c.cc.Invoke(ctx, WebApi_DeleteUserKeyboardBinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WebApiServer is the server API for WebApi service.
 // All implementations must embed UnimplementedWebApiServer
 // for forward compatibility.
@@ -364,6 +424,11 @@ type WebApiServer interface {
 	ListSaves(context.Context, *ListSavesRequest) (*ListSavesResponse, error)
 	RestartEmulator(context.Context, *RestartEmulatorRequest) (*RestartEmulatorResponse, error)
 	DeleteSave(context.Context, *DeleteSaveRequest) (*DeleteSaveResponse, error)
+	CreateUserKeyboardBinding(context.Context, *CreateUserKeyboardBindingRequest) (*CreateUserKeyboardBindingResponse, error)
+	ListUserKeyboardBinding(context.Context, *ListUserKeyboardBindingRequest) (*ListUserKeyboardBindingResponse, error)
+	GetUserKeyboardBinding(context.Context, *GetUserKeyboardBindingRequest) (*GetUserKeyboardBindingResponse, error)
+	UpdateUserKeyboardBinding(context.Context, *UpdateUserKeyboardBindingRequest) (*UpdateUserKeyboardBindingResponse, error)
+	DeleteUserKeyboardBinding(context.Context, *DeleteUserKeyboardBindingRequest) (*DeleteUserKeyboardBindingResponse, error)
 	mustEmbedUnimplementedWebApiServer()
 }
 
@@ -448,6 +513,21 @@ func (UnimplementedWebApiServer) RestartEmulator(context.Context, *RestartEmulat
 }
 func (UnimplementedWebApiServer) DeleteSave(context.Context, *DeleteSaveRequest) (*DeleteSaveResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteSave not implemented")
+}
+func (UnimplementedWebApiServer) CreateUserKeyboardBinding(context.Context, *CreateUserKeyboardBindingRequest) (*CreateUserKeyboardBindingResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateUserKeyboardBinding not implemented")
+}
+func (UnimplementedWebApiServer) ListUserKeyboardBinding(context.Context, *ListUserKeyboardBindingRequest) (*ListUserKeyboardBindingResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListUserKeyboardBinding not implemented")
+}
+func (UnimplementedWebApiServer) GetUserKeyboardBinding(context.Context, *GetUserKeyboardBindingRequest) (*GetUserKeyboardBindingResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserKeyboardBinding not implemented")
+}
+func (UnimplementedWebApiServer) UpdateUserKeyboardBinding(context.Context, *UpdateUserKeyboardBindingRequest) (*UpdateUserKeyboardBindingResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserKeyboardBinding not implemented")
+}
+func (UnimplementedWebApiServer) DeleteUserKeyboardBinding(context.Context, *DeleteUserKeyboardBindingRequest) (*DeleteUserKeyboardBindingResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteUserKeyboardBinding not implemented")
 }
 func (UnimplementedWebApiServer) mustEmbedUnimplementedWebApiServer() {}
 func (UnimplementedWebApiServer) testEmbeddedByValue()                {}
@@ -920,6 +1000,96 @@ func _WebApi_DeleteSave_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WebApi_CreateUserKeyboardBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateUserKeyboardBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).CreateUserKeyboardBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_CreateUserKeyboardBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).CreateUserKeyboardBinding(ctx, req.(*CreateUserKeyboardBindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WebApi_ListUserKeyboardBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListUserKeyboardBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).ListUserKeyboardBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_ListUserKeyboardBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).ListUserKeyboardBinding(ctx, req.(*ListUserKeyboardBindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WebApi_GetUserKeyboardBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserKeyboardBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).GetUserKeyboardBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_GetUserKeyboardBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).GetUserKeyboardBinding(ctx, req.(*GetUserKeyboardBindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WebApi_UpdateUserKeyboardBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserKeyboardBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).UpdateUserKeyboardBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_UpdateUserKeyboardBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).UpdateUserKeyboardBinding(ctx, req.(*UpdateUserKeyboardBindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WebApi_DeleteUserKeyboardBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteUserKeyboardBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).DeleteUserKeyboardBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_DeleteUserKeyboardBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).DeleteUserKeyboardBinding(ctx, req.(*DeleteUserKeyboardBindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WebApi_ServiceDesc is the grpc.ServiceDesc for WebApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1026,6 +1196,26 @@ var WebApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteSave",
 			Handler:    _WebApi_DeleteSave_Handler,
+		},
+		{
+			MethodName: "CreateUserKeyboardBinding",
+			Handler:    _WebApi_CreateUserKeyboardBinding_Handler,
+		},
+		{
+			MethodName: "ListUserKeyboardBinding",
+			Handler:    _WebApi_ListUserKeyboardBinding_Handler,
+		},
+		{
+			MethodName: "GetUserKeyboardBinding",
+			Handler:    _WebApi_GetUserKeyboardBinding_Handler,
+		},
+		{
+			MethodName: "UpdateUserKeyboardBinding",
+			Handler:    _WebApi_UpdateUserKeyboardBinding_Handler,
+		},
+		{
+			MethodName: "DeleteUserKeyboardBinding",
+			Handler:    _WebApi_DeleteUserKeyboardBinding_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

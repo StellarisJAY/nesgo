@@ -349,6 +349,99 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.ListGamesResponse'
+    /api/v1/keyboard/binding:
+        put:
+            tags:
+                - WebApi
+            operationId: WebApi_UpdateUserKeyboardBinding
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.UpdateUserKeyboardBindingRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.UpdateUserKeyboardBindingResponse'
+        post:
+            tags:
+                - WebApi
+            operationId: WebApi_CreateUserKeyboardBinding
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.CreateUserKeyboardBindingRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.CreateUserKeyboardBindingResponse'
+    /api/v1/keyboard/binding/{id}:
+        get:
+            tags:
+                - WebApi
+            operationId: WebApi_GetUserKeyboardBinding
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.GetUserKeyboardBindingResponse'
+        delete:
+            tags:
+                - WebApi
+            operationId: WebApi_DeleteUserKeyboardBinding
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.DeleteUserKeyboardBindingResponse'
+    /api/v1/keyboard/bindings:
+        get:
+            tags:
+                - WebApi
+            operationId: WebApi_ListUserKeyboardBinding
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.ListUserKeyboardBindingResponse'
     /api/v1/login:
         post:
             tags:
@@ -834,6 +927,18 @@ components:
                 memberLimit:
                     type: integer
                     format: int32
+        nesgo.webapi.v1.CreateUserKeyboardBindingRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                bindings:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/nesgo.webapi.v1.KeyboardBinding'
+        nesgo.webapi.v1.CreateUserKeyboardBindingResponse:
+            type: object
+            properties: {}
         nesgo.webapi.v1.DeleteMemberResponse:
             type: object
             properties: {}
@@ -841,6 +946,9 @@ components:
             type: object
             properties: {}
         nesgo.webapi.v1.DeleteSaveResponse:
+            type: object
+            properties: {}
+        nesgo.webapi.v1.DeleteUserKeyboardBindingResponse:
             type: object
             properties: {}
         nesgo.webapi.v1.GameFileMetadata:
@@ -894,6 +1002,11 @@ components:
                     type: string
                 endpoint:
                     type: string
+        nesgo.webapi.v1.GetUserKeyboardBindingResponse:
+            type: object
+            properties:
+                binding:
+                    $ref: '#/components/schemas/nesgo.webapi.v1.UserKeyboardBinding'
         nesgo.webapi.v1.GetUserResponse:
             type: object
             properties:
@@ -921,6 +1034,17 @@ components:
                 role:
                     type: integer
                     format: enum
+        nesgo.webapi.v1.KeyboardBinding:
+            type: object
+            properties:
+                keyboardKey:
+                    type: string
+                emulatorKey:
+                    type: string
+                keyboardKeyTranslated:
+                    type: string
+                emulatorKeyTranslated:
+                    type: string
         nesgo.webapi.v1.ListGamesResponse:
             type: object
             properties:
@@ -952,6 +1076,16 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/nesgo.webapi.v1.Save'
+                total:
+                    type: integer
+                    format: int32
+        nesgo.webapi.v1.ListUserKeyboardBindingResponse:
+            type: object
+            properties:
+                bindings:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/nesgo.webapi.v1.UserKeyboardBinding'
                 total:
                     type: integer
                     format: int32
@@ -1135,6 +1269,20 @@ components:
                     type: boolean
                 password:
                     type: string
+        nesgo.webapi.v1.UpdateUserKeyboardBindingRequest:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                bindings:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/nesgo.webapi.v1.KeyboardBinding'
+        nesgo.webapi.v1.UpdateUserKeyboardBindingResponse:
+            type: object
+            properties: {}
         nesgo.webapi.v1.User:
             type: object
             properties:
@@ -1142,6 +1290,19 @@ components:
                     type: string
                 name:
                     type: string
+        nesgo.webapi.v1.UserKeyboardBinding:
+            type: object
+            properties:
+                id:
+                    type: string
+                userId:
+                    type: string
+                name:
+                    type: string
+                bindings:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/nesgo.webapi.v1.KeyboardBinding'
 tags:
     - name: Admin
     - name: WebApi

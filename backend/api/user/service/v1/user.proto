@@ -12,6 +12,12 @@ service User {
   rpc GetUserByName(GetUserByNameRequest) returns (GetUserByNameResponse) {}
   rpc UpdateUser(UpdateUserRequest) returns (UpdateUserResponse) {}
   rpc VerifyPassword(VerifyPasswordRequest) returns (VerifyPasswordResponse) {}
+
+  rpc CreateUserKeyboardBinding(CreateUserKeyboardBindingRequest) returns (CreateUserKeyboardBindingResponse) {}
+  rpc ListUserKeyboardBinding(ListUserKeyboardBindingRequest) returns (ListUserKeyboardBindingResponse) {}
+  rpc GetUserKeyboardBinding(GetUserKeyboardBindingRequest) returns (GetUserKeyboardBindingResponse) {}
+  rpc UpdateUserKeyboardBinding(UpdateUserKeyboardBindingRequest) returns (UpdateUserKeyboardBindingResponse) {}
+  rpc DeleteUserKeyboardBinding(DeleteUserKeyboardBindingRequest) returns (DeleteUserKeyboardBindingResponse) {}
 }
 
 message GetUserRequest {
@@ -59,3 +65,61 @@ message VerifyPasswordRequest {
 }
 
 message VerifyPasswordResponse {}
+
+message KeyboardBinding {
+  string keyboardKey = 1;
+  string emulatorKey = 2;
+  string keyboardKeyTranslated = 3;
+  string emulatorKeyTranslated = 4;
+}
+
+message UserKeyboardBinding {
+  int64 id = 1;
+  int64 userId = 2;
+  string name = 3;
+  repeated KeyboardBinding bindings = 4;
+}
+
+message GetUserKeyboardBindingRequest {
+  int64 id = 1;
+}
+
+message GetUserKeyboardBindingResponse {
+  UserKeyboardBinding binding = 1;
+}
+
+message ListUserKeyboardBindingRequest {
+  int64 userId = 1;
+  int32 page = 2;
+  int32 pageSize = 3;
+}
+
+message ListUserKeyboardBindingResponse {
+  repeated UserKeyboardBinding bindings = 1;
+  int32 total = 2;
+}
+
+message CreateUserKeyboardBindingRequest {
+  int64 userId = 1;
+  string name = 2;
+  repeated KeyboardBinding bindings = 3;
+}
+
+message CreateUserKeyboardBindingResponse {}
+
+message UpdateUserKeyboardBindingRequest {
+  int64 id = 1;
+  int64 userId = 2;
+  string name = 3;
+  repeated KeyboardBinding bindings = 4;
+}
+
+message UpdateUserKeyboardBindingResponse {}
+
+message DeleteUserKeyboardBindingRequest {
+  int64 id = 1;
+  int64 userId = 2;
+}
+
+message DeleteUserKeyboardBindingResponse {}
+

@@ -30,7 +30,9 @@ func wireApp(confServer *conf.Server, confData *conf.Data, registry *conf.Regist
 	}
 	userRepo := data.NewUserRepo(dataData, logger)
 	userUseCase := biz.NewUserUseCase(userRepo, logger)
-	userService := service.NewUserService(userUseCase, logger)
+	userKeyboardBindingRepo := data.NewUserKeyboardBindingRepo(dataData, logger)
+	userKeyboardBindingUseCase := biz.NewUserKeyboardBindingUseCase(userKeyboardBindingRepo, logger)
+	userService := service.NewUserService(userUseCase, userKeyboardBindingUseCase, logger)
 	grpcServer := server.NewGRPCServer(confServer, userService, logger)
 	client := server.NewEtcdClient(registry)
 	registrar := server.NewRegistrar(client)

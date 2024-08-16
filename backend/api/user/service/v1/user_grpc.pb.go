@@ -19,11 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	User_CreateUser_FullMethodName     = "/user.v1.User/CreateUser"
-	User_GetUser_FullMethodName        = "/user.v1.User/GetUser"
-	User_GetUserByName_FullMethodName  = "/user.v1.User/GetUserByName"
-	User_UpdateUser_FullMethodName     = "/user.v1.User/UpdateUser"
-	User_VerifyPassword_FullMethodName = "/user.v1.User/VerifyPassword"
+	User_CreateUser_FullMethodName                = "/user.v1.User/CreateUser"
+	User_GetUser_FullMethodName                   = "/user.v1.User/GetUser"
+	User_GetUserByName_FullMethodName             = "/user.v1.User/GetUserByName"
+	User_UpdateUser_FullMethodName                = "/user.v1.User/UpdateUser"
+	User_VerifyPassword_FullMethodName            = "/user.v1.User/VerifyPassword"
+	User_CreateUserKeyboardBinding_FullMethodName = "/user.v1.User/CreateUserKeyboardBinding"
+	User_ListUserKeyboardBinding_FullMethodName   = "/user.v1.User/ListUserKeyboardBinding"
+	User_GetUserKeyboardBinding_FullMethodName    = "/user.v1.User/GetUserKeyboardBinding"
+	User_UpdateUserKeyboardBinding_FullMethodName = "/user.v1.User/UpdateUserKeyboardBinding"
+	User_DeleteUserKeyboardBinding_FullMethodName = "/user.v1.User/DeleteUserKeyboardBinding"
 )
 
 // UserClient is the client API for User service.
@@ -35,6 +40,11 @@ type UserClient interface {
 	GetUserByName(ctx context.Context, in *GetUserByNameRequest, opts ...grpc.CallOption) (*GetUserByNameResponse, error)
 	UpdateUser(ctx context.Context, in *UpdateUserRequest, opts ...grpc.CallOption) (*UpdateUserResponse, error)
 	VerifyPassword(ctx context.Context, in *VerifyPasswordRequest, opts ...grpc.CallOption) (*VerifyPasswordResponse, error)
+	CreateUserKeyboardBinding(ctx context.Context, in *CreateUserKeyboardBindingRequest, opts ...grpc.CallOption) (*CreateUserKeyboardBindingResponse, error)
+	ListUserKeyboardBinding(ctx context.Context, in *ListUserKeyboardBindingRequest, opts ...grpc.CallOption) (*ListUserKeyboardBindingResponse, error)
+	GetUserKeyboardBinding(ctx context.Context, in *GetUserKeyboardBindingRequest, opts ...grpc.CallOption) (*GetUserKeyboardBindingResponse, error)
+	UpdateUserKeyboardBinding(ctx context.Context, in *UpdateUserKeyboardBindingRequest, opts ...grpc.CallOption) (*UpdateUserKeyboardBindingResponse, error)
+	DeleteUserKeyboardBinding(ctx context.Context, in *DeleteUserKeyboardBindingRequest, opts ...grpc.CallOption) (*DeleteUserKeyboardBindingResponse, error)
 }
 
 type userClient struct {
@@ -95,6 +105,56 @@ func (c *userClient) VerifyPassword(ctx context.Context, in *VerifyPasswordReque
 	return out, nil
 }
 
+func (c *userClient) CreateUserKeyboardBinding(ctx context.Context, in *CreateUserKeyboardBindingRequest, opts ...grpc.CallOption) (*CreateUserKeyboardBindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateUserKeyboardBindingResponse)
+	err := c.cc.Invoke(ctx, User_CreateUserKeyboardBinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) ListUserKeyboardBinding(ctx context.Context, in *ListUserKeyboardBindingRequest, opts ...grpc.CallOption) (*ListUserKeyboardBindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListUserKeyboardBindingResponse)
+	err := c.cc.Invoke(ctx, User_ListUserKeyboardBinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) GetUserKeyboardBinding(ctx context.Context, in *GetUserKeyboardBindingRequest, opts ...grpc.CallOption) (*GetUserKeyboardBindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUserKeyboardBindingResponse)
+	err := c.cc.Invoke(ctx, User_GetUserKeyboardBinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) UpdateUserKeyboardBinding(ctx context.Context, in *UpdateUserKeyboardBindingRequest, opts ...grpc.CallOption) (*UpdateUserKeyboardBindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUserKeyboardBindingResponse)
+	err := c.cc.Invoke(ctx, User_UpdateUserKeyboardBinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) DeleteUserKeyboardBinding(ctx context.Context, in *DeleteUserKeyboardBindingRequest, opts ...grpc.CallOption) (*DeleteUserKeyboardBindingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteUserKeyboardBindingResponse)
+	err := c.cc.Invoke(ctx, User_DeleteUserKeyboardBinding_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServer is the server API for User service.
 // All implementations must embed UnimplementedUserServer
 // for forward compatibility.
@@ -104,6 +164,11 @@ type UserServer interface {
 	GetUserByName(context.Context, *GetUserByNameRequest) (*GetUserByNameResponse, error)
 	UpdateUser(context.Context, *UpdateUserRequest) (*UpdateUserResponse, error)
 	VerifyPassword(context.Context, *VerifyPasswordRequest) (*VerifyPasswordResponse, error)
+	CreateUserKeyboardBinding(context.Context, *CreateUserKeyboardBindingRequest) (*CreateUserKeyboardBindingResponse, error)
+	ListUserKeyboardBinding(context.Context, *ListUserKeyboardBindingRequest) (*ListUserKeyboardBindingResponse, error)
+	GetUserKeyboardBinding(context.Context, *GetUserKeyboardBindingRequest) (*GetUserKeyboardBindingResponse, error)
+	UpdateUserKeyboardBinding(context.Context, *UpdateUserKeyboardBindingRequest) (*UpdateUserKeyboardBindingResponse, error)
+	DeleteUserKeyboardBinding(context.Context, *DeleteUserKeyboardBindingRequest) (*DeleteUserKeyboardBindingResponse, error)
 	mustEmbedUnimplementedUserServer()
 }
 
@@ -128,6 +193,21 @@ func (UnimplementedUserServer) UpdateUser(context.Context, *UpdateUserRequest) (
 }
 func (UnimplementedUserServer) VerifyPassword(context.Context, *VerifyPasswordRequest) (*VerifyPasswordResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method VerifyPassword not implemented")
+}
+func (UnimplementedUserServer) CreateUserKeyboardBinding(context.Context, *CreateUserKeyboardBindingRequest) (*CreateUserKeyboardBindingResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateUserKeyboardBinding not implemented")
+}
+func (UnimplementedUserServer) ListUserKeyboardBinding(context.Context, *ListUserKeyboardBindingRequest) (*ListUserKeyboardBindingResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListUserKeyboardBinding not implemented")
+}
+func (UnimplementedUserServer) GetUserKeyboardBinding(context.Context, *GetUserKeyboardBindingRequest) (*GetUserKeyboardBindingResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserKeyboardBinding not implemented")
+}
+func (UnimplementedUserServer) UpdateUserKeyboardBinding(context.Context, *UpdateUserKeyboardBindingRequest) (*UpdateUserKeyboardBindingResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserKeyboardBinding not implemented")
+}
+func (UnimplementedUserServer) DeleteUserKeyboardBinding(context.Context, *DeleteUserKeyboardBindingRequest) (*DeleteUserKeyboardBindingResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteUserKeyboardBinding not implemented")
 }
 func (UnimplementedUserServer) mustEmbedUnimplementedUserServer() {}
 func (UnimplementedUserServer) testEmbeddedByValue()              {}
@@ -240,6 +320,96 @@ func _User_VerifyPassword_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _User_CreateUserKeyboardBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateUserKeyboardBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).CreateUserKeyboardBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_CreateUserKeyboardBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).CreateUserKeyboardBinding(ctx, req.(*CreateUserKeyboardBindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_ListUserKeyboardBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListUserKeyboardBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).ListUserKeyboardBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_ListUserKeyboardBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).ListUserKeyboardBinding(ctx, req.(*ListUserKeyboardBindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_GetUserKeyboardBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUserKeyboardBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).GetUserKeyboardBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_GetUserKeyboardBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).GetUserKeyboardBinding(ctx, req.(*GetUserKeyboardBindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_UpdateUserKeyboardBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserKeyboardBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).UpdateUserKeyboardBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_UpdateUserKeyboardBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).UpdateUserKeyboardBinding(ctx, req.(*UpdateUserKeyboardBindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_DeleteUserKeyboardBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteUserKeyboardBindingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).DeleteUserKeyboardBinding(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_DeleteUserKeyboardBinding_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).DeleteUserKeyboardBinding(ctx, req.(*DeleteUserKeyboardBindingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // User_ServiceDesc is the grpc.ServiceDesc for User service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -266,6 +436,26 @@ var User_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "VerifyPassword",
 			Handler:    _User_VerifyPassword_Handler,
+		},
+		{
+			MethodName: "CreateUserKeyboardBinding",
+			Handler:    _User_CreateUserKeyboardBinding_Handler,
+		},
+		{
+			MethodName: "ListUserKeyboardBinding",
+			Handler:    _User_ListUserKeyboardBinding_Handler,
+		},
+		{
+			MethodName: "GetUserKeyboardBinding",
+			Handler:    _User_GetUserKeyboardBinding_Handler,
+		},
+		{
+			MethodName: "UpdateUserKeyboardBinding",
+			Handler:    _User_UpdateUserKeyboardBinding_Handler,
+		},
+		{
+			MethodName: "DeleteUserKeyboardBinding",
+			Handler:    _User_DeleteUserKeyboardBinding_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
