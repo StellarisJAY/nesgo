@@ -131,6 +131,7 @@ func (g *gameFileRepo) DeleteGames(ctx context.Context, games []string) (int, er
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return 0, nil
 	}
+	defer cursor.Close(ctx)
 	count := 0
 	for cursor.Next(ctx) {
 		id := cursor.Current.Lookup("_id").ObjectID()
@@ -225,4 +226,22 @@ func (g *gameFileRepo) ListSaves(ctx context.Context, roomId int64, page, pageSi
 		}
 	}
 	return result, int32(total), nil
+}
+
+func (g *gameFileRepo) DeleteSave(ctx context.Context, saveId int64) error {
+	db := g.data.mongo.Database("nesgo")
+	bucket, err := gridfs.NewBucket(db, options.GridFSBucket().SetName(saveFileBucketName))
+	if err != nil {
+		return err
+	}
+	result := bucket.GetFilesCollection().FindOne(ctx, bson.M{"filename": saveFileName(saveId)})
+	if errors.Is(result.Err(), mongo.ErrNoDocuments) {
+		return nil
+	}
+	if result.Err() != nil {
+		return result.Err()
+	}
+	raw, _ := result.Raw()
+	fileId := raw.Lookup("_id").ObjectID()
+	return bucket.DeleteContext(ctx, fileId)
 }

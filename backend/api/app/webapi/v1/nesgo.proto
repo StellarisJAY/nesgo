@@ -151,6 +151,12 @@ service WebApi {
       body: "*"
     };
   }
+
+  rpc DeleteSave(DeleteSaveRequest) returns (DeleteSaveResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/game/save"
+    };
+  }
 }
 
 message RegisterRequest {
@@ -411,3 +417,10 @@ message RestartEmulatorRequest {
 }
 
 message RestartEmulatorResponse {}
+
+message DeleteSaveRequest {
+  int64 saveId = 1;
+  int64 roomId = 2;
+}
+
+message DeleteSaveResponse {}

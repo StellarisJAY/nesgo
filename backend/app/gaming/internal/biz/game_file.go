@@ -62,3 +62,11 @@ func (uc *GameFileUseCase) ListSaves(ctx context.Context, roomId int64, page, pa
 	}
 	return saves, total, nil
 }
+
+func (uc *GameFileUseCase) DeleteSave(ctx context.Context, saveId int64) error {
+	err := uc.repo.DeleteSave(ctx, saveId)
+	if err != nil {
+		return v1.ErrorDeleteSaveFailed("database error: %v", err)
+	}
+	return nil
+}

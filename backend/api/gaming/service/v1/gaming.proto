@@ -34,6 +34,7 @@ service Gaming {
   rpc SaveGame(SaveGameRequest) returns (SaveGameResponse) {}
   rpc LoadSave(LoadSaveRequest) returns (LoadSaveResponse) {}
   rpc ListSaves(ListSavesRequest) returns (ListSavesResponse) {}
+  rpc DeleteSave(DeleteSaveRequest) returns (DeleteSaveResponse) {}
 }
 
 message CreateGameInstanceRequest {
@@ -234,3 +235,9 @@ message ListSavesResponse {
   repeated Save saves = 1;
   int32 total = 2;
 }
+
+message DeleteSaveRequest {
+  int64 saveId = 1;
+}
+
+message DeleteSaveResponse {}

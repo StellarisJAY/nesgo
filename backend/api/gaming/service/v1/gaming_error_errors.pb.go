@@ -226,3 +226,15 @@ func IsRestartFailed(err error) bool {
 func ErrorRestartFailed(format string, args ...interface{}) *errors.Error {
 	return errors.New(500, UserServiceErrorReason_RESTART_FAILED.String(), fmt.Sprintf(format, args...))
 }
+
+func IsDeleteSaveFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_DELETE_SAVE_FAILED.String() && e.Code == 500
+}
+
+func ErrorDeleteSaveFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_DELETE_SAVE_FAILED.String(), fmt.Sprintf(format, args...))
+}

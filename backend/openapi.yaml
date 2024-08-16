@@ -272,6 +272,26 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.SaveGameResponse'
+        delete:
+            tags:
+                - WebApi
+            operationId: WebApi_DeleteSave
+            parameters:
+                - name: saveId
+                  in: query
+                  schema:
+                    type: string
+                - name: roomId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.DeleteSaveResponse'
     /api/v1/game/saves:
         get:
             tags:
@@ -818,6 +838,9 @@ components:
             type: object
             properties: {}
         nesgo.webapi.v1.DeleteRoomResponse:
+            type: object
+            properties: {}
+        nesgo.webapi.v1.DeleteSaveResponse:
             type: object
             properties: {}
         nesgo.webapi.v1.GameFileMetadata:

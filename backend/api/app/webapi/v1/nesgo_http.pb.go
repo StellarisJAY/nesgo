@@ -23,6 +23,7 @@ const OperationWebApiAddICECandidate = "/nesgo.webapi.v1.WebApi/AddICECandidate"
 const OperationWebApiCreateRoom = "/nesgo.webapi.v1.WebApi/CreateRoom"
 const OperationWebApiDeleteMember = "/nesgo.webapi.v1.WebApi/DeleteMember"
 const OperationWebApiDeleteRoom = "/nesgo.webapi.v1.WebApi/DeleteRoom"
+const OperationWebApiDeleteSave = "/nesgo.webapi.v1.WebApi/DeleteSave"
 const OperationWebApiGetRoom = "/nesgo.webapi.v1.WebApi/GetRoom"
 const OperationWebApiGetRoomMember = "/nesgo.webapi.v1.WebApi/GetRoomMember"
 const OperationWebApiGetRoomSession = "/nesgo.webapi.v1.WebApi/GetRoomSession"
@@ -49,6 +50,7 @@ type WebApiHTTPServer interface {
 	CreateRoom(context.Context, *CreateRoomRequest) (*CreateRoomResponse, error)
 	DeleteMember(context.Context, *DeleteMemberRequest) (*DeleteMemberResponse, error)
 	DeleteRoom(context.Context, *DeleteRoomRequest) (*DeleteRoomResponse, error)
+	DeleteSave(context.Context, *DeleteSaveRequest) (*DeleteSaveResponse, error)
 	GetRoom(context.Context, *GetRoomRequest) (*GetRoomResponse, error)
 	GetRoomMember(context.Context, *GetRoomMemberRequest) (*GetRoomMemberResponse, error)
 	GetRoomSession(context.Context, *GetRoomSessionRequest) (*GetRoomSessionResponse, error)
@@ -97,6 +99,7 @@ func RegisterWebApiHTTPServer(s *http.Server, srv WebApiHTTPServer) {
 	r.POST("/api/v1/game/load", _WebApi_LoadSave0_HTTP_Handler(srv))
 	r.GET("/api/v1/game/saves", _WebApi_ListSaves0_HTTP_Handler(srv))
 	r.POST("/api/v1/game/restart", _WebApi_RestartEmulator0_HTTP_Handler(srv))
+	r.DELETE("/api/v1/game/save", _WebApi_DeleteSave0_HTTP_Handler(srv))
 }
 
 func _WebApi_Register0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
@@ -615,11 +618,31 @@ func _WebApi_RestartEmulator0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.C
 	}
 }
 
+func _WebApi_DeleteSave0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteSaveRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiDeleteSave)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteSave(ctx, req.(*DeleteSaveRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteSaveResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type WebApiHTTPClient interface {
 	AddICECandidate(ctx context.Context, req *AddICECandidateRequest, opts ...http.CallOption) (rsp *AddICECandidateResponse, err error)
 	CreateRoom(ctx context.Context, req *CreateRoomRequest, opts ...http.CallOption) (rsp *CreateRoomResponse, err error)
 	DeleteMember(ctx context.Context, req *DeleteMemberRequest, opts ...http.CallOption) (rsp *DeleteMemberResponse, err error)
 	DeleteRoom(ctx context.Context, req *DeleteRoomRequest, opts ...http.CallOption) (rsp *DeleteRoomResponse, err error)
+	DeleteSave(ctx context.Context, req *DeleteSaveRequest, opts ...http.CallOption) (rsp *DeleteSaveResponse, err error)
 	GetRoom(ctx context.Context, req *GetRoomRequest, opts ...http.CallOption) (rsp *GetRoomResponse, err error)
 	GetRoomMember(ctx context.Context, req *GetRoomMemberRequest, opts ...http.CallOption) (rsp *GetRoomMemberResponse, err error)
 	GetRoomSession(ctx context.Context, req *GetRoomSessionRequest, opts ...http.CallOption) (rsp *GetRoomSessionResponse, err error)
@@ -694,6 +717,19 @@ func (c *WebApiHTTPClientImpl) DeleteRoom(ctx context.Context, in *DeleteRoomReq
 	pattern := "/api/v1/room/{roomId}"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationWebApiDeleteRoom))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) DeleteSave(ctx context.Context, in *DeleteSaveRequest, opts ...http.CallOption) (*DeleteSaveResponse, error) {
+	var out DeleteSaveResponse
+	pattern := "/api/v1/game/save"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationWebApiDeleteSave))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {

@@ -100,3 +100,30 @@ func (r *gamingRepo) SaveGame(ctx context.Context, roomId int64, endpoint string
 	})
 	return err
 }
+
+func (r *gamingRepo) LoadSave(ctx context.Context, roomId, saveId int64, endpoint string) error {
+	conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(endpoint))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	gamingCli := gamingAPI.NewGamingClient(conn)
+	_, err = gamingCli.LoadSave(ctx, &gamingAPI.LoadSaveRequest{
+		RoomId: roomId,
+		SaveId: saveId,
+	})
+	return err
+}
+
+func (r *gamingRepo) DeleteSave(ctx context.Context, saveId int64, endpoint string) error {
+	conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(endpoint))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	gamingCli := gamingAPI.NewGamingClient(conn)
+	_, err = gamingCli.DeleteSave(ctx, &gamingAPI.DeleteSaveRequest{
+		SaveId: saveId,
+	})
+	return err
+}

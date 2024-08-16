@@ -231,3 +231,11 @@ func (g *GamingService) ListSaves(ctx context.Context, request *v1.ListSavesRequ
 	}
 	return &v1.ListSavesResponse{Saves: result, Total: total}, nil
 }
+
+func (g *GamingService) DeleteSave(ctx context.Context, request *v1.DeleteSaveRequest) (*v1.DeleteSaveResponse, error) {
+	err := g.gf.DeleteSave(ctx, request.SaveId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.DeleteSaveResponse{}, nil
+}

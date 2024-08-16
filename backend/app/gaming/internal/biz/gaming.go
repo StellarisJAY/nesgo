@@ -64,6 +64,7 @@ type GameFileRepo interface {
 	GetSavedGame(ctx context.Context, id int64) (*GameSave, error)
 	SaveGame(ctx context.Context, save *GameSave) error
 	ListSaves(ctx context.Context, roomId int64, page, pageSize int32) ([]*GameSave, int32, error)
+	DeleteSave(ctx context.Context, saveId int64) error
 }
 
 type GameInstanceUseCase struct {

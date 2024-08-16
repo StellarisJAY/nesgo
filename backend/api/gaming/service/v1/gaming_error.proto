@@ -26,4 +26,5 @@ enum UserServiceErrorReason {
   SAVE_GAME_FAILED = 15;
   LOAD_SAVE_FAILED = 16;
   RESTART_FAILED = 17;
+  DELETE_SAVE_FAILED = 18;
 }

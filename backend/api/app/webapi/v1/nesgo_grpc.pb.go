@@ -43,6 +43,7 @@ const (
 	WebApi_LoadSave_FullMethodName           = "/nesgo.webapi.v1.WebApi/LoadSave"
 	WebApi_ListSaves_FullMethodName          = "/nesgo.webapi.v1.WebApi/ListSaves"
 	WebApi_RestartEmulator_FullMethodName    = "/nesgo.webapi.v1.WebApi/RestartEmulator"
+	WebApi_DeleteSave_FullMethodName         = "/nesgo.webapi.v1.WebApi/DeleteSave"
 )
 
 // WebApiClient is the client API for WebApi service.
@@ -73,6 +74,7 @@ type WebApiClient interface {
 	LoadSave(ctx context.Context, in *LoadSaveRequest, opts ...grpc.CallOption) (*LoadSaveResponse, error)
 	ListSaves(ctx context.Context, in *ListSavesRequest, opts ...grpc.CallOption) (*ListSavesResponse, error)
 	RestartEmulator(ctx context.Context, in *RestartEmulatorRequest, opts ...grpc.CallOption) (*RestartEmulatorResponse, error)
+	DeleteSave(ctx context.Context, in *DeleteSaveRequest, opts ...grpc.CallOption) (*DeleteSaveResponse, error)
 }
 
 type webApiClient struct {
@@ -323,6 +325,16 @@ func (c *webApiClient) RestartEmulator(ctx context.Context, in *RestartEmulatorR
 	return out, nil
 }
 
+func (c *webApiClient) DeleteSave(ctx context.Context, in *DeleteSaveRequest, opts ...grpc.CallOption) (*DeleteSaveResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteSaveResponse)
+	err := c.cc.Invoke(ctx, WebApi_DeleteSave_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WebApiServer is the server API for WebApi service.
 // All implementations must embed UnimplementedWebApiServer
 // for forward compatibility.
@@ -351,6 +363,7 @@ type WebApiServer interface {
 	LoadSave(context.Context, *LoadSaveRequest) (*LoadSaveResponse, error)
 	ListSaves(context.Context, *ListSavesRequest) (*ListSavesResponse, error)
 	RestartEmulator(context.Context, *RestartEmulatorRequest) (*RestartEmulatorResponse, error)
+	DeleteSave(context.Context, *DeleteSaveRequest) (*DeleteSaveResponse, error)
 	mustEmbedUnimplementedWebApiServer()
 }
 
@@ -432,6 +445,9 @@ func (UnimplementedWebApiServer) ListSaves(context.Context, *ListSavesRequest) (
 }
 func (UnimplementedWebApiServer) RestartEmulator(context.Context, *RestartEmulatorRequest) (*RestartEmulatorResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RestartEmulator not implemented")
+}
+func (UnimplementedWebApiServer) DeleteSave(context.Context, *DeleteSaveRequest) (*DeleteSaveResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteSave not implemented")
 }
 func (UnimplementedWebApiServer) mustEmbedUnimplementedWebApiServer() {}
 func (UnimplementedWebApiServer) testEmbeddedByValue()                {}
@@ -886,6 +902,24 @@ func _WebApi_RestartEmulator_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WebApi_DeleteSave_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteSaveRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).DeleteSave(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_DeleteSave_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).DeleteSave(ctx, req.(*DeleteSaveRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WebApi_ServiceDesc is the grpc.ServiceDesc for WebApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -988,6 +1022,10 @@ var WebApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RestartEmulator",
 			Handler:    _WebApi_RestartEmulator_Handler,
+		},
+		{
+			MethodName: "DeleteSave",
+			Handler:    _WebApi_DeleteSave_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

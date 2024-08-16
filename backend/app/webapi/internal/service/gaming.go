@@ -109,3 +109,23 @@ func (ws *WebApiService) SaveGame(ctx context.Context, request *v1.SaveGameReque
 	}
 	return &v1.SaveGameResponse{}, nil
 }
+
+func (ws *WebApiService) LoadSave(ctx context.Context, request *v1.LoadSaveRequest) (*v1.LoadSaveResponse, error) {
+	c, _ := jwt.FromContext(ctx)
+	claims := c.(*biz.LoginClaims)
+	err := ws.gc.LoadSave(ctx, request.RoomId, request.SaveId, claims.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.LoadSaveResponse{}, nil
+}
+
+func (ws *WebApiService) DeleteSave(ctx context.Context, request *v1.DeleteSaveRequest) (*v1.DeleteSaveResponse, error) {
+	c, _ := jwt.FromContext(ctx)
+	claims := c.(*biz.LoginClaims)
+	err := ws.gc.DeleteSave(ctx, request.RoomId, request.SaveId, claims.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.DeleteSaveResponse{}, nil
+}
