@@ -6,8 +6,8 @@
           <a-descriptions-item label="游戏">{{item["game"]}}</a-descriptions-item>
           <a-descriptions-item label="时间">{{new Date(parseInt(item["createTime"])).toLocaleString()}}</a-descriptions-item>
         </a-descriptions>
-        <a-button type="primary" @click="loadSavedGame(item.id)">加载</a-button>
-        <a-button danger @click="deleteSavedGame(item.id)">删除</a-button>
+        <a-button type="primary" @click="loadSavedGame(item.id)" :disabled = "loadSaveBtnDisable">加载</a-button>
+        <a-button danger @click="deleteSavedGame(item.id)" :disabled = "loadSaveBtnDisable">删除</a-button>
       </a-list-item>
     </template>
     <a-pagination :page="page" :pageSize="pageSize" :total="total" @change="onPaginationChange"></a-pagination>
@@ -40,10 +40,13 @@ export default {
       page: 1,
       pageSize: 10,
       total: 0,
+
+      loadSaveBtnDisable: false,
     }
   },
   created() {
     this.listSaves();
+    addEventListener("saveListOpen", _=>this.listSaves());
   },
   methods: {
     listSaves: function() {
@@ -60,10 +63,30 @@ export default {
       this.listSaves();
     },
     loadSavedGame(id) {
-      // TODO load save
+      const _this = this;
+      this.loadSaveBtnDisable = true;
+      api.post("api/v1/game/load", {
+        "saveId": id,
+        "roomId": this.roomId,
+      }).then(_=>{
+        message.success("加载成功");
+        _this.loadSaveBtnDisable = false;
+      }).catch(_=>{
+        message.error("加载失败");
+        _this.loadSaveBtnDisable = false;
+      })
     },
     deleteSavedGame(id) {
-      // TODO delete save
+      const _this = this;
+      this.loadSaveBtnDisable = true;
+      api.delete("api/v1/game/save?saveId="+id+"&roomId="+this.roomId).then(_=>{
+        message.success("删除成功");
+        _this.listSaves();
+        _this.loadSaveBtnDisable = false;
+      }).catch(_=>{
+        message.error("删除失败");
+        _this.loadSaveBtnDisable = false;
+      });
     },
   }
 }

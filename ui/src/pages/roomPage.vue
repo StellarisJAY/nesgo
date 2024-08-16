@@ -91,11 +91,18 @@ const tourSteps = [
           <a-col :span="6">
             <a-button ref="refRestart" style="width: 90%;" type="primary" :disabled="restartBtnDisabled" @click="restart">重启</a-button>
           </a-col>
-          <a-col>
+          <a-col :span="6"></a-col>
+          <a-col :span="6">
+            <a-button style="width: 90%" type="primary" @click="openSettingDrawer">设置</a-button>
+          </a-col>
+        </a-row>
+        <a-row>
+          <a-col :span="24">
             <a-select
                 ref="refSelector"
                 v-model:value="selectedGame"
                 :options="configs.existingGames"
+                style="width: 100%"
             ></a-select>
           </a-col>
         </a-row>
@@ -128,7 +135,7 @@ const tourSteps = [
     <a-drawer size="default" title="保存游戏" placement="right" v-model:open="savedGameOpen">
      <SaveList :room-id="roomId"></SaveList>
     </a-drawer>
-
+    <!--chat modal-->
     <a-modal title="聊天" v-model:open="chatModalOpen" @cancel="_=>{setChatModal(false)}">
       <template #footer>
         <a-button @click="_=>{setChatModal(false)}">取消</a-button>
@@ -136,6 +143,11 @@ const tourSteps = [
       </template>
       <a-input placeholder="请输入消息..." v-model:value="chatMessage"></a-input>
     </a-modal>
+    <!--settings-->
+    <a-drawer v-model:open="settingDrawerOpen" placement="right" title="设置" size="default">
+      <a-table :data-source="configs.keyboardBinding" :columns="configs.bindingTableColumns" :pagination="false">
+      </a-table>
+    </a-drawer>
     <a-tour :steps="tourSteps" :open="tourOpen" @close="_=>{tourOpen=false}"></a-tour>
   </a-row>
   <p id="rtt">RTT: {{rtt}}ms</p>
@@ -145,7 +157,7 @@ const tourSteps = [
 import api from "../api/request.js";
 import { Row, Col } from "ant-design-vue";
 import {CrownTwoTone} from '@ant-design/icons-vue';
-import {Card, Button, Drawer, List, Descriptions, RadioGroup, Radio, Select, Checkbox, InputPassword, Switch} from "ant-design-vue";
+import {Card, Button, Drawer, List, Descriptions, RadioGroup, Radio, Select, Checkbox, InputPassword, Switch, Table} from "ant-design-vue";
 import {message} from "ant-design-vue";
 import {Form, FormItem, Modal, Input} from "ant-design-vue";
 import router from "../router/index.js";
@@ -190,6 +202,7 @@ export default {
     ATour: Tour,
     RoomInfoDrawer,
     SaveList,
+    ATable: Table,
   },
     data() {
         return {
@@ -225,6 +238,55 @@ export default {
                 "Enter": "Start",
                 "Tab": "Select",
               },
+
+              keyboardBinding: [
+                {
+                  "keyboard": "KeyA",
+                  "emulator": "Left",
+                },
+                {
+                  "keyboard": "KeyD",
+                  "emulator": "Right",
+                },
+                {
+                  "keyboard": "KeyW",
+                  "emulator": "Up",
+                },
+                {
+                  "keyboard": "KeyS",
+                  "emulator": "Down",
+                },
+                {
+                  "keyboard": "KeyJ",
+                  "emulator": "B",
+                },
+                {
+                  "keyboard": "Space",
+                  "emulator": "A",
+                },
+                {
+                  "keyboard": "Enter",
+                  "emulator": "Start",
+                },
+                {
+                  "keyboard": "Tab",
+                  "emulator": "Select",
+                },
+              ],
+
+              bindingTableColumns: [
+                {
+                  "title": "键盘按键",
+                  "dataIndex": "keyboard",
+                  "key": "keyboard",
+                },
+                {
+                  "title": "模拟器按键",
+                  "dataIndex": "emulator",
+                  "key": "emulator",
+                }
+              ],
+
               existingGames: [],
             },
             savedGameOpen: false,
@@ -238,6 +300,8 @@ export default {
             pingInterval: 0,
             rtt: 0,
             iceCandidates: [],
+
+            settingDrawerOpen: false,
         }
     },
   created() {
@@ -251,6 +315,7 @@ export default {
   methods: {
       openRoomMemberDrawer() {
           this.membersDrawerOpen = true;
+          dispatchEvent(new Event("memberDrawerOpen"));
       },
 
       getMemberSelf: async function() {
@@ -449,6 +514,7 @@ export default {
 
     openSavedGamesDrawer() {
         this.savedGameOpen = true;
+        dispatchEvent(new Event("saveListOpen"));
     },
     saveGame() {
         const _this = this;
@@ -516,6 +582,10 @@ export default {
     ping() {
         const timestamp = new Date().getTime()
         // TODO send ping message
+    },
+
+    openSettingDrawer() {
+        this.settingDrawerOpen = true;
     }
   }
 }

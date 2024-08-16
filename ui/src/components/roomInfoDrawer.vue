@@ -79,13 +79,13 @@ export default {
   },
   created() {
     this.listRoomMembers();
+    addEventListener("memberDrawerOpen", _=>this.listRoomMembers());
   },
   methods: {
     listRoomMembers: async function() {
       const resp = await api.get("api/v1/members?roomId=" + this.roomId);
       this.members = resp["members"];
     },
-
     onRoleRatioChange(ev, member) {
       member.role = ev.target.value;
       const _this = this;
@@ -111,7 +111,7 @@ export default {
     },
 
     onP1P2Change(ev, m, which) {
-      if (m["role"] === RoleNameObserver) {
+      if (m["role"] === this.RoleNameObserver) {
         message.error("无法修改观战玩家的控制");
         return;
       }
