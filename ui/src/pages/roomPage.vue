@@ -145,8 +145,11 @@ const tourSteps = [
     </a-modal>
     <!--settings-->
     <a-drawer v-model:open="settingDrawerOpen" placement="right" title="设置" size="default">
-      <a-table :data-source="configs.keyboardBinding" :columns="configs.bindingTableColumns" :pagination="false">
-      </a-table>
+      <p>切换键盘按键绑定</p>
+      <a-select></a-select>
+      <a-table :data-source="configs.selectedBinding.bindings"
+               :columns="configs.bindingTableColumns"
+               :pagination="false"></a-table>
     </a-drawer>
     <a-tour :steps="tourSteps" :open="tourOpen" @close="_=>{tourOpen=false}"></a-tour>
   </a-row>
@@ -171,6 +174,43 @@ const MessageGameButtonReleased = 1
 const RoleNameHost = "Host";
 const RoleNamePlayer = "Player";
 const RoleNameObserver = "Observer";
+const defaultBinding = {
+      "name": "默认绑定",
+      "bindings": [
+        {
+          "keyboardKey": "KeyA",
+          "emulatorKey": "Left",
+        },
+        {
+          "keyboardKey": "KeyD",
+          "emulatorKey": "Right",
+        },
+        {
+          "keyboardKey": "KeyW",
+          "emulatorKey": "Up",
+        },
+        {
+          "keyboardKey": "KeyS",
+          "emulatorKey": "Down",
+        },
+        {
+          "keyboardKey": "KeyJ",
+          "emulatorKey": "B",
+        },
+        {
+          "keyboardKey": "Space",
+          "emulatorKey": "A",
+        },
+        {
+          "keyboardKey": "Enter",
+          "emulatorKey": "Start",
+        },
+        {
+          "keyboardKey": "Tab",
+          "emulatorKey": "Select",
+        },
+      ]
+    };
 
 export default {
   components: {
@@ -238,55 +278,22 @@ export default {
                 "Enter": "Start",
                 "Tab": "Select",
               },
-
-              keyboardBinding: [
-                {
-                  "keyboard": "KeyA",
-                  "emulator": "Left",
-                },
-                {
-                  "keyboard": "KeyD",
-                  "emulator": "Right",
-                },
-                {
-                  "keyboard": "KeyW",
-                  "emulator": "Up",
-                },
-                {
-                  "keyboard": "KeyS",
-                  "emulator": "Down",
-                },
-                {
-                  "keyboard": "KeyJ",
-                  "emulator": "B",
-                },
-                {
-                  "keyboard": "Space",
-                  "emulator": "A",
-                },
-                {
-                  "keyboard": "Enter",
-                  "emulator": "Start",
-                },
-                {
-                  "keyboard": "Tab",
-                  "emulator": "Select",
-                },
-              ],
-
               bindingTableColumns: [
                 {
                   "title": "键盘按键",
-                  "dataIndex": "keyboard",
-                  "key": "keyboard",
+                  "dataIndex": "keyboardKey",
+                  "key": "keyboardKey",
                 },
                 {
                   "title": "模拟器按键",
-                  "dataIndex": "emulator",
-                  "key": "emulator",
+                  "dataIndex": "emulatorKey",
+                  "key": "emulatorKey",
                 }
               ],
-
+              userBindings: [],
+              selectedBinding: defaultBinding,
+              selectedBindingKey: "",
+              bindingOptions: [],
               existingGames: [],
             },
             savedGameOpen: false,
@@ -586,7 +593,7 @@ export default {
 
     openSettingDrawer() {
         this.settingDrawerOpen = true;
-    }
+    },
   }
 }
 </script>
