@@ -158,9 +158,10 @@ const tourSteps = [
 
 <script>
 import api from "../api/request.js";
+import configs from "../api/const.js";
 import { Row, Col } from "ant-design-vue";
 import {CrownTwoTone} from '@ant-design/icons-vue';
-import {Card, Button, Drawer, List, Descriptions, RadioGroup, Radio, Select, Checkbox, InputPassword, Switch, Table} from "ant-design-vue";
+import {Card, Button, Drawer, List, Descriptions, RadioGroup, Radio, Select, Checkbox, InputPassword, Switch, Table, notification} from "ant-design-vue";
 import {message} from "ant-design-vue";
 import {Form, FormItem, Modal, Input} from "ant-design-vue";
 import router from "../router/index.js";
@@ -170,10 +171,13 @@ import RoomInfoDrawer from "../components/roomInfoDrawer.vue";
 import SaveList from "../components/saveList.vue";
 const MessageGameButtonPressed = 0
 const MessageGameButtonReleased = 1
+const MessageChat = 2;
+const MessagePing = 14;
 
 const RoleNameHost = "Host";
 const RoleNamePlayer = "Player";
 const RoleNameObserver = "Observer";
+
 const defaultBinding = {
       "name": "默认绑定",
       "bindings": [
@@ -370,12 +374,16 @@ export default {
           return;
         }
 
-        // TODO TURN relay server
         const pc = new RTCPeerConnection({
           iceServers: [
             {
-              urls: "stun:stun.l.google.com"
+              urls: configs.StunServer,
             },
+            {
+              urls: configs.TurnServer.Host,
+              username: configs.TurnServer.Username,
+              credential: configs.TurnServer.Password,
+            }
           ],
           iceTransportPolicy: "all",
         });
@@ -448,13 +456,10 @@ export default {
         }
         // data channel
         pc.ondatachannel = ev=>{
-          console.log("on datachannel: ", ev);
           rtcSession.dataChannel = ev.channel;
-          ev.channel.onopen = _=>console.log("datachannel open");
-          // TODO handle data channel message
-          ev.channel.onmessage = msg=>{
-            console.log(msg.data);
-          };
+          ev.channel.onopen = _=>_this.onDataChannelOpen();
+          ev.channel.onmessage = msg=>_this.onDataChannelMsg(msg);
+          ev.channel.onclose = _=>_this.onDataChannelClose();
         };
         this.rtcSession = rtcSession;
       },
@@ -569,7 +574,16 @@ export default {
       }
     },
     sendChatMessage() {
-      // TODO send chat message
+      const timestamp = new Date().getTime();
+      if (this.rtcSession && this.rtcSession.pc) {
+        const pingMsg = {
+          "type": MessageChat,
+          "timestamp": timestamp,
+          "data": this.chatMessage,
+        };
+        this.rtcSession.dataChannel.send(JSON.stringify(pingMsg));
+      }
+      this.setChatModal(false);
     },
 
     setKeyboardControl(enabled) {
@@ -594,12 +608,51 @@ export default {
     },
 
     ping() {
-        const timestamp = new Date().getTime()
-        // TODO send ping message
+        const timestamp = new Date().getTime();
+        if (this.rtcSession && this.rtcSession.pc) {
+          const pingMsg = {
+            "type": MessagePing,
+            "timestamp": timestamp,
+          };
+          this.rtcSession.dataChannel.send(JSON.stringify(pingMsg));
+        }
     },
 
     openSettingDrawer() {
         this.settingDrawerOpen = true;
+    },
+
+    onDataChannelMsg(msg) {
+      const msgStr = String.fromCharCode.apply(null, new Uint8Array(msg.data));
+      const msgObj = JSON.parse(msgStr);
+      switch (msgObj.type) {
+        case MessagePing:
+          this.rtt = new Date().getTime() - msgObj.timestamp;
+          break;
+        case MessageChat:
+          if (!msgObj["from"]) return;
+          api.get("api/v1/user/"+msgObj["from"]).then(resp=>{
+            notification.info({
+              message: resp["data"]["name"],
+              description: msgObj.data,
+              placement: "topLeft",
+              duration: 1,
+            });
+          });
+          break;
+        default:
+          break
+      }
+    },
+
+    onDataChannelOpen() {
+      this.chatBtnDisabled = false;
+      this.pingInterval = setInterval(this.ping, 1000);
+    },
+
+    onDataChannelClose() {
+        if (this.pingInterval) clearInterval(this.pingInterval);
+        this.chatBtnDisabled = true;
     },
   }
 }

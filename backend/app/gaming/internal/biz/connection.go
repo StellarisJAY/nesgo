@@ -1,6 +1,7 @@
 package biz
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/pion/webrtc/v3"
@@ -88,7 +89,7 @@ func (g *GameInstance) NewConnection(userId int64) (*Connection, string, error) 
 	})
 	pc.OnICEConnectionStateChange(conn.OnICEStateChange)
 	dataChannel.OnMessage(func(msg webrtc.DataChannelMessage) {
-		g.onDataChannelMessage(userId, msg.Data)
+		conn.OnDataChannelMessage(g, msg)
 	})
 	rch := make(chan ConsumerResult)
 	g.messageChan <- &Message{
@@ -111,13 +112,20 @@ func (c *Connection) OnPeerConnectionState(state webrtc.PeerConnectionState, ins
 	}
 }
 
-func (c *Connection) OnICEStateChange(state webrtc.ICEConnectionState) {
-	fmt.Println("ice state: ", state.String())
-	if state == webrtc.ICEConnectionStateConnected {
-		pair, err := c.pc.SCTP().Transport().ICETransport().GetSelectedCandidatePair()
-		if err == nil {
-			fmt.Println("connected candidate pair: ", pair.String())
-		}
+func (c *Connection) OnICEStateChange(_ webrtc.ICEConnectionState) {
+
+}
+
+func (c *Connection) OnDataChannelMessage(instance *GameInstance, msg webrtc.DataChannelMessage) {
+	m := &Message{}
+	err := json.Unmarshal(msg.Data, m)
+	if err != nil {
+		return
+	}
+	if m.Type == MsgPing {
+		_ = c.dataChannel.Send(msg.Data)
+	} else {
+		instance.onDataChannelMessage(c.userId, m)
 	}
 }
 

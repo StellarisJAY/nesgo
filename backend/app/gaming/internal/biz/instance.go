@@ -32,6 +32,7 @@ const (
 	MsgSaveGame
 	MsgLoadSave
 	MsgRestartEmulator
+	MsgPing
 )
 
 const (
@@ -144,13 +145,7 @@ func (g *GameInstance) sendAudioSamples(buffer []float32, logger *log.Helper) {
 	}
 }
 
-func (g *GameInstance) onDataChannelMessage(userId int64, raw []byte) {
-	msg := &Message{}
-	err := json.Unmarshal(raw, msg)
-	if err != nil {
-		// TODO GameInstance logger
-		return
-	}
+func (g *GameInstance) onDataChannelMessage(userId int64, msg *Message) {
 	msg.From = userId
 	g.messageChan <- msg
 }
@@ -167,7 +162,6 @@ func (g *GameInstance) messageConsumer(ctx context.Context) {
 			case MsgPlayerControlButtonReleased:
 				keyCode := msg.Data.(string)
 				g.handlePlayerControl(keyCode, msg.Type, msg.From)
-			case MsgChat: // TODO handle chat message
 			case MsgNewConn:
 				msg.resultChan <- g.handleMsgNewConn(msg.Data.(*Connection))
 			case MsgPeerConnected:
@@ -186,6 +180,8 @@ func (g *GameInstance) messageConsumer(ctx context.Context) {
 				msg.resultChan <- g.handleLoadSave(msg.Data.(*gameSaveLoader))
 			case MsgRestartEmulator:
 				msg.resultChan <- g.handleRestartEmulator(msg.Data.(*emulatorRestartRequest))
+			case MsgChat:
+				g.handleChat(msg)
 			default: // TODO handle unknown message
 			}
 		}
@@ -463,5 +459,15 @@ func (g *GameInstance) RestartEmulator(game string, gameData []byte) error {
 		return nil
 	} else {
 		return result.Error
+	}
+}
+
+func (g *GameInstance) handleChat(msg *Message) {
+	g.mutex.RLock()
+	defer g.mutex.RUnlock()
+	resp := &Message{Type: MsgChat, From: msg.From, To: 0, Data: msg.Data}
+	for _, conn := range g.connections {
+		raw, _ := json.Marshal(resp)
+		_ = conn.dataChannel.Send(raw)
 	}
 }
