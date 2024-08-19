@@ -40,6 +40,7 @@ func (u *userKeyboardBindingRepo) CreateKeyboardBinding(ctx context.Context, ub 
 
 func (u *userKeyboardBindingRepo) UpdateKeyboardBinding(ctx context.Context, ub *biz.UserKeyboardBinding) error {
 	request := &userAPI.UpdateUserKeyboardBindingRequest{
+		Id:       ub.Id,
 		Name:     ub.Name,
 		UserId:   ub.UserId,
 		Bindings: make([]*userAPI.KeyboardBinding, 0, len(ub.KeyboardBindings)),

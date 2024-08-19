@@ -53,7 +53,7 @@ func (uc *UserKeyboardBindingUseCase) CreateKeyboardBinding(ctx context.Context,
 
 func (uc *UserKeyboardBindingUseCase) UpdateKeyboardBinding(ctx context.Context, ub *UserKeyboardBinding) error {
 	binding, _ := uc.repo.GetBindingByName(ctx, ub.UserId, ub.Name)
-	if binding != nil {
+	if binding != nil && binding.Id != ub.Id {
 		return v1.ErrorUpdateKeyboardBindingFailed("name already exists")
 	}
 	err := uc.repo.UpdateKeyboardBinding(ctx, ub)

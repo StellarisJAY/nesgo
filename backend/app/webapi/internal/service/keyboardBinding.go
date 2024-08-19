@@ -69,6 +69,7 @@ func (ws *WebApiService) UpdateUserKeyboardBinding(ctx context.Context, request 
 	claims, _ := jwt.FromContext(ctx)
 	c := claims.(*biz.LoginClaims)
 	ub := &biz.UserKeyboardBinding{
+		Id:               request.Id,
 		Name:             request.Name,
 		UserId:           c.UserId,
 		KeyboardBindings: make([]*biz.KeyboardBinding, 0, len(request.Bindings)),

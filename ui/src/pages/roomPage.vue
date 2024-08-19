@@ -146,10 +146,35 @@ const tourSteps = [
     <!--settings-->
     <a-drawer v-model:open="settingDrawerOpen" placement="right" title="设置" size="default">
       <p>切换键盘按键绑定</p>
-      <a-select></a-select>
-      <a-table :data-source="configs.selectedBinding.bindings"
+      <a-row>
+        <a-col :span="12">
+          <a-select :options="configs.bindingOptions" v-model:value="configs.selectedBindingKey" @change="onKeyboardBindingSelectChange"></a-select>
+        </a-col>
+        <a-col :span="6"></a-col>
+        <a-col :span="6">
+          <a-button type="primary" @click="setKeyboardBindingEnabled">启用</a-button>
+        </a-col>
+      </a-row>
+
+      <a-table :data-source="configs.selectedBinding['bindings']"
                :columns="configs.bindingTableColumns"
-               :pagination="false"></a-table>
+               :pagination="false">
+        <template #bodyCell="{column, record}">
+          <template v-if="column.dataIndex === 'emulatorKey'">
+            {{record.emulatorKey}}
+          </template>
+          <template v-else-if="column.dataIndex==='keyboardKey'">
+            <KeyboardKeyPicker :limit="1" :buttons="record.buttons"></KeyboardKeyPicker>
+          </template>
+        </template>
+      </a-table>
+
+      <a-row>
+        <a-col :span="18"></a-col>
+        <a-col :span="6">
+          <a-button type="primary" @click="updateBinding" :disabled="configs.selectedBinding.id==='0'">保存修改</a-button>
+        </a-col>
+      </a-row>
     </a-drawer>
     <a-tour :steps="tourSteps" :open="tourOpen" @close="_=>{tourOpen=false}"></a-tour>
   </a-row>
@@ -158,7 +183,7 @@ const tourSteps = [
 
 <script>
 import api from "../api/request.js";
-import configs from "../api/const.js";
+import globalConfigs from "../api/const.js";
 import { Row, Col } from "ant-design-vue";
 import {CrownTwoTone} from '@ant-design/icons-vue';
 import {Card, Button, Drawer, List, Descriptions, RadioGroup, Radio, Select, Checkbox, InputPassword, Switch, Table, notification} from "ant-design-vue";
@@ -169,6 +194,8 @@ import {ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutline
 import {Tour} from "ant-design-vue";
 import RoomInfoDrawer from "../components/roomInfoDrawer.vue";
 import SaveList from "../components/saveList.vue";
+import KeyboardKeyPicker from "../components/keyboardKeyPicker.vue";
+
 const MessageGameButtonPressed = 0
 const MessageGameButtonReleased = 1
 const MessageChat = 2;
@@ -179,39 +206,56 @@ const RoleNamePlayer = "Player";
 const RoleNameObserver = "Observer";
 
 const defaultBinding = {
+      "id": "0",
       "name": "默认绑定",
       "bindings": [
         {
-          "keyboardKey": "KeyA",
           "emulatorKey": "Left",
+          "emulatorKeyTranslated": "Left",
+          "buttons": ["KeyA"],
+          "keyboardKey": "KeyA",
         },
         {
-          "keyboardKey": "KeyD",
           "emulatorKey": "Right",
+          "emulatorKeyTranslated": "Right",
+          "buttons": ["KeyD"],
+          "keyboardKey": "KeyD",
         },
         {
-          "keyboardKey": "KeyW",
           "emulatorKey": "Up",
+          "emulatorKeyTranslated": "Up",
+          "buttons": ["KeyW"],
+          "keyboardKey": "KeyW",
         },
         {
-          "keyboardKey": "KeyS",
           "emulatorKey": "Down",
+          "emulatorKeyTranslated": "Down",
+          "buttons": ["KeyS"],
+          "keyboardKey": "KeyS",
         },
         {
-          "keyboardKey": "KeyJ",
-          "emulatorKey": "B",
-        },
-        {
-          "keyboardKey": "Space",
           "emulatorKey": "A",
+          "emulatorKeyTranslated": "A",
+          "buttons": ["Space"],
+          "keyboardKey": "Space",
         },
         {
-          "keyboardKey": "Enter",
+          "emulatorKey": "B",
+          "emulatorKeyTranslated": "B",
+          "buttons": ["KeyJ"],
+          "keyboardKey": "KeyJ",
+        },
+        {
           "emulatorKey": "Start",
+          "emulatorKeyTranslated": "Start",
+          "buttons": ["Enter"],
+          "keyboardKey": "Enter",
         },
         {
-          "keyboardKey": "Tab",
           "emulatorKey": "Select",
+          "emulatorKeyTranslated": "Select",
+          "buttons": ["Tab"],
+          "keyboardKey": "Tab",
         },
       ]
     };
@@ -247,6 +291,7 @@ export default {
     RoomInfoDrawer,
     SaveList,
     ATable: Table,
+    KeyboardKeyPicker,
   },
     data() {
         return {
@@ -377,12 +422,12 @@ export default {
         const pc = new RTCPeerConnection({
           iceServers: [
             {
-              urls: configs.StunServer,
+              urls: globalConfigs.StunServer,
             },
             {
-              urls: configs.TurnServer.Host,
-              username: configs.TurnServer.Username,
-              credential: configs.TurnServer.Password,
+              urls: globalConfigs.TurnServer.Host,
+              username: globalConfigs.TurnServer.Username,
+              credential: globalConfigs.TurnServer.Password,
             }
           ],
           iceTransportPolicy: "all",
@@ -588,19 +633,20 @@ export default {
 
     setKeyboardControl(enabled) {
         if (enabled) {
-          window.onkeydown = ev=> {
-            const button = this.configs.keyboardMapping[ev.code];
+          const _this = this;
+          window.onkeydown = ev=>{
+            const button = _this.configs.selectedBinding.bindings.find(item=>item.buttons[0] === ev.code);
             if (button) {
-              this.sendAction(button, MessageGameButtonPressed)
+              _this.sendAction(button.emulatorKey, MessageGameButtonPressed);
             }
-          }
+          };
 
-          window.onkeyup = ev=> {
-            const button = this.configs.keyboardMapping[ev.code];
+          window.onkeyup = ev=>{
+            const button = _this.configs.selectedBinding.bindings.find(item=>item.buttons[0] === ev.code);
             if (button) {
-              this.sendAction(button, MessageGameButtonReleased)
+              _this.sendAction(button.emulatorKey, MessageGameButtonReleased);
             }
-          }
+          };
         }else {
           window.onkeydown = _=>{}
           window.onkeyup = _=>{}
@@ -619,7 +665,8 @@ export default {
     },
 
     openSettingDrawer() {
-        this.settingDrawerOpen = true;
+      this.settingDrawerOpen = true;
+      this.listKeyboardBindings();
     },
 
     onDataChannelMsg(msg) {
@@ -653,6 +700,71 @@ export default {
     onDataChannelClose() {
         if (this.pingInterval) clearInterval(this.pingInterval);
         this.chatBtnDisabled = true;
+    },
+
+    listKeyboardBindings: function() {
+      const _this = this;
+      api.get("api/v1/keyboard/bindings?page=0&pageSize=100").then(resp=>{
+        _this.configs.userBindings = resp["bindings"];
+        _this.configs.userBindings.push(defaultBinding);
+        const userBindings = _this.configs.userBindings;
+        let options = [];
+        for (let i = 0; i < userBindings.length; i++) {
+          options.push({
+            value: userBindings[i]["id"],
+            label: userBindings[i]["name"],
+          });
+          const curBindings = userBindings[i]["bindings"];
+          for (let j = 0; j < curBindings.length; j++) {
+            curBindings[j]["buttons"] = [curBindings[j]["keyboardKey"]];
+          }
+        }
+        _this.configs.selectedBindingKey = userBindings[0].id;
+        _this.configs.selectedBinding = userBindings[0];
+        _this.configs.bindingOptions = options;
+      }).catch(_=>{
+        message.error("获取按键绑定失败");
+      });
+    },
+    onKeyboardBindingSelectChange: function(ev) {
+      this.configs.selectedBinding = this.configs.userBindings.find(item=>item["id"]===this.configs.selectedBindingKey);
+    },
+
+    updateBinding: function() {
+      const data = this.convertBindingsToApiObj(this.configs.selectedBinding);
+      data["id"] = this.configs.selectedBindingKey;
+      const _this = this;
+      this.createBtnDisable = true;
+      this.bindingBtnDisable = true;
+      api.put("api/v1/keyboard/binding", data).then(_=>{
+        message.success("修改成功");
+        _this.listKeyboardBindings();
+        _this.createBtnDisable = false;
+        _this.bindingBtnDisable = false;
+      }).catch(_=>{
+        message.error("修改失败");
+        _this.createBtnDisable = false;
+        _this.bindingBtnDisable = false;
+      });
+    },
+
+    convertBindingsToApiObj: function(bindingObj) {
+      const apiObj = {
+        "name": bindingObj.name,
+        "bindings": [],
+      };
+      bindingObj.bindings.forEach(item=>{
+        apiObj["bindings"].push({
+          "emulatorKey": item.emulatorKey,
+          "keyboardKey": item.buttons[0],
+        });
+      });
+      return apiObj;
+    },
+
+    setKeyboardBindingEnabled: function() {
+      this.setKeyboardControl(true);
+      message.info("设置成功");
     },
   }
 }

@@ -44,4 +44,7 @@ export default {
 </script>
 
 <style>
+.center-card {
+  height: 100vh;
+}
 </style>
