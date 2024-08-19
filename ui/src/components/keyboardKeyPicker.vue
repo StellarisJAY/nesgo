@@ -1,7 +1,7 @@
 <template>
   <a-button-group>
     <a-button v-for="b in buttons" @click="deleteButton(b)">{{b}}</a-button>
-    <a-button @click="addButton" :hidden="limit === buttons.length">+</a-button>
+    <a-button @click="addButton" :hidden="limit === buttons.length" :disabled="addBtnDisabled">+</a-button>
   </a-button-group>
 </template>
 
@@ -19,6 +19,7 @@ export default {
   },
   data() {
     return {
+      addBtnDisabled: false,
     }
   },
   created() {
@@ -29,6 +30,7 @@ export default {
         message.warn("最多绑定"+this.limit+"个按键");
         return;
       }
+      this.addBtnDisabled = true;
       addEventListener("keyup", this.keyUpListener, false);
     },
 
@@ -38,8 +40,8 @@ export default {
       if (idx === -1 && this.buttons.length < this.limit) {
         this.buttons.push(ev.code);
       }
+      this.addBtnDisabled = false;
     },
-
     deleteButton: function(b) {
       const idx = this.buttons.findIndex(item=>item===b);
       this.buttons.splice(idx, 1);

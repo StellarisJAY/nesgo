@@ -38,6 +38,7 @@
         <a-button>取消</a-button>
         <a-button type="primary" @click="createBinding">创建</a-button>
       </template>
+      <p>提示：点击按钮取消绑定，点击‘+’后按下键盘按键添加绑定</p>
       <a-input v-model:value="newBinding.name" placeholder="按键绑定名称"></a-input>
       <a-table :data-source="newBinding.bindings" :columns="bindingColumns" :pagination="false">
         <template #bodyCell="{column, record}">

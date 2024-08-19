@@ -145,7 +145,7 @@ const tourSteps = [
     </a-modal>
     <!--settings-->
     <a-drawer v-model:open="settingDrawerOpen" placement="right" title="设置" size="default">
-      <p>切换键盘按键绑定</p>
+      <p>提示：点击按钮取消绑定，点击‘+’后按下键盘按键添加绑定</p>
       <a-row>
         <a-col :span="12">
           <a-select :options="configs.bindingOptions" v-model:value="configs.selectedBindingKey" @change="onKeyboardBindingSelectChange"></a-select>
