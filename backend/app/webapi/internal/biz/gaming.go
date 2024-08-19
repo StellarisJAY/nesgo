@@ -36,6 +36,7 @@ type GamingRepo interface {
 	SaveGame(ctx context.Context, roomId int64, endpoint string) error
 	LoadSave(ctx context.Context, roomId, saveId int64, endpoint string) error
 	DeleteSave(ctx context.Context, saveId int64, endpoint string) error
+	GetServerICECandidate(ctx context.Context, roomId, userId int64, endpoint string) ([]string, error)
 }
 
 func NewGamingUseCase(roomRepo RoomRepo, gamingRepo GamingRepo, logger log.Logger) *GamingUseCase {
@@ -202,4 +203,16 @@ func (uc *GamingUseCase) DeleteSave(ctx context.Context, roomId, saveId, userId 
 		return v1.ErrorOperationFailed("room session not found")
 	}
 	return uc.repo.DeleteSave(ctx, saveId, session.Endpoint)
+}
+
+func (uc *GamingUseCase) GetServerICECandidate(ctx context.Context, roomId, userId int64) ([]string, error) {
+	session, _ := uc.roomRepo.GetRoomSession(ctx, roomId)
+	if session == nil {
+		return nil, v1.ErrorOperationFailed("room session not found")
+	}
+	candidates, err := uc.repo.GetServerICECandidate(ctx, roomId, userId, session.Endpoint)
+	if err != nil {
+		return nil, err
+	}
+	return candidates, nil
 }

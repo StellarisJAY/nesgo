@@ -23,6 +23,7 @@ const (
 	Gaming_OpenGameConnection_FullMethodName     = "/gaming.v1.Gaming/OpenGameConnection"
 	Gaming_SDPAnswer_FullMethodName              = "/gaming.v1.Gaming/SDPAnswer"
 	Gaming_ICECandidate_FullMethodName           = "/gaming.v1.Gaming/ICECandidate"
+	Gaming_GetServerICECandidate_FullMethodName  = "/gaming.v1.Gaming/GetServerICECandidate"
 	Gaming_PauseEmulator_FullMethodName          = "/gaming.v1.Gaming/PauseEmulator"
 	Gaming_RestartEmulator_FullMethodName        = "/gaming.v1.Gaming/RestartEmulator"
 	Gaming_DeleteGameInstance_FullMethodName     = "/gaming.v1.Gaming/DeleteGameInstance"
@@ -49,6 +50,7 @@ type GamingClient interface {
 	OpenGameConnection(ctx context.Context, in *OpenGameConnectionRequest, opts ...grpc.CallOption) (*OpenGameConnectionResponse, error)
 	SDPAnswer(ctx context.Context, in *SDPAnswerRequest, opts ...grpc.CallOption) (*SDPAnswerResponse, error)
 	ICECandidate(ctx context.Context, in *ICECandidateRequest, opts ...grpc.CallOption) (*ICECandidateResponse, error)
+	GetServerICECandidate(ctx context.Context, in *GetServerICECandidateRequest, opts ...grpc.CallOption) (*GetServerICECandidateResponse, error)
 	PauseEmulator(ctx context.Context, in *PauseEmulatorRequest, opts ...grpc.CallOption) (*PauseEmulatorResponse, error)
 	RestartEmulator(ctx context.Context, in *RestartEmulatorRequest, opts ...grpc.CallOption) (*RestartEmulatorResponse, error)
 	DeleteGameInstance(ctx context.Context, in *DeleteGameInstanceRequest, opts ...grpc.CallOption) (*DeleteGameInstanceResponse, error)
@@ -109,6 +111,16 @@ func (c *gamingClient) ICECandidate(ctx context.Context, in *ICECandidateRequest
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ICECandidateResponse)
 	err := c.cc.Invoke(ctx, Gaming_ICECandidate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gamingClient) GetServerICECandidate(ctx context.Context, in *GetServerICECandidateRequest, opts ...grpc.CallOption) (*GetServerICECandidateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetServerICECandidateResponse)
+	err := c.cc.Invoke(ctx, Gaming_GetServerICECandidate_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -283,6 +295,7 @@ type GamingServer interface {
 	OpenGameConnection(context.Context, *OpenGameConnectionRequest) (*OpenGameConnectionResponse, error)
 	SDPAnswer(context.Context, *SDPAnswerRequest) (*SDPAnswerResponse, error)
 	ICECandidate(context.Context, *ICECandidateRequest) (*ICECandidateResponse, error)
+	GetServerICECandidate(context.Context, *GetServerICECandidateRequest) (*GetServerICECandidateResponse, error)
 	PauseEmulator(context.Context, *PauseEmulatorRequest) (*PauseEmulatorResponse, error)
 	RestartEmulator(context.Context, *RestartEmulatorRequest) (*RestartEmulatorResponse, error)
 	DeleteGameInstance(context.Context, *DeleteGameInstanceRequest) (*DeleteGameInstanceResponse, error)
@@ -320,6 +333,9 @@ func (UnimplementedGamingServer) SDPAnswer(context.Context, *SDPAnswerRequest) (
 }
 func (UnimplementedGamingServer) ICECandidate(context.Context, *ICECandidateRequest) (*ICECandidateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ICECandidate not implemented")
+}
+func (UnimplementedGamingServer) GetServerICECandidate(context.Context, *GetServerICECandidateRequest) (*GetServerICECandidateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetServerICECandidate not implemented")
 }
 func (UnimplementedGamingServer) PauseEmulator(context.Context, *PauseEmulatorRequest) (*PauseEmulatorResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PauseEmulator not implemented")
@@ -458,6 +474,24 @@ func _Gaming_ICECandidate_Handler(srv interface{}, ctx context.Context, dec func
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GamingServer).ICECandidate(ctx, req.(*ICECandidateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Gaming_GetServerICECandidate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetServerICECandidateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).GetServerICECandidate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_GetServerICECandidate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).GetServerICECandidate(ctx, req.(*GetServerICECandidateRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -772,6 +806,10 @@ var Gaming_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ICECandidate",
 			Handler:    _Gaming_ICECandidate_Handler,
+		},
+		{
+			MethodName: "GetServerICECandidate",
+			Handler:    _Gaming_GetServerICECandidate_Handler,
 		},
 		{
 			MethodName: "PauseEmulator",

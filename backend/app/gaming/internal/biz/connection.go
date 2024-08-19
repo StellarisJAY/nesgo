@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/pion/webrtc/v3"
+	"sync"
 )
 
 type Connection struct {
@@ -12,10 +13,19 @@ type Connection struct {
 	audioTrack  *webrtc.TrackLocalStaticSample
 	dataChannel *webrtc.DataChannel
 	userId      int64
+
+	localCandidates []*webrtc.ICECandidate
+	mutex           *sync.Mutex
 }
 
 func (g *GameInstance) NewConnection(userId int64) (*Connection, string, error) {
-	pc, err := webrtc.NewPeerConnection(webrtc.Configuration{})
+	pc, err := webrtc.NewPeerConnection(webrtc.Configuration{
+		ICEServers: []webrtc.ICEServer{
+			{
+				URLs: []string{"stun:43.138.153.172:3478"},
+			},
+		},
+	})
 	if err != nil {
 		return nil, "", fmt.Errorf("new peer connection error: %v", err)
 	}
@@ -62,7 +72,16 @@ func (g *GameInstance) NewConnection(userId int64) (*Connection, string, error) 
 		audioTrack:  audioTrack,
 		dataChannel: dataChannel,
 		userId:      userId,
+		mutex:       &sync.Mutex{},
 	}
+
+	pc.OnICECandidate(func(candidate *webrtc.ICECandidate) {
+		if candidate != nil {
+			g.mutex.Lock()
+			conn.localCandidates = append(conn.localCandidates, candidate)
+			g.mutex.Unlock()
+		}
+	})
 
 	pc.OnConnectionStateChange(func(state webrtc.PeerConnectionState) {
 		conn.OnPeerConnectionState(state, g)
@@ -93,7 +112,13 @@ func (c *Connection) OnPeerConnectionState(state webrtc.PeerConnectionState, ins
 }
 
 func (c *Connection) OnICEStateChange(state webrtc.ICEConnectionState) {
-	// TODO Log ice state change
+	fmt.Println("ice state: ", state.String())
+	if state == webrtc.ICEConnectionStateConnected {
+		pair, err := c.pc.SCTP().Transport().ICETransport().GetSelectedCandidatePair()
+		if err == nil {
+			fmt.Println("connected candidate pair: ", pair.String())
+		}
+	}
 }
 
 func (c *Connection) Close() {

@@ -49,6 +49,7 @@ const (
 	WebApi_GetUserKeyboardBinding_FullMethodName    = "/nesgo.webapi.v1.WebApi/GetUserKeyboardBinding"
 	WebApi_UpdateUserKeyboardBinding_FullMethodName = "/nesgo.webapi.v1.WebApi/UpdateUserKeyboardBinding"
 	WebApi_DeleteUserKeyboardBinding_FullMethodName = "/nesgo.webapi.v1.WebApi/DeleteUserKeyboardBinding"
+	WebApi_GetServerICECandidate_FullMethodName     = "/nesgo.webapi.v1.WebApi/GetServerICECandidate"
 )
 
 // WebApiClient is the client API for WebApi service.
@@ -85,6 +86,7 @@ type WebApiClient interface {
 	GetUserKeyboardBinding(ctx context.Context, in *GetUserKeyboardBindingRequest, opts ...grpc.CallOption) (*GetUserKeyboardBindingResponse, error)
 	UpdateUserKeyboardBinding(ctx context.Context, in *UpdateUserKeyboardBindingRequest, opts ...grpc.CallOption) (*UpdateUserKeyboardBindingResponse, error)
 	DeleteUserKeyboardBinding(ctx context.Context, in *DeleteUserKeyboardBindingRequest, opts ...grpc.CallOption) (*DeleteUserKeyboardBindingResponse, error)
+	GetServerICECandidate(ctx context.Context, in *GetServerICECandidateRequest, opts ...grpc.CallOption) (*GetServerICECandidateResponse, error)
 }
 
 type webApiClient struct {
@@ -395,6 +397,16 @@ func (c *webApiClient) DeleteUserKeyboardBinding(ctx context.Context, in *Delete
 	return out, nil
 }
 
+func (c *webApiClient) GetServerICECandidate(ctx context.Context, in *GetServerICECandidateRequest, opts ...grpc.CallOption) (*GetServerICECandidateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetServerICECandidateResponse)
+	err := c.cc.Invoke(ctx, WebApi_GetServerICECandidate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WebApiServer is the server API for WebApi service.
 // All implementations must embed UnimplementedWebApiServer
 // for forward compatibility.
@@ -429,6 +441,7 @@ type WebApiServer interface {
 	GetUserKeyboardBinding(context.Context, *GetUserKeyboardBindingRequest) (*GetUserKeyboardBindingResponse, error)
 	UpdateUserKeyboardBinding(context.Context, *UpdateUserKeyboardBindingRequest) (*UpdateUserKeyboardBindingResponse, error)
 	DeleteUserKeyboardBinding(context.Context, *DeleteUserKeyboardBindingRequest) (*DeleteUserKeyboardBindingResponse, error)
+	GetServerICECandidate(context.Context, *GetServerICECandidateRequest) (*GetServerICECandidateResponse, error)
 	mustEmbedUnimplementedWebApiServer()
 }
 
@@ -528,6 +541,9 @@ func (UnimplementedWebApiServer) UpdateUserKeyboardBinding(context.Context, *Upd
 }
 func (UnimplementedWebApiServer) DeleteUserKeyboardBinding(context.Context, *DeleteUserKeyboardBindingRequest) (*DeleteUserKeyboardBindingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteUserKeyboardBinding not implemented")
+}
+func (UnimplementedWebApiServer) GetServerICECandidate(context.Context, *GetServerICECandidateRequest) (*GetServerICECandidateResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetServerICECandidate not implemented")
 }
 func (UnimplementedWebApiServer) mustEmbedUnimplementedWebApiServer() {}
 func (UnimplementedWebApiServer) testEmbeddedByValue()                {}
@@ -1090,6 +1106,24 @@ func _WebApi_DeleteUserKeyboardBinding_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WebApi_GetServerICECandidate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetServerICECandidateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).GetServerICECandidate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_GetServerICECandidate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).GetServerICECandidate(ctx, req.(*GetServerICECandidateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WebApi_ServiceDesc is the grpc.ServiceDesc for WebApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1216,6 +1250,10 @@ var WebApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteUserKeyboardBinding",
 			Handler:    _WebApi_DeleteUserKeyboardBinding_Handler,
+		},
+		{
+			MethodName: "GetServerICECandidate",
+			Handler:    _WebApi_GetServerICECandidate_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

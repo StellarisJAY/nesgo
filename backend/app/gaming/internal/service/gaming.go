@@ -239,3 +239,11 @@ func (g *GamingService) DeleteSave(ctx context.Context, request *v1.DeleteSaveRe
 	}
 	return &v1.DeleteSaveResponse{}, nil
 }
+
+func (g *GamingService) GetServerICECandidate(ctx context.Context, request *v1.GetServerICECandidateRequest) (*v1.GetServerICECandidateResponse, error) {
+	candidates, err := g.gi.GetICECandidates(ctx, request.RoomId, request.UserId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.GetServerICECandidateResponse{Candidates: candidates}, nil
+}

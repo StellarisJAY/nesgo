@@ -435,7 +435,15 @@ export default {
             api.post("api/v1/game/ice", {
               "roomId": roomId,
               "candidate": s,
-            });
+            }).then(_=>{
+              return api.get("api/v1/ice/candidates?roomId=" + this.roomId);
+            }).then(resp=>{
+              resp["candidates"].forEach(candidate=>{
+                const c = JSON.parse(candidate);
+                console.log("remote candidate: ", c);
+                pc.addIceCandidate(c);
+              });
+            })
           }
         }
         // data channel
@@ -448,7 +456,6 @@ export default {
             console.log(msg.data);
           };
         };
-
         this.rtcSession = rtcSession;
       },
 

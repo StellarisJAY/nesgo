@@ -186,6 +186,12 @@ service WebApi {
       delete: "/api/v1/keyboard/binding/{id}"
     };
   }
+
+  rpc GetServerICECandidate(GetServerICECandidateRequest) returns (GetServerICECandidateResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/ice/candidates"
+    };
+  }
 }
 
 message RegisterRequest {
@@ -506,3 +512,11 @@ message DeleteUserKeyboardBindingRequest {
 }
 
 message DeleteUserKeyboardBindingResponse {}
+
+message GetServerICECandidateRequest {
+  int64 roomId = 1;
+}
+
+message GetServerICECandidateResponse {
+  repeated string candidates = 1;
+}

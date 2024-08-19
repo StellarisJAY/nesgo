@@ -127,3 +127,20 @@ func (r *gamingRepo) DeleteSave(ctx context.Context, saveId int64, endpoint stri
 	})
 	return err
 }
+
+func (r *gamingRepo) GetServerICECandidate(ctx context.Context, roomId, userId int64, endpoint string) ([]string, error) {
+	conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(endpoint))
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	gamingCli := gamingAPI.NewGamingClient(conn)
+	resp, err := gamingCli.GetServerICECandidate(ctx, &gamingAPI.GetServerICECandidateRequest{
+		RoomId: roomId,
+		UserId: userId,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resp.Candidates, nil
+}

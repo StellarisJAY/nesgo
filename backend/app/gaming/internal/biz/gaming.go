@@ -376,3 +376,26 @@ func (uc *GameInstanceUseCase) RestartEmulator(ctx context.Context, roomId int64
 	}
 	return nil
 }
+
+func (uc *GameInstanceUseCase) GetICECandidates(ctx context.Context, roomId, userId int64) ([]string, error) {
+	instance, _ := uc.repo.GetGameInstance(ctx, roomId)
+	if instance == nil {
+		return nil, v1.ErrorGameInstanceNotAccessible("game instance not found")
+	}
+	instance.mutex.RLock()
+	conn, ok := instance.connections[userId]
+	instance.mutex.RUnlock()
+	if !ok {
+		return nil, v1.ErrorGameConnectionNotFound("game connection not found")
+	}
+	conn.mutex.Lock()
+	defer conn.mutex.Unlock()
+	result := make([]string, 0, len(conn.localCandidates))
+	for _, candidate := range conn.localCandidates {
+		candidateInit := candidate.ToJSON()
+		data, _ := json.Marshal(candidateInit)
+		result = append(result, string(data))
+	}
+	conn.localCandidates = make([]*webrtc.ICECandidate, 0)
+	return result, nil
+}

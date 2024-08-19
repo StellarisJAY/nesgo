@@ -349,6 +349,23 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.ListGamesResponse'
+    /api/v1/ice/candidates:
+        get:
+            tags:
+                - WebApi
+            operationId: WebApi_GetServerICECandidate
+            parameters:
+                - name: roomId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.GetServerICECandidateResponse'
     /api/v1/keyboard/binding:
         put:
             tags:
@@ -1002,6 +1019,13 @@ components:
                     type: string
                 endpoint:
                     type: string
+        nesgo.webapi.v1.GetServerICECandidateResponse:
+            type: object
+            properties:
+                candidates:
+                    type: array
+                    items:
+                        type: string
         nesgo.webapi.v1.GetUserKeyboardBindingResponse:
             type: object
             properties:

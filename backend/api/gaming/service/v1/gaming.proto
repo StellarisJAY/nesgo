@@ -11,6 +11,7 @@ service Gaming {
   rpc OpenGameConnection(OpenGameConnectionRequest) returns (OpenGameConnectionResponse) {}
   rpc SDPAnswer(SDPAnswerRequest) returns (SDPAnswerResponse) {}
   rpc ICECandidate(ICECandidateRequest) returns (ICECandidateResponse) {}
+  rpc GetServerICECandidate(GetServerICECandidateRequest) returns (GetServerICECandidateResponse) {}
 
   rpc PauseEmulator(PauseEmulatorRequest) returns (PauseEmulatorResponse) {}
   rpc RestartEmulator(RestartEmulatorRequest) returns (RestartEmulatorResponse) {}
@@ -241,3 +242,12 @@ message DeleteSaveRequest {
 }
 
 message DeleteSaveResponse {}
+
+message GetServerICECandidateRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message GetServerICECandidateResponse {
+  repeated string candidates = 1;
+}
