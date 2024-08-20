@@ -9,8 +9,9 @@
             </a-menu>
         </a-layout-header>
         <a-row style="margin-top: 64px;">
-            <a-col :xs="{offset: 2, span: 20}" :sm="{offset: 2, span: 20}" :md="{offset: 4, span: 16}" :lg="{offset: 4, span: 16}">
-                <RoomList v-if="headerSelectedKeys[0] === '1'" :joined="true"/>
+            <a-col :xs="{ offset: 2, span: 20 }" :sm="{ offset: 2, span: 20 }" :md="{ offset: 4, span: 16 }"
+                :lg="{ offset: 4, span: 16 }">
+                <RoomList v-if="headerSelectedKeys[0] === '1'" :joined="true" />
                 <RoomList v-else-if="headerSelectedKeys[0] === '2'" :joined="false"></RoomList>
                 <UserSetting v-else-if="headerSelectedKeys[0] === '3'"></UserSetting>
             </a-col>
@@ -44,7 +45,7 @@ export default {
         }
     },
     methods: {
-        logout: function() {
+        logout: function () {
             tokenStorage.delToken();
             router.push("/login");
         },
@@ -54,6 +55,6 @@ export default {
 
 <style>
 .center-card {
-  height: 100vh;
+    height: 100vh;
 }
 </style>

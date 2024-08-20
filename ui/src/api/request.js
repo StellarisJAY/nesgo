@@ -7,7 +7,7 @@ const v1 = axios.create({
     baseURL: configs.ApiServer,
 });
 
-v1.interceptors.request.use(config=>{
+v1.interceptors.request.use(config => {
     const token = tokenStorage.getToken()
     if (token) {
         config.headers.set("Authorization", "Bearer " + token)
@@ -15,7 +15,7 @@ v1.interceptors.request.use(config=>{
     return config
 });
 
-v1.interceptors.response.use(r=>{
+v1.interceptors.response.use(r => {
     if (r.status && r.status === 200) return r.data;
     if (!r["response"]) return Promise.reject(r);
     const response = r["response"];
@@ -34,16 +34,16 @@ function errorHandler(err) {
 const api = {
     axios: v1,
     get(path) {
-        return this.axios.get(path).catch(err=>errorHandler(err));
+        return this.axios.get(path).catch(err => errorHandler(err));
     },
     post(path, data) {
-        return this.axios.post(path, data).catch(err=>errorHandler(err));
+        return this.axios.post(path, data).catch(err => errorHandler(err));
     },
     put(path, data) {
-        return this.axios.put(path, data).catch(err=>errorHandler(err));
+        return this.axios.put(path, data).catch(err => errorHandler(err));
     },
     delete(path) {
-        return this.axios.delete(path).catch(err=>errorHandler(err));
+        return this.axios.delete(path).catch(err => errorHandler(err));
     }
 }
 
