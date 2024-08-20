@@ -228,6 +228,7 @@ func (g *GamingService) ListSaves(ctx context.Context, request *v1.ListSavesRequ
 			Id:         save.Id,
 			CreateTime: save.CreateTime,
 			Game:       save.Game,
+			ExitSave:   save.ExitSave,
 		})
 	}
 	return &v1.ListSavesResponse{Saves: result, Total: total}, nil

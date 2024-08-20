@@ -83,6 +83,7 @@ func (r *gamingRepo) ListSaves(ctx context.Context, roomId int64, page, pageSize
 			Id:         save.Id,
 			Game:       save.Game,
 			CreateTime: save.CreateTime,
+			ExitSave:   save.ExitSave,
 		})
 	}
 	return saves, response.Total, nil

@@ -95,6 +95,7 @@ func (ws *WebApiService) ListSaves(ctx context.Context, request *v1.ListSavesReq
 			Id:         save.Id,
 			Game:       save.Game,
 			CreateTime: save.CreateTime,
+			ExitSave:   save.ExitSave,
 		})
 	}
 	return &v1.ListSavesResponse{Saves: result, Total: total}, nil

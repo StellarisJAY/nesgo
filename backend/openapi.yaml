@@ -1239,6 +1239,8 @@ components:
                     type: string
                 createTime:
                     type: string
+                exitSave:
+                    type: boolean
         nesgo.webapi.v1.SaveGameRequest:
             type: object
             properties:

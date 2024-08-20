@@ -420,6 +420,7 @@ message Save {
   int64 roomId = 2;
   string game = 3;
   int64 createTime = 4;
+  bool exitSave = 5;
 }
 
 message SaveGameRequest {

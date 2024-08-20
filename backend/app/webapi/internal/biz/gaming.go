@@ -26,6 +26,7 @@ type SaveMetadata struct {
 	RoomId     int64  `json:"roomId"`
 	Game       string `json:"game"`
 	CreateTime int64  `json:"createTime"`
+	ExitSave   bool   `json:"exitSave"`
 }
 
 type GamingRepo interface {

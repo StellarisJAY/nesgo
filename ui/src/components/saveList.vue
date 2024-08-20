@@ -4,6 +4,7 @@
       <a-list-item>
         <a-descriptions :column="1">
           <a-descriptions-item label="游戏">{{item["game"]}}</a-descriptions-item>
+          <a-descriptions-item label="类型">{{item["exitSave"]?"退出模拟器自动存档":"手动存档"}}</a-descriptions-item>
           <a-descriptions-item label="时间">{{new Date(parseInt(item["createTime"])).toLocaleString()}}</a-descriptions-item>
         </a-descriptions>
         <a-button type="primary" @click="loadSavedGame(item.id)" :disabled = "loadSaveBtnDisable">加载</a-button>
