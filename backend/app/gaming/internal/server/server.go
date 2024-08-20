@@ -9,7 +9,7 @@ import (
 )
 
 // ProviderSet is server providers.
-var ProviderSet = wire.NewSet(NewEtcdClient, NewRegistrar, NewGRPCServer)
+var ProviderSet = wire.NewSet(NewEtcdClient, NewRegistrar, NewGRPCServer, NewDiscovery)
 
 func NewEtcdClient(c *conf.Registry) *etcdAPI.Client {
 	cli, err := etcdAPI.New(etcdAPI.Config{
@@ -22,5 +22,9 @@ func NewEtcdClient(c *conf.Registry) *etcdAPI.Client {
 }
 
 func NewRegistrar(cli *etcdAPI.Client) registry.Registrar {
+	return etcd.New(cli)
+}
+
+func NewDiscovery(cli *etcdAPI.Client) registry.Discovery {
 	return etcd.New(cli)
 }

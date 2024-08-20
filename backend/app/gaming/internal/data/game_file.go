@@ -32,6 +32,7 @@ type saveFileMetadata struct {
 	Id         int64  `json:"id" bson:"id"`
 	Game       string `json:"game" bson:"game"`
 	CreateTime int64  `json:"createTime" bson:"createTime"`
+	ExitSave   bool   `json:"exitSave" bson:"exitSave"`
 }
 
 func NewGameFileRepo(data *Data, logger log.Logger) biz.GameFileRepo {
@@ -190,6 +191,18 @@ func (g *gameFileRepo) SaveGame(ctx context.Context, save *biz.GameSave) error {
 		Id:         save.Id,
 		Game:       save.Game,
 		CreateTime: save.CreateTime,
+		ExitSave:   save.ExitSave,
+	}
+	// 删除旧的退出存档
+	if save.ExitSave {
+		result := bucket.GetFilesCollection().FindOne(ctx, bson.M{"metadata.roomId": save.RoomId, "metadata.exitSave": true})
+		if result.Err() == nil {
+			raw, _ := result.Raw()
+			oldExitSaveId := raw.Lookup("_id").ObjectID()
+			if err := bucket.DeleteContext(ctx, oldExitSaveId); err != nil {
+				g.logger.Errorf("delete old exit save of room:%d error: %v", save.RoomId, err)
+			}
+		}
 	}
 	_, err = bucket.UploadFromStream(filename, reader, options.GridFSUpload().SetMetadata(metadata))
 	return err
@@ -244,4 +257,30 @@ func (g *gameFileRepo) DeleteSave(ctx context.Context, saveId int64) error {
 	raw, _ := result.Raw()
 	fileId := raw.Lookup("_id").ObjectID()
 	return bucket.DeleteContext(ctx, fileId)
+}
+
+func (g *gameFileRepo) GetExitSave(ctx context.Context, roomId int64) (*biz.GameSave, error) {
+	db := g.data.mongo.Database("nesgo")
+	bucket, err := gridfs.NewBucket(db, options.GridFSBucket().SetName(saveFileBucketName))
+	if err != nil {
+		return nil, err
+	}
+	save := &biz.GameSave{}
+	result := bucket.GetFilesCollection().FindOne(ctx, bson.M{"metadata.exitSave": true, "metadata.roomId": roomId})
+	if errors.Is(result.Err(), mongo.ErrNoDocuments) {
+		return nil, nil
+	}
+	if result.Err() != nil {
+		return nil, result.Err()
+	}
+	raw, _ := result.Raw()
+	_ = raw.Lookup("metadata").Unmarshal(save)
+	filename := saveFileName(save.Id)
+	buffer := &bytes.Buffer{}
+	_, err = bucket.DownloadToStreamByName(filename, buffer)
+	if err != nil {
+		return nil, err
+	}
+	save.Data = buffer.Bytes()
+	return save, nil
 }

@@ -21,6 +21,8 @@ service Room {
   rpc GetRoomMember(GetRoomMemberRequest) returns (GetRoomMemberResponse) {}
   rpc UpdateMember(UpdateMemberRequest) returns (UpdateMemberResponse) {}
   rpc DeleteMember(DeleteMemberRequest) returns (DeleteMemberResponse) {}
+
+  rpc AddDeleteRoomSessionTask(AddDeleteRoomSessionTaskRequest) returns (AddDeleteRoomSessionTaskResponse) {}
 }
 
 enum RoomRole {
@@ -166,3 +168,10 @@ message DeleteMemberRequest {
 }
 
 message DeleteMemberResponse {}
+
+message AddDeleteRoomSessionTaskRequest {
+  int64 roomId = 1;
+  string instanceId = 2;
+}
+
+message AddDeleteRoomSessionTaskResponse {}

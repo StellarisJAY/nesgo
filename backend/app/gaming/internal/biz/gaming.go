@@ -23,6 +23,7 @@ type GameSave struct {
 	Game       string `json:"game"`
 	Data       []byte `json:"data"`
 	CreateTime int64  `json:"createTime"`
+	ExitSave   bool   `json:"exitSave"`
 }
 
 type GameFileMetadata struct {
@@ -65,19 +66,26 @@ type GameFileRepo interface {
 	SaveGame(ctx context.Context, save *GameSave) error
 	ListSaves(ctx context.Context, roomId int64, page, pageSize int32) ([]*GameSave, int32, error)
 	DeleteSave(ctx context.Context, saveId int64) error
+	GetExitSave(ctx context.Context, roomId int64) (*GameSave, error)
+}
+
+type RoomRepo interface {
+	AddDeleteRoomSessionTask(ctx context.Context, roomId int64, instanceId string) error
 }
 
 type GameInstanceUseCase struct {
 	repo         GameInstanceRepo
 	gameFileRepo GameFileRepo
+	roomRepo     RoomRepo
 	logger       *log.Helper
 	startupTime  time.Time
 }
 
-func NewGameInstanceUseCase(repo GameInstanceRepo, gameFileRepo GameFileRepo, logger log.Logger) *GameInstanceUseCase {
+func NewGameInstanceUseCase(repo GameInstanceRepo, gameFileRepo GameFileRepo, roomRepo RoomRepo, logger log.Logger) *GameInstanceUseCase {
 	return &GameInstanceUseCase{
 		repo:         repo,
 		gameFileRepo: gameFileRepo,
+		roomRepo:     roomRepo,
 		logger:       log.NewHelper(log.With(logger, "module", "biz/gameInstance")),
 		startupTime:  time.Now(),
 	}
@@ -94,12 +102,13 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 		return nil, v1.ErrorCreateGameInstanceFailed("gem game file failed: %v", err)
 	}
 	instance := GameInstance{
-		RoomId:      roomId,
-		game:        game,
-		messageChan: make(chan *Message, 64),
-		mutex:       &sync.RWMutex{},
-		connections: make(map[int64]*Connection),
-		createTime:  time.Now(),
+		RoomId:               roomId,
+		game:                 game,
+		messageChan:          make(chan *Message, 64),
+		mutex:                &sync.RWMutex{},
+		connections:          make(map[int64]*Connection),
+		createTime:           time.Now(),
+		allConnCloseCallback: uc.OnGameInstanceConnectionsAllClosed,
 	}
 	emulatorConfig := config.Config{
 		Game:               game,
@@ -145,6 +154,17 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 	msgConsumerCtx, msgConsumerCancel := context.WithCancel(context.Background())
 	go instance.messageConsumer(msgConsumerCtx)
 	instance.cancel = msgConsumerCancel
+
+	// 加载退出时的存档
+	save, err := uc.gameFileRepo.GetExitSave(ctx, roomId)
+	if save != nil {
+		err := instance.LoadSave(save.Data, save.Game, uc.gameFileRepo)
+		if err != nil {
+			uc.logger.Errorf("start emulator load exit save error: %v", err)
+		}
+	} else {
+		uc.logger.Errorf("start emulator load exit save error: %v", err)
+	}
 
 	leaseID, _ := uc.repo.CreateGameInstance(ctx, &instance)
 	instance.LeaseID = leaseID
@@ -238,9 +258,20 @@ func (uc *GameInstanceUseCase) ReleaseGameInstance(ctx context.Context, roomId i
 			conn.Close()
 		}
 	}
+	save, err := instance.SaveGame()
+	if err != nil {
+		return v1.ErrorSaveGameFailed("exit save game failed: %v", err)
+	}
 	instance.emulatorCancel()
 	instance.cancel()
 	instance.status.Store(InstanceStatusStopped)
+	save.ExitSave = true
+	save.RoomId = roomId
+	uc.logger.Infof("delete game instance, saving on exit, roomId=%d", instance.RoomId)
+	err = uc.gameFileRepo.SaveGame(ctx, save)
+	if err != nil {
+		return v1.ErrorSaveGameFailed("exit save game failed: %v", err)
+	}
 	_ = uc.repo.DeleteGameInstance(ctx, roomId)
 	return nil
 }
@@ -398,4 +429,12 @@ func (uc *GameInstanceUseCase) GetICECandidates(ctx context.Context, roomId, use
 	}
 	conn.localCandidates = make([]*webrtc.ICECandidate, 0)
 	return result, nil
+}
+
+func (uc *GameInstanceUseCase) OnGameInstanceConnectionsAllClosed(instance *GameInstance) {
+	uc.logger.Infof("connection all closed in room:%d", instance.RoomId)
+	err := uc.roomRepo.AddDeleteRoomSessionTask(context.TODO(), instance.RoomId, instance.InstanceId)
+	if err != nil {
+		uc.logger.Errorf("add delete room session task failed: %v", err)
+	}
 }

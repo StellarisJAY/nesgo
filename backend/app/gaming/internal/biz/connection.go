@@ -102,10 +102,13 @@ func (g *GameInstance) NewConnection(userId int64) (*Connection, string, error) 
 }
 
 func (c *Connection) OnPeerConnectionState(state webrtc.PeerConnectionState, instance *GameInstance) {
-	// TODO Handle conn state change
 	switch state {
 	case webrtc.PeerConnectionStateConnected:
 		instance.onConnected(c)
+	case webrtc.PeerConnectionStateFailed:
+		instance.closeConnection(c)
+	case webrtc.PeerConnectionStateDisconnected:
+		instance.closeConnection(c)
 	case webrtc.PeerConnectionStateClosed:
 		instance.closeConnection(c)
 	default:

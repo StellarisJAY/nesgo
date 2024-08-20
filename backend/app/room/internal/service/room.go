@@ -210,3 +210,11 @@ func (r *RoomService) DeleteMember(ctx context.Context, request *v1.DeleteMember
 	}
 	return &v1.DeleteMemberResponse{}, nil
 }
+
+func (r *RoomService) AddDeleteRoomSessionTask(ctx context.Context, request *v1.AddDeleteRoomSessionTaskRequest) (*v1.AddDeleteRoomSessionTaskResponse, error) {
+	err := r.ruc.AddDeleteRoomSessionTask(ctx, request.RoomId, request.InstanceId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.AddDeleteRoomSessionTaskResponse{}, nil
+}

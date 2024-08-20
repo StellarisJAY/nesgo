@@ -41,8 +41,9 @@ type RoomMember struct {
 }
 
 type RoomSession struct {
-	RoomId   int64  `json:"roomId"`
-	Endpoint string `json:"endpoint"`
+	RoomId     int64  `json:"roomId"`
+	Endpoint   string `json:"endpoint"`
+	InstanceId string `json:"instanceId"`
 }
 
 type RoomRepo interface {
@@ -54,7 +55,6 @@ type RoomRepo interface {
 	AddRoomMember(ctx context.Context, member *RoomMember, room *Room) error
 	GetOrCreateRoomSession(ctx context.Context, roomId int64, game string) (*RoomSession, bool, error)
 	GetRoomSession(ctx context.Context, roomId int64) (*RoomSession, error)
-	RemoveRoomSession(ctx context.Context, roomId int64) error
 	GetOwnedRoom(ctx context.Context, name string, host int64) (*Room, error)
 	CountMember(ctx context.Context, roomId int64) (int64, error)
 	ListMembers(ctx context.Context, roomId int64) ([]*RoomMember, error)
@@ -62,6 +62,7 @@ type RoomRepo interface {
 	DeleteRoom(ctx context.Context, roomId int64) error
 	UpdateMember(ctx context.Context, member *RoomMember) error
 	DeleteMember(ctx context.Context, roomId, userId int64) error
+	DeleteRoomSession(ctx context.Context, roomId int64, instanceId string) error
 }
 
 var ErrMemberLimitReached = errors.New("member limit reached")
@@ -178,14 +179,7 @@ func (uc *RoomUseCase) GetCreateRoomSession(ctx context.Context, roomId, userId 
 	if member == nil {
 		return nil, v1.ErrorRoomNotAccessible("not a member of this room")
 	}
-	session, err := uc.rr.GetRoomSession(ctx, roomId)
-	if session != nil {
-		return session, nil
-	}
-	if err != nil {
-		return nil, v1.ErrorGetRoomFailed("database error: %v", err)
-	}
-	session, _, err = uc.rr.GetOrCreateRoomSession(ctx, roomId, game)
+	session, _, err := uc.rr.GetOrCreateRoomSession(ctx, roomId, game)
 	if err != nil {
 		return nil, v1.ErrorGetRoomFailed("create session error: %v", err)
 	}
@@ -207,7 +201,7 @@ func (uc *RoomUseCase) GetRoomSession(ctx context.Context, roomId int64) (*RoomS
 }
 
 func (uc *RoomUseCase) RemoveRoomSession(ctx context.Context, roomId int64) error {
-	err := uc.rr.RemoveRoomSession(ctx, roomId)
+	err := uc.rr.DeleteRoomSession(ctx, roomId, "")
 	if err != nil {
 		return v1.ErrorGetRoomFailed("remove room session failed: %v", err)
 	}
@@ -302,4 +296,17 @@ func (uc *RoomUseCase) UpdateMember(ctx context.Context, member *RoomMember) err
 
 func (uc *RoomUseCase) DeleteMember(ctx context.Context, roomId, userId int64) error {
 	return uc.rr.DeleteMember(ctx, roomId, userId)
+}
+
+func (uc *RoomUseCase) AddDeleteRoomSessionTask(ctx context.Context, roomId int64, instanceId string) error {
+	timer := time.NewTimer(5 * time.Second)
+	go func() {
+		<-timer.C
+		uc.logger.Infof("delete room session, roomId=%d", roomId)
+		err := uc.rr.DeleteRoomSession(context.Background(), roomId, instanceId)
+		if err != nil {
+			uc.logger.Error("delete room session failed: %v", err)
+		}
+	}()
+	return nil
 }

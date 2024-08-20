@@ -224,6 +224,9 @@ func (r *roomRepo) GetOrCreateRoomSession(ctx context.Context, roomId int64, gam
 	if err != nil {
 		return nil, false, err
 	}
+	if len(serviceNodes) == 0 {
+		return nil, false, fmt.Errorf("no available gaming service endpoint found")
+	}
 	// TODO 更好的选择策略
 	session.Endpoint = serviceNodes[rand.Intn(len(serviceNodes))].Endpoints[0]
 	u, _ := url.Parse(session.Endpoint)
@@ -241,6 +244,7 @@ func (r *roomRepo) GetOrCreateRoomSession(ctx context.Context, roomId int64, gam
 	if err != nil {
 		return nil, false, err
 	}
+	session.InstanceId = instance.InstanceId
 	// 保存session，使用目标节点返回的lease保活
 	bytes, _ := json.Marshal(session)
 	_, err = r.data.etcdCli.KV.Put(ctx, key, string(bytes), etcdAPI.WithLease(etcdAPI.LeaseID(instance.LeaseId)))
@@ -273,8 +277,47 @@ func (r *roomRepo) GetRoomSession(ctx context.Context, roomId int64) (*biz.RoomS
 	return nil, nil
 }
 
-func (r *roomRepo) RemoveRoomSession(ctx context.Context, roomId int64) error {
-	panic("implement me")
+func (r *roomRepo) DeleteRoomSession(ctx context.Context, roomId int64, instanceId string) error {
+	key := roomSessionKey(roomId)
+	lockKey := roomSessionLockKey(roomId)
+	lockSession, err := concurrency.NewSession(r.data.etcdCli)
+	if err != nil {
+		return err
+	}
+	defer lockSession.Close()
+	locker := concurrency.NewLocker(lockSession, lockKey)
+	locker.Lock()
+	defer locker.Unlock()
+
+	resp, err := r.data.etcdCli.KV.Get(ctx, key)
+	if err != nil {
+		return err
+	}
+	if resp.Count == 0 {
+		return nil
+	}
+	var session biz.RoomSession
+	_ = json.Unmarshal(resp.Kvs[0].Value, &session)
+	// 避免错误删除其他会话
+	if instanceId != "" && session.InstanceId != instanceId {
+		return nil
+	}
+
+	conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(session.Endpoint))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	gamingCli := gamingAPI.NewGamingClient(conn)
+	_, err = gamingCli.DeleteGameInstance(ctx, &gamingAPI.DeleteGameInstanceRequest{
+		RoomId: roomId,
+		Force:  false,
+	})
+	if err != nil {
+		return err
+	}
+	_, err = r.data.etcdCli.KV.Delete(ctx, key)
+	return err
 }
 
 func (r *roomRepo) GetOwnedRoom(ctx context.Context, name string, host int64) (*biz.Room, error) {
@@ -353,7 +396,7 @@ func (r *roomRepo) DeleteRoom(ctx context.Context, roomId int64) error {
 			if err != nil {
 				return err
 			}
-			err = r.RemoveRoomSession(ctx, roomId)
+			err = r.DeleteRoomSession(ctx, roomId, "")
 			if err != nil {
 				return err
 			}

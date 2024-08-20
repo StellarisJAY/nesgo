@@ -19,19 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	Room_CreateRoom_FullMethodName           = "/room.v1.Room/CreateRoom"
-	Room_GetRoom_FullMethodName              = "/room.v1.Room/GetRoom"
-	Room_ListRoomMembers_FullMethodName      = "/room.v1.Room/ListRoomMembers"
-	Room_ListRooms_FullMethodName            = "/room.v1.Room/ListRooms"
-	Room_JoinRoom_FullMethodName             = "/room.v1.Room/JoinRoom"
-	Room_GetRoomSession_FullMethodName       = "/room.v1.Room/GetRoomSession"
-	Room_GetCreateRoomSession_FullMethodName = "/room.v1.Room/GetCreateRoomSession"
-	Room_RemoveRoomSession_FullMethodName    = "/room.v1.Room/RemoveRoomSession"
-	Room_DeleteRoom_FullMethodName           = "/room.v1.Room/DeleteRoom"
-	Room_UpdateRoom_FullMethodName           = "/room.v1.Room/UpdateRoom"
-	Room_GetRoomMember_FullMethodName        = "/room.v1.Room/GetRoomMember"
-	Room_UpdateMember_FullMethodName         = "/room.v1.Room/UpdateMember"
-	Room_DeleteMember_FullMethodName         = "/room.v1.Room/DeleteMember"
+	Room_CreateRoom_FullMethodName               = "/room.v1.Room/CreateRoom"
+	Room_GetRoom_FullMethodName                  = "/room.v1.Room/GetRoom"
+	Room_ListRoomMembers_FullMethodName          = "/room.v1.Room/ListRoomMembers"
+	Room_ListRooms_FullMethodName                = "/room.v1.Room/ListRooms"
+	Room_JoinRoom_FullMethodName                 = "/room.v1.Room/JoinRoom"
+	Room_GetRoomSession_FullMethodName           = "/room.v1.Room/GetRoomSession"
+	Room_GetCreateRoomSession_FullMethodName     = "/room.v1.Room/GetCreateRoomSession"
+	Room_RemoveRoomSession_FullMethodName        = "/room.v1.Room/RemoveRoomSession"
+	Room_DeleteRoom_FullMethodName               = "/room.v1.Room/DeleteRoom"
+	Room_UpdateRoom_FullMethodName               = "/room.v1.Room/UpdateRoom"
+	Room_GetRoomMember_FullMethodName            = "/room.v1.Room/GetRoomMember"
+	Room_UpdateMember_FullMethodName             = "/room.v1.Room/UpdateMember"
+	Room_DeleteMember_FullMethodName             = "/room.v1.Room/DeleteMember"
+	Room_AddDeleteRoomSessionTask_FullMethodName = "/room.v1.Room/AddDeleteRoomSessionTask"
 )
 
 // RoomClient is the client API for Room service.
@@ -51,6 +52,7 @@ type RoomClient interface {
 	GetRoomMember(ctx context.Context, in *GetRoomMemberRequest, opts ...grpc.CallOption) (*GetRoomMemberResponse, error)
 	UpdateMember(ctx context.Context, in *UpdateMemberRequest, opts ...grpc.CallOption) (*UpdateMemberResponse, error)
 	DeleteMember(ctx context.Context, in *DeleteMemberRequest, opts ...grpc.CallOption) (*DeleteMemberResponse, error)
+	AddDeleteRoomSessionTask(ctx context.Context, in *AddDeleteRoomSessionTaskRequest, opts ...grpc.CallOption) (*AddDeleteRoomSessionTaskResponse, error)
 }
 
 type roomClient struct {
@@ -191,6 +193,16 @@ func (c *roomClient) DeleteMember(ctx context.Context, in *DeleteMemberRequest, 
 	return out, nil
 }
 
+func (c *roomClient) AddDeleteRoomSessionTask(ctx context.Context, in *AddDeleteRoomSessionTaskRequest, opts ...grpc.CallOption) (*AddDeleteRoomSessionTaskResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddDeleteRoomSessionTaskResponse)
+	err := c.cc.Invoke(ctx, Room_AddDeleteRoomSessionTask_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RoomServer is the server API for Room service.
 // All implementations must embed UnimplementedRoomServer
 // for forward compatibility.
@@ -208,6 +220,7 @@ type RoomServer interface {
 	GetRoomMember(context.Context, *GetRoomMemberRequest) (*GetRoomMemberResponse, error)
 	UpdateMember(context.Context, *UpdateMemberRequest) (*UpdateMemberResponse, error)
 	DeleteMember(context.Context, *DeleteMemberRequest) (*DeleteMemberResponse, error)
+	AddDeleteRoomSessionTask(context.Context, *AddDeleteRoomSessionTaskRequest) (*AddDeleteRoomSessionTaskResponse, error)
 	mustEmbedUnimplementedRoomServer()
 }
 
@@ -256,6 +269,9 @@ func (UnimplementedRoomServer) UpdateMember(context.Context, *UpdateMemberReques
 }
 func (UnimplementedRoomServer) DeleteMember(context.Context, *DeleteMemberRequest) (*DeleteMemberResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteMember not implemented")
+}
+func (UnimplementedRoomServer) AddDeleteRoomSessionTask(context.Context, *AddDeleteRoomSessionTaskRequest) (*AddDeleteRoomSessionTaskResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddDeleteRoomSessionTask not implemented")
 }
 func (UnimplementedRoomServer) mustEmbedUnimplementedRoomServer() {}
 func (UnimplementedRoomServer) testEmbeddedByValue()              {}
@@ -512,6 +528,24 @@ func _Room_DeleteMember_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Room_AddDeleteRoomSessionTask_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddDeleteRoomSessionTaskRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RoomServer).AddDeleteRoomSessionTask(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Room_AddDeleteRoomSessionTask_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RoomServer).AddDeleteRoomSessionTask(ctx, req.(*AddDeleteRoomSessionTaskRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Room_ServiceDesc is the grpc.ServiceDesc for Room service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -570,6 +604,10 @@ var Room_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteMember",
 			Handler:    _Room_DeleteMember_Handler,
+		},
+		{
+			MethodName: "AddDeleteRoomSessionTask",
+			Handler:    _Room_AddDeleteRoomSessionTask_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

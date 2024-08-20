@@ -14,11 +14,12 @@ type gameInstanceRepo struct {
 	logger    *log.Helper
 	etcdCli   *etcdAPI.Client
 	leaseID   etcdAPI.LeaseID
+	data      *Data
 }
 
-func NewGameInstanceRepo(etcdCli *etcdAPI.Client, logger log.Logger) biz.GameInstanceRepo {
+func NewGameInstanceRepo(etcdCli *etcdAPI.Client, data *Data, logger log.Logger) biz.GameInstanceRepo {
 	// 创建lease，用来与房间session绑定，lease失效自动删除session
-	lease, err := etcdCli.Lease.Grant(context.Background(), 30)
+	lease, err := etcdCli.Lease.Grant(context.Background(), 10)
 	if err != nil {
 		panic(err)
 	}
@@ -42,6 +43,7 @@ func NewGameInstanceRepo(etcdCli *etcdAPI.Client, logger log.Logger) biz.GameIns
 		logger:    log.NewHelper(log.With(logger, "module", "data/gameInstance")),
 		etcdCli:   etcdCli,
 		leaseID:   lease.ID,
+		data:      data,
 	}
 }
 
@@ -49,6 +51,7 @@ func (g *gameInstanceRepo) CreateGameInstance(ctx context.Context, game *biz.Gam
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 	g.instances[game.RoomId] = game
+	game.InstanceId = g.data.snowflake.Generate().String()
 	return int64(g.leaseID), nil
 }
 

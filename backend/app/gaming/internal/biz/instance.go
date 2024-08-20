@@ -84,6 +84,9 @@ type GameInstance struct {
 	status    atomic.Int32
 
 	createTime time.Time
+	InstanceId string
+
+	allConnCloseCallback func(instance *GameInstance)
 }
 
 func (g *GameInstance) RenderCallback(ppu *ppu.PPU, logger *log.Helper) {
@@ -240,7 +243,9 @@ func (g *GameInstance) handleMsgCloseConn(conn *Connection) {
 	defer g.mutex.Unlock()
 	// 被动关闭连接，可能是因为新连接挤掉旧连接，需要避免删除新连接
 	if cur, ok := g.connections[conn.userId]; ok {
-		if cur.pc.ConnectionState() == webrtc.PeerConnectionStateClosed {
+		if cur.pc.ConnectionState() == webrtc.PeerConnectionStateClosed ||
+			cur.pc.ConnectionState() == webrtc.PeerConnectionStateFailed ||
+			cur.pc.ConnectionState() == webrtc.PeerConnectionStateDisconnected {
 			delete(g.connections, conn.userId)
 		}
 	}
@@ -250,6 +255,7 @@ func (g *GameInstance) handleMsgCloseConn(conn *Connection) {
 	// 没有活跃连接，暂停模拟器
 	if len(active) == 0 {
 		g.e.Pause()
+		g.allConnCloseCallback(g)
 	}
 }
 
