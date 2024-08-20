@@ -155,7 +155,7 @@ const tourSteps = [
           <a-button type="primary" @click="setKeyboardBindingEnabled">启用</a-button>
         </a-col>
       </a-row>
-
+      <!--按键设置列表-->
       <a-table :data-source="configs.selectedBinding['bindings']"
                :columns="configs.bindingTableColumns"
                :pagination="false">
@@ -168,17 +168,22 @@ const tourSteps = [
           </template>
         </template>
       </a-table>
-
+      <!--保存按键设置按钮-->
       <a-row>
         <a-col :span="18"></a-col>
         <a-col :span="6">
           <a-button type="primary" @click="updateBinding" :disabled="configs.selectedBinding.id==='0'">保存修改</a-button>
         </a-col>
       </a-row>
+      <a-form>
+        <a-form-item label="显示状态数据">
+          <a-switch v-model:checked="configs.showStats"></a-switch>
+        </a-form-item>
+      </a-form>
     </a-drawer>
     <a-tour :steps="tourSteps" :open="tourOpen" @close="_=>{tourOpen=false}"></a-tour>
   </a-row>
-  <p id="rtt">RTT: {{rtt}}ms</p>
+  <p id="stats" v-if="configs.showStats">RTT:{{stats.rtt }}ms FPS:{{stats.fps}}</p>
 </template>
 
 <script>
@@ -344,6 +349,7 @@ export default {
               selectedBindingKey: "",
               bindingOptions: [],
               existingGames: [],
+              showStats: false,
             },
             savedGameOpen: false,
             p1p2Options: [
@@ -358,6 +364,11 @@ export default {
             iceCandidates: [],
 
             settingDrawerOpen: false,
+
+            stats: {
+              rtt: 0,
+              fps: 0,
+            }
         }
     },
   created() {
@@ -674,7 +685,7 @@ export default {
       const msgObj = JSON.parse(msgStr);
       switch (msgObj.type) {
         case MessagePing:
-          this.rtt = new Date().getTime() - msgObj.timestamp;
+          this.stats.rtt = new Date().getTime() - msgObj.timestamp;
           break;
         case MessageChat:
           if (!msgObj["from"]) return;
@@ -694,7 +705,11 @@ export default {
 
     onDataChannelOpen() {
       this.chatBtnDisabled = false;
-      this.pingInterval = setInterval(this.ping, 1000);
+      const _this = this;
+      this.pingInterval = setInterval(_=>{
+        _this.ping();
+        _this.collectRTCStats();
+      }, 1000);
     },
 
     onDataChannelClose() {
@@ -766,6 +781,20 @@ export default {
       this.setKeyboardControl(true);
       message.info("设置成功");
     },
+
+    collectRTCStats: function() {
+      const _this = this;
+      if (this.rtcSession && this.rtcSession.pc) {
+        const pc = this.rtcSession.pc;
+        pc.getStats().then(stats=>{
+          stats.forEach(report=>{
+            if (report.type === "inbound-rtp" && report.kind === "video") {
+              _this.stats.fps = report.framesPerSecond;
+            }
+          });
+        });
+      }
+    },
   }
 }
 </script>
@@ -779,7 +808,7 @@ export default {
   width: 100%;
   height: 100%;
 }
-#rtt {
+#stats {
   position: absolute;
   right: 0;
   top: 0;

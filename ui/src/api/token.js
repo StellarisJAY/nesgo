@@ -4,6 +4,9 @@ const tokenStorage = {
     },
     setToken(token) {
         sessionStorage.setItem("nesgo_token", token)
+    },
+    delToken() {
+        sessionStorage.clear()
     }
 }
 

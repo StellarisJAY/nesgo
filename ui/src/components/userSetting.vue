@@ -35,7 +35,6 @@
 
     <a-modal v-model:open="createBindingModalOpen" title="新建按键绑定">
       <template #footer>
-        <a-button>取消</a-button>
         <a-button type="primary" @click="createBinding">创建</a-button>
       </template>
       <p>提示：点击按钮取消绑定，点击‘+’后按下键盘按键添加绑定</p>
