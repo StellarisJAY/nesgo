@@ -7,6 +7,7 @@ const refRestart = ref(null)
 const refSaveBtn = ref(null)
 const refLoadBtn = ref(null)
 const refRoomBtn = ref(null)
+const refKeyboardSettings = ref(null)
 const tourSteps = [
   {
     title: "选择游戏",
@@ -154,37 +155,10 @@ const tourSteps = [
       <a-input placeholder="请输入消息..." v-model:value="chatMessage"></a-input>
     </a-modal>
     <!--settings-->
-    <a-drawer v-model:open="settingDrawerOpen" placement="right" title="设置" size="default">
+    <a-drawer v-model:open="settingDrawerOpen" placement="right" title="设置" size="large">
       <p>提示：点击按钮取消绑定，点击‘+’后按下键盘按键添加绑定</p>
-      <a-row>
-        <a-col :span="12">
-          <a-select :options="configs.bindingOptions" v-model:value="configs.selectedBindingKey"
-            @change="onKeyboardBindingSelectChange"></a-select>
-        </a-col>
-        <a-col :span="6"></a-col>
-        <a-col :span="6">
-          <a-button type="primary" @click="setKeyboardBindingEnabled">启用</a-button>
-        </a-col>
-      </a-row>
-      <!--按键设置列表-->
-      <a-table :data-source="configs.selectedBinding['bindings']" :columns="configs.bindingTableColumns"
-        :pagination="false">
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.dataIndex === 'emulatorKey'">
-            {{ record.emulatorKey }}
-          </template>
-          <template v-else-if="column.dataIndex === 'keyboardKey'">
-            <KeyboardKeyPicker :limit="1" :buttons="record.buttons"></KeyboardKeyPicker>
-          </template>
-        </template>
-      </a-table>
-      <!--保存按键设置按钮-->
-      <a-row>
-        <a-col :span="18"></a-col>
-        <a-col :span="6">
-          <a-button type="primary" @click="updateBinding" :disabled="configs.selectedBinding.id === '0'">保存修改</a-button>
-        </a-col>
-      </a-row>
+      <a-button type="primary" @click="setKeyboardBindingEnabled">使用</a-button>
+      <KeyboardSetting :show-default="true" :allow-create="false" :allow-delete="false" ref="refKeyboardSettings"></KeyboardSetting>
       <a-form>
         <a-form-item label="显示状态数据">
           <a-switch v-model:checked="configs.showStats"></a-switch>
@@ -201,15 +175,15 @@ import api from "../api/request.js";
 import globalConfigs from "../api/const.js";
 import { Row, Col } from "ant-design-vue";
 import { CrownTwoTone } from '@ant-design/icons-vue';
-import { Card, Button, Drawer, List, Descriptions, RadioGroup, Radio, Select, Checkbox, InputPassword, Switch, Table, notification } from "ant-design-vue";
+import { Card, Button, Drawer, RadioGroup, Select,Switch, notification } from "ant-design-vue";
 import { message } from "ant-design-vue";
 import { Form, FormItem, Modal, Input } from "ant-design-vue";
 import router from "../router/index.js";
-import { ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined, SaveOutlined } from "@ant-design/icons-vue"
+import { ArrowUpOutlined, ArrowDownOutlined, ArrowLeftOutlined, ArrowRightOutlined } from "@ant-design/icons-vue"
 import { Tour } from "ant-design-vue";
 import RoomInfoDrawer from "../components/roomInfoDrawer.vue";
 import SaveList from "../components/saveList.vue";
-import KeyboardKeyPicker from "../components/keyboardKeyPicker.vue";
+import KeyboardSetting from "../components/keyboardSetting.vue";
 
 const MessageGameButtonPressed = 0
 const MessageGameButtonReleased = 1
@@ -220,61 +194,6 @@ const RoleNameHost = "Host";
 const RoleNamePlayer = "Player";
 const RoleNameObserver = "Observer";
 
-const defaultBinding = {
-  "id": "0",
-  "name": "默认绑定",
-  "bindings": [
-    {
-      "emulatorKey": "Left",
-      "emulatorKeyTranslated": "Left",
-      "buttons": ["KeyA"],
-      "keyboardKey": "KeyA",
-    },
-    {
-      "emulatorKey": "Right",
-      "emulatorKeyTranslated": "Right",
-      "buttons": ["KeyD"],
-      "keyboardKey": "KeyD",
-    },
-    {
-      "emulatorKey": "Up",
-      "emulatorKeyTranslated": "Up",
-      "buttons": ["KeyW"],
-      "keyboardKey": "KeyW",
-    },
-    {
-      "emulatorKey": "Down",
-      "emulatorKeyTranslated": "Down",
-      "buttons": ["KeyS"],
-      "keyboardKey": "KeyS",
-    },
-    {
-      "emulatorKey": "A",
-      "emulatorKeyTranslated": "A",
-      "buttons": ["Space"],
-      "keyboardKey": "Space",
-    },
-    {
-      "emulatorKey": "B",
-      "emulatorKeyTranslated": "B",
-      "buttons": ["KeyJ"],
-      "keyboardKey": "KeyJ",
-    },
-    {
-      "emulatorKey": "Start",
-      "emulatorKeyTranslated": "Start",
-      "buttons": ["Enter"],
-      "keyboardKey": "Enter",
-    },
-    {
-      "emulatorKey": "Select",
-      "emulatorKeyTranslated": "Select",
-      "buttons": ["Tab"],
-      "keyboardKey": "Tab",
-    },
-  ]
-};
-
 export default {
   components: {
     ARow: Row,
@@ -282,31 +201,20 @@ export default {
     ACard: Card,
     AButton: Button,
     ADrawer: Drawer,
-    AList: List,
-    AListItem: List.Item,
-    ARadio: Radio,
-    ARadioGroup: RadioGroup,
-    CrownTwoTone: CrownTwoTone,
     ArrowUpOutlined,
     ArrowDownOutlined,
     ArrowLeftOutlined,
     ArrowRightOutlined,
     ASelect: Select,
-    ADescriptions: Descriptions,
-    ADescriptionsItem: Descriptions.Item,
-    SaveOutlined,
-    ACheckbox: Checkbox,
-    AInputPassword: InputPassword,
     ASwitch: Switch,
     AForm: Form,
     AFormItem: FormItem,
-    AModal: Modal,
-    AInput: Input,
     ATour: Tour,
+    AInput: Input,
+    AModal: Modal,
     RoomInfoDrawer,
     SaveList,
-    ATable: Table,
-    KeyboardKeyPicker,
+    KeyboardSetting,
   },
   data() {
     return {
@@ -332,32 +240,6 @@ export default {
           "button-select": "Select",
           "button-start": "Start",
         },
-        keyboardMapping: {
-          "KeyA": "Left",
-          "KeyD": "Right",
-          "KeyW": "Up",
-          "KeyS": "Down",
-          "KeyJ": "B",
-          "Space": "A",
-          "Enter": "Start",
-          "Tab": "Select",
-        },
-        bindingTableColumns: [
-          {
-            "title": "键盘按键",
-            "dataIndex": "keyboardKey",
-            "key": "keyboardKey",
-          },
-          {
-            "title": "模拟器按键",
-            "dataIndex": "emulatorKey",
-            "key": "emulatorKey",
-          }
-        ],
-        userBindings: [],
-        selectedBinding: defaultBinding,
-        selectedBindingKey: "",
-        bindingOptions: [],
         existingGames: [],
         showStats: false,
       },
@@ -370,11 +252,8 @@ export default {
       chatModalOpen: false,
       chatMessage: "",
       pingInterval: 0,
-      rtt: 0,
       iceCandidates: [],
-
       settingDrawerOpen: false,
-
       stats: {
         rtt: 0,
         fps: 0,
@@ -389,7 +268,10 @@ export default {
     this.listGames();
   },
   unmounted() {
-    if (this.rtcSession && this.rtcSession.pc) this.rtcSession.pc.close();
+    if (this.rtcSession && this.rtcSession.pc) {
+      this.rtcSession.pc.close();
+    }
+    this.setKeyboardControl(false);
   },
   methods: {
     openRoomMemberDrawer() {
@@ -657,15 +539,16 @@ export default {
     setKeyboardControl(enabled) {
       if (enabled) {
         const _this = this;
+        const setting = this.$refs.refKeyboardSettings.selected;
         window.onkeydown = ev => {
-          const button = _this.configs.selectedBinding.bindings.find(item => item.buttons[0] === ev.code);
+          const button = setting.bindings.find(item => item.buttons[0] === ev.code);
           if (button) {
             _this.sendAction(button.emulatorKey, MessageGameButtonPressed);
           }
         };
 
         window.onkeyup = ev => {
-          const button = _this.configs.selectedBinding.bindings.find(item => item.buttons[0] === ev.code);
+          const button = setting.bindings.find(item => item.buttons[0] === ev.code);
           if (button) {
             _this.sendAction(button.emulatorKey, MessageGameButtonReleased);
           }
@@ -689,7 +572,6 @@ export default {
 
     openSettingDrawer() {
       this.settingDrawerOpen = true;
-      this.listKeyboardBindings();
     },
 
     onDataChannelMsg(msg) {
@@ -727,66 +609,6 @@ export default {
     onDataChannelClose() {
       if (this.pingInterval) clearInterval(this.pingInterval);
       this.chatBtnDisabled = true;
-    },
-
-    listKeyboardBindings: function () {
-      const _this = this;
-      api.get("api/v1/keyboard/bindings?page=0&pageSize=100").then(resp => {
-        _this.configs.userBindings = resp["bindings"];
-        _this.configs.userBindings.push(defaultBinding);
-        const userBindings = _this.configs.userBindings;
-        let options = [];
-        for (let i = 0; i < userBindings.length; i++) {
-          options.push({
-            value: userBindings[i]["id"],
-            label: userBindings[i]["name"],
-          });
-          const curBindings = userBindings[i]["bindings"];
-          for (let j = 0; j < curBindings.length; j++) {
-            curBindings[j]["buttons"] = [curBindings[j]["keyboardKey"]];
-          }
-        }
-        _this.configs.selectedBindingKey = userBindings[0].id;
-        _this.configs.selectedBinding = userBindings[0];
-        _this.configs.bindingOptions = options;
-      }).catch(_ => {
-        message.error("获取按键绑定失败");
-      });
-    },
-    onKeyboardBindingSelectChange: function (ev) {
-      this.configs.selectedBinding = this.configs.userBindings.find(item => item["id"] === this.configs.selectedBindingKey);
-    },
-
-    updateBinding: function () {
-      const data = this.convertBindingsToApiObj(this.configs.selectedBinding);
-      data["id"] = this.configs.selectedBindingKey;
-      const _this = this;
-      this.createBtnDisable = true;
-      this.bindingBtnDisable = true;
-      api.put("api/v1/keyboard/binding", data).then(_ => {
-        message.success("修改成功");
-        _this.listKeyboardBindings();
-        _this.createBtnDisable = false;
-        _this.bindingBtnDisable = false;
-      }).catch(_ => {
-        message.error("修改失败");
-        _this.createBtnDisable = false;
-        _this.bindingBtnDisable = false;
-      });
-    },
-
-    convertBindingsToApiObj: function (bindingObj) {
-      const apiObj = {
-        "name": bindingObj.name,
-        "bindings": [],
-      };
-      bindingObj.bindings.forEach(item => {
-        apiObj["bindings"].push({
-          "emulatorKey": item.emulatorKey,
-          "keyboardKey": item.buttons[0],
-        });
-      });
-      return apiObj;
     },
 
     setKeyboardBindingEnabled: function () {

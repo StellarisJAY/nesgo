@@ -1,6 +1,6 @@
 <template>
   <a-button-group>
-    <a-button v-for="b in buttons" @click="deleteButton(b)">{{ b }}</a-button>
+    <a-button v-for="b in buttons" @click="deleteButton(b)">{{ keycodeTranslator(b) }}</a-button>
     <a-button @click="addButton" :hidden="limit === buttons.length" :disabled="addBtnDisabled">+</a-button>
   </a-button-group>
 </template>
@@ -12,6 +12,7 @@ export default {
   props: {
     limit: Number,
     buttons: Array,
+    keycodeTranslator: Function,
   },
   components: {
     AButton: Button,
