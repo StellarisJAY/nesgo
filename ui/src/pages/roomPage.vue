@@ -193,7 +193,7 @@ const tourSteps = [
     </a-drawer>
     <a-tour :steps="tourSteps" :open="tourOpen" @close="_ => { tourOpen = false }"></a-tour>
   </a-row>
-  <p id="stats" v-if="configs.showStats">RTT:{{ stats.rtt }}ms FPS:{{ stats.fps }}</p>
+  <p id="stats" v-if="configs.showStats">RTT:{{ stats.rtt }}ms FPS:{{ stats.fps }} D:{{formatBytes(stats.bytesPerSecond)}}/s</p>
 </template>
 
 <script>
@@ -378,6 +378,8 @@ export default {
       stats: {
         rtt: 0,
         fps: 0,
+        bytesReceived: 0,
+        bytesPerSecond: 0,
       }
     }
   },
@@ -800,10 +802,18 @@ export default {
           stats.forEach(report => {
             if (report.type === "inbound-rtp" && report.kind === "video") {
               _this.stats.fps = report.framesPerSecond;
+              _this.stats.bytesPerSecond = report.bytesReceived - _this.stats.bytesReceived;
+              _this.stats.bytesReceived = report.bytesReceived;
             }
           });
         });
       }
+    },
+
+    formatBytes: function (bytes) {
+      if(bytes <= 1024) return bytes + "B";
+      if(bytes <= 1024*1024) return (bytes>>10) + "KB";
+      return (bytes>>20) + "MB";
     },
   }
 }
