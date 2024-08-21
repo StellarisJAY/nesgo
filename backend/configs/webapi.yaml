@@ -1,0 +1,14 @@
+server:
+  http:
+    addr: 0.0.0.0:8030
+    timeout: 1s
+  grpc:
+    addr: 0.0.0.0:9030
+    timeout: 1s
+data:
+registry:
+  etcd:
+    endpoints:
+      - localhost:2379
+auth:
+  secret: abcdefghijklmn

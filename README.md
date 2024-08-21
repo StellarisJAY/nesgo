@@ -9,8 +9,10 @@
 - [x] 模拟器热重启，重启模拟器不需要断开游戏连接。
 - [x] 保存与读取，跨游戏加载存档自动重启模拟器
 - [x] 房间内即时聊天
+- [x] 自定义按键设置
+- [x] 管理员-游戏上传
+- [x] 模拟器服务水平扩展
 - [ ] 存档转移（跨房间转移、上传下载）
-- [ ] 游戏上传下载
 
 ## Issues
 
@@ -21,45 +23,35 @@
 
 ### 编译运行
 
-安装依赖
+安装依赖：pkg-config libx264 libvpx libopus
 
 ```shell
-apt install pkg-config libx264-dev libopusfile-dev
+apt install pkg-config libx264-dev libopusfile-dev libvpx-dev
 ```
 
-编译前后端
+编译后端服务
 
 ```shell
-# 编译前端文件
-cd ui && yarn build
-# 编译后端和模拟器
+# 编译微服务后端
+cd backend
 go mod tidy
-go build -tags="web" -o nesgo_web
+make build
 ```
+创建配置文件，请参考/backend/configs目录
 
-创建配置文件config.yml： 
-
-```yaml
-#数据库URL
-db_url: "root:12345678@tcp(127.0.0.1:3306)/nesgo?charset=utf8mb4&parseTime=True&loc=Local"
-#redis地址
-redis_addr: "0.0.0.0:6379"
-#存档保存方式（暂时只支持宿主机文件系统）
-file_storage_type: "host"
-#存档保存路径
-host_fs_store_dir: "/var/lib/nesgo/saves"
-#WebRTC TURN服务器配置
-turn_server:
-  addr: "turn:127.0.0.1:3478"
-  long_term_user: "test"
-  long_term_password: "123456"
-```
-
-运行
-
+运行后端服务
 ```shell
-# -dir 指定游戏文件所在的目录
-./nesgo_web -dir $HOME/games
+./bin/gaming --conf ./configs/gaming.yaml
+./bin/user   --conf ./configs/user.yaml
+./bin/room   --conf ./configs/room.yaml
+./bin/webapi --conf ./configs/webapi.yaml
+./bin/admin  --conf ./configs/admin.yaml
+```
+编译运行前端
+```shell
+cd ui 
+yarn build
+# 获得dist目录，可使用nginx部署
 ```
 
 ## 截图

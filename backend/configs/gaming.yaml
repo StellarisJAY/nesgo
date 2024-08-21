@@ -1,0 +1,15 @@
+server:
+  http:
+    addr: 0.0.0.0:8040
+    timeout: 1s
+  grpc:
+    addr: 0.0.0.0:9040
+    timeout: 5s
+  nodeId: 1000
+data:
+  mongo:
+    addr: mongodb://localhost:27017
+registry:
+  etcd:
+    endpoints:
+      - localhost:2379

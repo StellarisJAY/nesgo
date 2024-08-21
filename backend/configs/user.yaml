@@ -1,0 +1,22 @@
+server:
+  http:
+    addr: 0.0.0.0:8020
+    timeout: 1s
+  grpc:
+    addr: 0.0.0.0:9020
+    timeout: 1s
+  node_id: 1020
+data:
+  database:
+    driver: mysql
+    source: root:12345678@tcp(localhost:3306)/nesgo?parseTime=True&loc=Local
+  redis:
+    addr: localhost:6379
+    read_timeout: 0.2s
+    write_timeout: 0.2s
+  mongo:
+    addr: mongodb://localhost:27017
+registry:
+  etcd:
+    endpoints:
+      - localhost:2379
