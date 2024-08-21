@@ -39,7 +39,7 @@ func (g *GameInstance) NewConnection(userId int64) (*Connection, string, error) 
 	}()
 
 	// create video and audio tracks
-	videoTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeH264}, "video", "nesgo_video")
+	videoTrack, err := webrtc.NewTrackLocalStaticSample(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeVP8}, "video", "nesgo_video")
 	if err != nil {
 		panic(fmt.Errorf("create video track error: %v", err))
 	}

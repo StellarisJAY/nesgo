@@ -47,6 +47,10 @@ func NewVideoEncoder(codec string) (IVideoEncoder, error) {
 	switch codec {
 	case "h264":
 		return NewX264Encoder(media)
+	case "vp8":
+		return NewVpxEncoder(media, 8)
+	case "vp9":
+		return NewVpxEncoder(media, 9)
 	default:
 		panic(errors.New("codec not available"))
 	}

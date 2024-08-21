@@ -130,7 +130,7 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 	}
 	instance.e = e
 	// create video and audio encoder
-	videoEncoder, err := codec.NewVideoEncoder("h264")
+	videoEncoder, err := codec.NewVideoEncoder("vp8")
 	if err != nil {
 		return nil, v1.ErrorCreateGameInstanceFailed("create video encoder failed: %v", err)
 	}
