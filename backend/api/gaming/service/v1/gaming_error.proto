@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package gaming.v1;
+import "errors/errors.proto";
+
+option go_package = "backend/api/gaming/service/v1;v1";
+
+enum UserServiceErrorReason {
+  option (errors.default_code) = 500;
+
+  UNKNOWN_ERROR = 0;
+  ROOM_SESSION_NOT_ACCESSIBLE = 1;
+  CREATE_GAME_INSTANCE_FAILED = 2;
+  GAME_FILE_NOT_FOUND = 3;
+  SAVED_GAME_NOT_FOUND = 4;
+  UPLOAD_FILE_FAILED = 5;
+  INVALID_GAME_FILE = 6;
+  LIST_GAME_FAILED = 7;
+  DELETE_GAME_FAILED = 8;
+  OPEN_GAME_CONNECTION_FAILED = 9;
+  GAME_CONNECTION_NOT_FOUND = 10;
+  SDP_ANSWER_FAILED = 11;
+  ICE_CANDIDATE_FAILED = 12;
+  GAME_INSTANCE_NOT_ACCESSIBLE = 13;
+  OPERATION_FAILED = 14;
+  SAVE_GAME_FAILED = 15;
+  LOAD_SAVE_FAILED = 16;
+  RESTART_FAILED = 17;
+  DELETE_SAVE_FAILED = 18;
+}

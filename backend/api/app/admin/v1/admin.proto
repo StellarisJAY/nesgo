@@ -1,0 +1,174 @@
+syntax = "proto3";
+
+package nesgo.admin.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/stellarisJAY/nesgo/backend/api/app/admin/v1;v1";
+
+service Admin {
+  rpc UploadGame(UploadFileRequest) returns (UploadFileResponse) {}
+  rpc ListGames(ListGamesRequest) returns (ListGamesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/admin/games"
+    };
+  }
+  rpc DeleteGameFiles(DeleteGameFileRequest) returns (DeleteGameFileResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/admin/games",
+    };
+  }
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/admin/login",
+      body: "*"
+    };
+  }
+  rpc CreateAdmin(CreateAdminRequest) returns (CreateAdminResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/admin",
+      body: "*"
+    };
+  }
+  rpc ListGamingServiceEndpoints(ListEndpointsRequest) returns (ListEndpointsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/admin/endpoints"
+    };
+  }
+  rpc ListActiveRooms(ListActiveRoomsRequest) returns (ListActiveRoomsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/admin/rooms/active"
+    };
+  }
+  rpc ListRooms(ListRoomsRequest) returns (ListRoomsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/admin/rooms"
+    };
+  }
+  rpc GetRoomStats(GetRoomStatsRequest) returns (GetRoomStatsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/admin/rooms/stats/{roomId}"
+    };
+  }
+}
+
+message UploadFileRequest {
+  string name = 1;
+  bytes data = 2;
+}
+
+message UploadFileResponse {
+
+}
+
+message ListGamesRequest {
+  int32 page = 1;
+  int32 pageSize = 2;
+}
+
+message GameFileMetadata {
+  string name = 1;
+  string mapper = 2;
+  string mirroring = 3;
+  int32 size = 4;
+  int64 uploadTime = 5;
+}
+
+message ListGamesResponse {
+  repeated GameFileMetadata games = 1;
+  int32 total = 2;
+}
+
+message DeleteGameFileRequest {
+  repeated string games = 1;
+}
+
+message DeleteGameFileResponse {
+  int32 deleted = 1;
+}
+
+message LoginRequest {
+  string name = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string token = 1;
+}
+
+message CreateAdminRequest {
+  string name = 1;
+  string password = 2;
+}
+
+message CreateAdminResponse {}
+
+message ActiveRoom {
+  int64 roomId = 1;
+  string name = 2;
+  int64 host = 3;
+  string hostName = 4;
+  int32 memberCount = 5;
+  int32 memberLimit = 6;
+  string endpoint = 7;
+  int32 connections = 8;
+  int32 activeConnections = 9;
+  string game = 10;
+  int64 uptime = 11;
+}
+
+message Room {
+  int64 id = 1;
+  string name = 2;
+  int64 host = 3;
+  string hostName = 4;
+  int32 memberCount = 5;
+  int32 memberLimit = 6;
+  bool private = 7;
+}
+
+message ListRoomsRequest {
+  int32 page = 1;
+  int32 pageSize = 2;
+}
+
+message ListRoomsResponse {
+  repeated Room rooms = 1;
+  int32 total = 2;
+}
+
+message GetRoomStatsRequest {
+  int64 roomId = 1;
+}
+
+message GetRoomStatsResponse {
+  ActiveRoom stats = 1;
+}
+
+message GamingServiceEndpoint {
+  string address = 1;
+  string id = 2;
+  int32 emulatorCount = 3;
+  int32 cpuUsage = 4;
+  int64 memoryUsed = 5;
+  int64 memoryTotal = 6;
+  int64 uptime = 7;
+}
+
+message ListEndpointsRequest {
+  int32 page = 1;
+  int32 pageSize = 2;
+}
+
+message ListEndpointsResponse {
+  repeated GamingServiceEndpoint endpoints = 1;
+  int32 total = 2;
+}
+
+message ListActiveRoomsRequest {
+  string id = 1;
+}
+
+message ListActiveRoomsResponse {
+  repeated ActiveRoom rooms = 1;
+}

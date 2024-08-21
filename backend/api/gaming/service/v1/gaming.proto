@@ -1,0 +1,255 @@
+syntax = "proto3";
+
+package gaming.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1;v1";
+
+service Gaming {
+  rpc CreateGameInstance(CreateGameInstanceRequest) returns (CreateGameInstanceResponse) {}
+  rpc OpenGameConnection(OpenGameConnectionRequest) returns (OpenGameConnectionResponse) {}
+  rpc SDPAnswer(SDPAnswerRequest) returns (SDPAnswerResponse) {}
+  rpc ICECandidate(ICECandidateRequest) returns (ICECandidateResponse) {}
+  rpc GetServerICECandidate(GetServerICECandidateRequest) returns (GetServerICECandidateResponse) {}
+
+  rpc PauseEmulator(PauseEmulatorRequest) returns (PauseEmulatorResponse) {}
+  rpc RestartEmulator(RestartEmulatorRequest) returns (RestartEmulatorResponse) {}
+
+  rpc DeleteGameInstance(DeleteGameInstanceRequest) returns (DeleteGameInstanceResponse) {}
+
+  rpc UploadGame(UploadGameRequest) returns (UploadGameResponse) {}
+  rpc ListGames(ListGamesRequest) returns (ListGamesResponse) {}
+  rpc DeleteGameFile(DeleteGameFileRequest) returns (DeleteGameFileResponse) {}
+
+  rpc SetController(SetControllerRequest) returns (SetControllerResponse) {}
+  rpc GetControllers(GetControllersRequest) returns (GetControllersResponse) {}
+
+  rpc GetGameInstanceStats(GetGameInstanceStatsRequest) returns (GetGameInstanceStatsResponse) {}
+  rpc ListGameInstances(ListGameInstancesRequest) returns (ListGameInstancesResponse) {}
+
+  rpc DeleteMemberConnection(DeleteMemberConnectionRequest) returns (DeleteMemberConnectionResponse) {}
+
+  rpc GetEndpointStats(GetEndpointStatsRequest) returns (GetEndpointStatsResponse) {}
+
+  rpc SaveGame(SaveGameRequest) returns (SaveGameResponse) {}
+  rpc LoadSave(LoadSaveRequest) returns (LoadSaveResponse) {}
+  rpc ListSaves(ListSavesRequest) returns (ListSavesResponse) {}
+  rpc DeleteSave(DeleteSaveRequest) returns (DeleteSaveResponse) {}
+}
+
+message CreateGameInstanceRequest {
+  int64 roomId = 1;
+  string game = 2;
+}
+
+message CreateGameInstanceResponse {
+  int64 roomId = 1;
+  int64 leaseId = 2;
+  string instanceId = 3;
+}
+
+message OpenGameConnectionRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message OpenGameConnectionResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string sdpOffer = 3;
+}
+
+message SDPAnswerRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string sdpAnswer = 3;
+}
+
+message SDPAnswerResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message ICECandidateRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string candidate = 3;
+}
+
+message ICECandidateResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message PauseEmulatorRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message PauseEmulatorResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message RestartEmulatorRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string game = 3;
+}
+
+message RestartEmulatorResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message UploadGameRequest {
+  string name = 1;
+  bytes data = 2;
+}
+
+message UploadGameResponse {
+
+}
+
+message ListGamesRequest {
+  int32 page = 1;
+  int32 pageSize = 2;
+}
+
+message GameFileMetadata {
+  string name = 1;
+  string mapper = 2;
+  string mirroring = 3;
+  int32 size = 4;
+  int64 uploadTime = 5;
+}
+
+message ListGamesResponse {
+  repeated GameFileMetadata games = 1;
+  int32 total = 2;
+}
+
+message DeleteGameFileRequest {
+  repeated string games = 1;
+}
+
+message DeleteGameFileResponse {
+  int32 deleted = 1;
+}
+
+message DeleteGameInstanceRequest {
+  int64 roomId = 1;
+  bool force = 2;
+}
+
+message DeleteGameInstanceResponse {
+  int64 roomId = 1;
+}
+
+message SetControllerRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  int32 controller = 3;
+}
+
+message SetControllerResponse {}
+
+message GetControllersRequest {
+  int64 roomId = 1;
+}
+message GetControllersResponse {
+  int64 roomId = 1;
+  int64 controller1 = 2;
+  int64 controller2 = 3;
+}
+
+message GameInstanceStats {
+  int64 roomId = 1;
+  int32 connections = 2;
+  int32 activeConnections = 3;
+  string game = 4;
+  int64 uptime = 5;
+  // TODO more stats
+}
+
+message GetGameInstanceStatsRequest {
+  int64 roomId = 1;
+}
+
+message GetGameInstanceStatsResponse {
+  GameInstanceStats stats = 1;
+}
+
+message ListGameInstancesRequest {
+}
+
+message ListGameInstancesResponse {
+  repeated GameInstanceStats instances = 1;
+}
+
+message DeleteMemberConnectionRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message DeleteMemberConnectionResponse {}
+
+message GetEndpointStatsRequest {
+
+}
+
+message GetEndpointStatsResponse {
+  int32 emulatorCount = 1;
+  int32 cpuUsage = 2;
+  int64 memoryUsed = 3;
+  int64 memoryTotal = 4;
+  int64 uptime = 5;
+}
+
+message SaveGameRequest {
+  int64 roomId = 1;
+}
+
+message SaveGameResponse {}
+
+message LoadSaveRequest {
+  int64 roomId = 1;
+  int64 saveId = 2;
+}
+
+message LoadSaveResponse {}
+
+message Save {
+  int64 id = 1;
+  int64 roomId = 2;
+  string game = 3;
+  int64 createTime = 4;
+  bool exitSave = 5;
+}
+
+message ListSavesRequest {
+  int64 roomId = 1;
+  int32 page = 2;
+  int32 pageSize = 3;
+}
+
+message ListSavesResponse {
+  repeated Save saves = 1;
+  int32 total = 2;
+}
+
+message DeleteSaveRequest {
+  int64 saveId = 1;
+}
+
+message DeleteSaveResponse {}
+
+message GetServerICECandidateRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message GetServerICECandidateResponse {
+  repeated string candidates = 1;
+}

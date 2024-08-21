@@ -22,9 +22,9 @@
                         <a-input-password v-model:value="formState.confirmPassword" />
                     </a-form-item>
                     <a-row>
-                      <a-col :span="16" :offset="4" style="text-align: center">
-                        已经拥有账号？点击<RouterLink to="/login">此处</RouterLink>登录
-                      </a-col>
+                        <a-col :span="16" :offset="4" style="text-align: center">
+                            已经拥有账号？点击<RouterLink to="/login">此处</RouterLink>登录
+                        </a-col>
                     </a-row>
                     <a-row>
                         <a-col :offset="4" :span="16">
@@ -44,7 +44,7 @@ import { Button, Form, Input } from 'ant-design-vue';
 import api from '../api/request';
 import { message } from 'ant-design-vue';
 import router from '../router';
-import {RouterLink} from "vue-router";
+import { RouterLink } from "vue-router";
 
 export default {
     components: {
@@ -56,7 +56,7 @@ export default {
         AFormItem: Form.Item,
         AInput: Input,
         AInputPassword: Input.Password,
-      RouterLink,
+        RouterLink,
     },
     data() {
         return {
@@ -85,16 +85,16 @@ export default {
     },
     methods: {
         onFinish(ev) {
-            api.post("/user/register", {
+            api.post("api/v1/register", {
                 "name": this.formState.name,
                 "password": this.formState.password,
             })
-            .then(data=>{
-                message.success("注册成功")
-                router.push("/login")
-            })
-            .catch(resp=>{
-            })
+                .then(data => {
+                    message.success("注册成功")
+                    router.push("/login")
+                })
+                .catch(resp => {
+                })
         },
         onFinishFailed(ev) {
 
@@ -108,7 +108,7 @@ export default {
         validatePass2() {
             if (this.formState.confirmPassword === '') {
                 return Promise.reject("请确认密码")
-            }else if (this.formState.confirmPassword !== this.formState.password) {
+            } else if (this.formState.confirmPassword !== this.formState.password) {
                 return Promise.reject("两次输入密码不同")
             }
             return Promise.resolve()

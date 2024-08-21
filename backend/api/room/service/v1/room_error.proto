@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package room.v1;
+import "errors/errors.proto";
+
+option go_package = "backend/api/room/service/v1;v1";
+
+enum UserServiceErrorReason {
+  option (errors.default_code) = 500;
+
+  UNKNOWN_ERROR = 0;
+  ROOM_NOT_FOUND = 2 [(errors.code) = 404];
+  ROOM_NOT_ACCESSIBLE = 3 [(errors.code) = 403];
+  CREATE_ROOM_FAILED = 4 [(errors.code) = 400];
+  GET_ROOM_FAILED = 5;
+  JOIN_ROOM_FAILED = 6;
+  CREATE_ROOM_SESSION_FAILED = 7;
+  UPDATE_ROOM_FAILED = 8;
+  DELETE_ROOM_FAILED = 9;
+  GET_ROOM_MEMBER_FAILED = 10;
+  UPDATE_MEMBER_FAILED = 11;
+  DELETE_MEMBER_FAILED = 12;
+}

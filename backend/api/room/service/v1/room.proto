@@ -1,0 +1,177 @@
+syntax = "proto3";
+
+package room.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/stellarisJAY/nesgo/backend/api/room/service/v1;v1";
+
+service Room {
+  rpc CreateRoom(CreateRoomRequest) returns (CreateRoomResponse) {}
+  rpc GetRoom(GetRoomRequest) returns (GetRoomResponse) {}
+  rpc ListRoomMembers(ListRoomMemberRequest) returns (ListRoomMemberResponse) {}
+  rpc ListRooms(ListRoomsRequest) returns (ListRoomsResponse) {}
+  rpc JoinRoom(JoinRoomRequest) returns (JoinRoomResponse) {}
+  rpc GetRoomSession(GetRoomSessionRequest) returns (GetRoomSessionResponse) {}
+  rpc GetCreateRoomSession(GetCreateRoomSessionRequest) returns (GetRoomSessionResponse) {}
+  rpc RemoveRoomSession(RemoveRoomSessionRequest) returns (RemoveRoomSessionResponse) {}
+  rpc DeleteRoom(DeleteRoomRequest) returns (DeleteRoomResponse) {}
+  rpc UpdateRoom(UpdateRoomRequest) returns (UpdateRoomResponse) {}
+
+  rpc GetRoomMember(GetRoomMemberRequest) returns (GetRoomMemberResponse) {}
+  rpc UpdateMember(UpdateMemberRequest) returns (UpdateMemberResponse) {}
+  rpc DeleteMember(DeleteMemberRequest) returns (DeleteMemberResponse) {}
+
+  rpc AddDeleteRoomSessionTask(AddDeleteRoomSessionTaskRequest) returns (AddDeleteRoomSessionTaskResponse) {}
+}
+
+enum RoomRole {
+  Host = 0;
+  Player = 1;
+  Observer = 2;
+  None = 3;
+}
+
+message CreateRoomRequest {
+  string name = 1;
+  bool private = 2;
+  int64 host = 3;
+}
+
+message CreateRoomResponse {
+  int64 id = 1;
+  bool private = 2;
+  string password = 3;
+  int32 memberLimit = 4;
+}
+
+message GetRoomRequest {
+  int64 id = 1;
+}
+
+message GetRoomResponse {
+  int64 id = 1;
+  bool private = 2;
+  string password = 3;
+  int64 host = 4;
+  int32 memberCount = 5;
+  string name = 6;
+  RoomRole role = 7;
+  int32 memberLimit = 8;
+  int64 createTime = 9;
+}
+
+message ListRoomMemberRequest {
+  int64 id = 1;
+}
+
+message RoomMember {
+  int64 userId = 1;
+  RoomRole role = 2;
+  int64 joinedAt = 3;
+}
+
+message ListRoomMemberResponse {
+  repeated RoomMember members = 1;
+  int32 count = 2;
+}
+
+message ListRoomsRequest {
+  int32 page = 1;
+  int32 pageSize = 2;
+  bool joined = 3;
+  int64 userId = 4;
+}
+
+message ListRoomsResponse {
+  repeated GetRoomResponse rooms = 1;
+  int32 total = 2;
+  int32 totalPages = 3;
+}
+
+message JoinRoomRequest {
+  int64 id = 1;
+  int64 userId = 2;
+  string password = 3;
+}
+
+message JoinRoomResponse {
+}
+
+message GetRoomSessionRequest {
+  int64 roomId = 1;
+}
+
+message GetCreateRoomSessionRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string selectedGame = 3;
+}
+
+message GetRoomSessionResponse {
+  int64 roomId = 1;
+  string endpoint = 2;
+}
+
+message RemoveRoomSessionRequest {
+  int64 roomId = 1;
+  string endpoint = 2;
+}
+
+message RemoveRoomSessionResponse {
+
+}
+
+message DeleteRoomRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message DeleteRoomResponse {
+
+}
+
+message UpdateRoomRequest {
+  int64 roomId = 1;
+  string name = 2;
+  bool private = 3;
+  int64 userId = 4;
+}
+
+message UpdateRoomResponse {
+  int64 roomId = 1;
+  string name = 2;
+  bool private = 3;
+  string password = 4;
+}
+
+message GetRoomMemberRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message GetRoomMemberResponse {
+  RoomMember member = 1;
+}
+
+message UpdateMemberRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  RoomRole role = 3;
+}
+
+message UpdateMemberResponse {}
+
+message DeleteMemberRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message DeleteMemberResponse {}
+
+message AddDeleteRoomSessionTaskRequest {
+  int64 roomId = 1;
+  string instanceId = 2;
+}
+
+message AddDeleteRoomSessionTaskResponse {}

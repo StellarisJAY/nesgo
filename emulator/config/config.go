@@ -23,7 +23,7 @@ type Config struct {
 
 var conf Config
 
-func init() {
+func InitConfigs() {
 	flag.StringVar(&conf.Game, "game", "games/super.nes", "Game file path")
 	flag.BoolVar(&conf.EnableTrace, "trace", false, "enable debug tracing")
 	flag.BoolVar(&conf.Disassemble, "disassemble", false, "Disassemble program")

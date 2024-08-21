@@ -23,6 +23,10 @@ const (
 var ErrUnknownCartridgeFormat = errors.New("unknown cartridge format")
 var ErrUnsupportedMapper = errors.New("unsupported mapper type")
 
+var mapperNames = []string{
+	"mapper0", "mapper1", "mapper2", "mapper3", "mapper4",
+}
+
 type Cartridge interface {
 	Read(addr uint16) byte
 	Write(addr uint16, val byte)
@@ -144,4 +148,24 @@ func splitPrgAndChr(raw []byte) (trainerStart, prgStart, chrStart uint32, chrRAM
 	chrStart = prgStart + programSize
 	chrRAM = chrSize == 0
 	return
+}
+
+func MirroringToString(m byte) string {
+	switch m {
+	case Horizontal:
+		return "Horizontal"
+	case Vertical:
+		return "Vertical"
+	case FourScreen:
+		return "FourScreen"
+	default:
+		return "Unknown"
+	}
+}
+
+func MapperToString(m byte) string {
+	if int(m) >= len(mapperNames) {
+		return "Unsupported"
+	}
+	return mapperNames[m]
 }

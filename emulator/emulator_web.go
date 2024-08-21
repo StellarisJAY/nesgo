@@ -1,4 +1,4 @@
-//go:build web
+//go:build !sdl
 
 package emulator
 
@@ -24,7 +24,11 @@ func NewEmulator(game string, conf config.Config, callback bus.RenderCallback, a
 	if err != nil {
 		return nil, err
 	}
-	c, err := cartridge.MakeCartridge(nesData)
+	return NewEmulatorWithGameData(nesData, conf, callback, audioSampleChan, apuSampleRate)
+}
+
+func NewEmulatorWithGameData(game []byte, conf config.Config, callback bus.RenderCallback, audioSampleChan chan float32, apuSampleRate int) (*Emulator, error) {
+	c, err := cartridge.MakeCartridge(game)
 	if err != nil {
 		return nil, err
 	}

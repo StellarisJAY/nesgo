@@ -1,0 +1,523 @@
+syntax = "proto3";
+
+package nesgo.webapi.v1;
+
+import "google/api/annotations.proto";
+import "room/service/v1/room.proto";
+option go_package = "github.com/stellarisJAY/nesgo/backend/api/app/webapi/v1;v1";
+
+service WebApi {
+  rpc Register(RegisterRequest) returns (RegisterResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/register"
+      body: "*"
+    };
+  }
+  rpc Login(LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/login"
+      body: "*"
+    };
+  }
+  rpc ListMyRooms(ListRoomRequest) returns (ListRoomResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/rooms/joined"
+    };
+  }
+  rpc ListAllRooms(ListRoomRequest) returns (ListRoomResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/rooms"
+    };
+  }
+  rpc CreateRoom(CreateRoomRequest) returns (CreateRoomResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/room"
+      body: "*"
+    };
+  }
+  rpc GetRoom(GetRoomRequest) returns (GetRoomResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/room/{id}"
+    };
+  }
+
+  rpc GetUser(GetUserRequest) returns (GetUserResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/user/{id}"
+    };
+  }
+  rpc GetRoomSession(GetRoomSessionRequest) returns (GetRoomSessionResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/room/session"
+      body: "*"
+    };
+  }
+  rpc OpenGameConnection(OpenGameConnectionRequest) returns (OpenGameConnectionResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/game/connection"
+      body: "*"
+    };
+  }
+  rpc SDPAnswer(SDPAnswerRequest) returns (SDPAnswerResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/game/sdp"
+      body: "*"
+    };
+  }
+  rpc AddICECandidate(AddICECandidateRequest) returns (AddICECandidateResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/game/ice"
+      body: "*"
+    };
+  }
+  rpc ListMembers(ListMemberRequest) returns (ListMemberResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/members"
+    };
+  }
+  rpc JoinRoom(JoinRoomRequest) returns (JoinRoomResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/room/{roomId}/join"
+      body: "*"
+    };
+  }
+  rpc DeleteRoom(DeleteRoomRequest) returns (DeleteRoomResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/room/{roomId}"
+    };
+  }
+  rpc UpdateRoom(UpdateRoomRequest) returns (UpdateRoomResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/room/{roomId}"
+      body: "*"
+    };
+  }
+
+  rpc GetRoomMember(GetRoomMemberRequest) returns (GetRoomMemberResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/member/{roomId}"
+    };
+  }
+
+  rpc ListGames(ListGamesRequest) returns (ListGamesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/games"
+    };
+  }
+
+  rpc SetController(SetControllerRequest) returns (SetControllerResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/game/controller"
+      body: "*"
+    };
+  }
+
+  rpc UpdateMemberRole(UpdateMemberRoleRequest) returns (UpdateMemberRoleResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/member/role"
+      body: "*"
+    };
+  }
+
+  rpc DeleteMember(DeleteMemberRequest) returns (DeleteMemberResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/member"
+    };
+  }
+
+  rpc SaveGame(SaveGameRequest) returns (SaveGameResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/game/save"
+      body: "*"
+    };
+  }
+
+  rpc LoadSave(LoadSaveRequest) returns (LoadSaveResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/game/load"
+      body: "*"
+    };
+  }
+
+  rpc ListSaves(ListSavesRequest) returns (ListSavesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/game/saves"
+    };
+  }
+
+  rpc RestartEmulator(RestartEmulatorRequest) returns (RestartEmulatorResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/game/restart"
+      body: "*"
+    };
+  }
+
+  rpc DeleteSave(DeleteSaveRequest) returns (DeleteSaveResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/game/save"
+    };
+  }
+
+  rpc CreateUserKeyboardBinding(CreateUserKeyboardBindingRequest) returns (CreateUserKeyboardBindingResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/keyboard/binding"
+      body: "*"
+    };
+  }
+
+  rpc ListUserKeyboardBinding(ListUserKeyboardBindingRequest) returns (ListUserKeyboardBindingResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/keyboard/bindings"
+    };
+  }
+  rpc GetUserKeyboardBinding(GetUserKeyboardBindingRequest) returns (GetUserKeyboardBindingResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/keyboard/binding/{id}"
+    };
+  }
+  rpc UpdateUserKeyboardBinding(UpdateUserKeyboardBindingRequest) returns (UpdateUserKeyboardBindingResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/keyboard/binding"
+      body: "*"
+    };
+  }
+  rpc DeleteUserKeyboardBinding(DeleteUserKeyboardBindingRequest) returns (DeleteUserKeyboardBindingResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/keyboard/binding/{id}"
+    };
+  }
+
+  rpc GetServerICECandidate(GetServerICECandidateRequest) returns (GetServerICECandidateResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/ice/candidates"
+    };
+  }
+}
+
+message RegisterRequest {
+  string name = 1;
+  string password = 2;
+}
+
+message RegisterResponse {}
+
+message LoginRequest {
+  string name = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  string token = 1;
+}
+
+message GetUserRequest {
+  int64 id = 1;
+}
+
+message GetUserResponse {
+  int32 code = 1;
+  string message = 2;
+  User data = 3;
+}
+
+message Room {
+  int64 id = 1;
+  string name = 2;
+  int64 host = 3;
+  string hostName = 4;
+  bool private = 5;
+  int32 memberCount = 6;
+  int32 memberLimit = 7;
+  int64 createTime = 8;
+  string password = 9;
+}
+
+message User {
+  int64 id = 1;
+  string name = 2;
+}
+
+message ListRoomRequest {
+  int32 page = 1;
+  int32 pageSize = 2;
+}
+
+message ListRoomResponse {
+  repeated Room rooms = 1;
+  int32 total = 2;
+}
+
+message GetRoomSessionRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message GetRoomSessionResponse {
+  int64 roomId = 1;
+  string endpoint = 2;
+}
+
+message OpenGameConnectionRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string game = 3;
+}
+
+message OpenGameConnectionResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string sdpOffer = 3;
+}
+
+message SDPAnswerRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string sdpAnswer = 3;
+}
+
+message SDPAnswerResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message AddICECandidateRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  string candidate = 3;
+}
+
+message AddICECandidateResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message CreateRoomRequest {
+  string name = 1;
+  bool private = 2;
+}
+
+message CreateRoomResponse {
+  int64 id = 1;
+  string name = 2;
+  int64 host = 3;
+  bool private = 4;
+  string password = 5;
+  int32 memberLimit = 6;
+}
+
+message GetRoomRequest {
+  int64 id = 1;
+}
+
+message GetRoomResponse {
+  int64 id = 1;
+  string name = 2;
+  bool private = 3;
+  int64 host = 4;
+  string hostName = 5;
+  int32 memberCount = 6;
+  int32 memberLimit = 7;
+  int64 createTime = 8;
+  string password = 9;
+}
+
+message Member {
+  int64 userId = 1;
+  string name = 2;
+  room.v1.RoomRole role = 3;
+  int64 joinedAt = 4;
+  bool player1 = 5;
+  bool player2 = 6;
+}
+
+message ListMemberRequest {
+  int64 roomId = 1;
+}
+
+message ListMemberResponse {
+  repeated Member members = 1;
+}
+
+message JoinRoomRequest {
+  int64 roomId = 1;
+  string password = 2;
+}
+
+message JoinRoomResponse {
+  int64 roomId = 1;
+  int64 userId = 2;
+  room.v1.RoomRole role = 3;
+}
+
+message DeleteRoomRequest {
+  int64 roomId = 1;
+}
+
+message DeleteRoomResponse {}
+
+message UpdateRoomRequest {
+  int64 roomId = 1;
+  string name = 2;
+  bool private = 3;
+}
+
+message UpdateRoomResponse {
+  int64 roomId = 1;
+  string name = 2;
+  bool private = 3;
+  string password = 4;
+}
+
+message GetRoomMemberRequest {
+  int64 roomId = 1;
+}
+
+message GetRoomMemberResponse {
+  Member member = 1;
+}
+
+message ListGamesRequest {
+
+}
+
+message GameFileMetadata {
+  string name = 1;
+  string mapper = 2;
+  string mirroring = 3;
+}
+
+message ListGamesResponse {
+  repeated GameFileMetadata games = 1;
+}
+
+message SetControllerRequest {
+  int64 roomId = 1;
+  int64 playerId = 2;
+  int32 controllerId = 3;
+}
+
+message SetControllerResponse {
+
+}
+
+message UpdateMemberRoleRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+  room.v1.RoomRole role = 3;
+}
+
+message UpdateMemberRoleResponse {}
+
+message DeleteMemberRequest {
+  int64 roomId = 1;
+  int64 userId = 2;
+}
+
+message DeleteMemberResponse {}
+
+message Save {
+  int64 id = 1;
+  int64 roomId = 2;
+  string game = 3;
+  int64 createTime = 4;
+  bool exitSave = 5;
+}
+
+message SaveGameRequest {
+  int64 roomId = 1;
+}
+
+message SaveGameResponse {}
+
+message LoadSaveRequest {
+  int64 roomId = 1;
+  int64 saveId = 2;
+}
+
+message LoadSaveResponse {}
+
+message ListSavesRequest {
+  int64 roomId = 1;
+  int32 page = 2;
+  int32 pageSize = 3;
+}
+
+message ListSavesResponse {
+  repeated Save saves = 1;
+  int32 total = 2;
+}
+
+message RestartEmulatorRequest {
+  int64 roomId = 1;
+  string game = 2;
+}
+
+message RestartEmulatorResponse {}
+
+message DeleteSaveRequest {
+  int64 saveId = 1;
+  int64 roomId = 2;
+}
+
+message DeleteSaveResponse {}
+
+message KeyboardBinding {
+  string keyboardKey = 1;
+  string emulatorKey = 2;
+  string keyboardKeyTranslated = 3;
+  string emulatorKeyTranslated = 4;
+}
+
+message UserKeyboardBinding {
+  int64 id = 1;
+  int64 userId = 2;
+  string name = 3;
+  repeated KeyboardBinding bindings = 4;
+}
+
+message GetUserKeyboardBindingRequest {
+  int64 id = 1;
+}
+
+message GetUserKeyboardBindingResponse {
+  UserKeyboardBinding binding = 1;
+}
+
+message ListUserKeyboardBindingRequest {
+  int32 page = 1;
+  int32 pageSize = 2;
+}
+
+message ListUserKeyboardBindingResponse {
+  repeated UserKeyboardBinding bindings = 1;
+  int32 total = 2;
+}
+
+message CreateUserKeyboardBindingRequest {
+  string name = 1;
+  repeated KeyboardBinding bindings = 2;
+}
+
+message CreateUserKeyboardBindingResponse {}
+
+message UpdateUserKeyboardBindingRequest {
+  int64 id = 1;
+  string name = 2;
+  repeated KeyboardBinding bindings = 3;
+}
+
+message UpdateUserKeyboardBindingResponse {}
+
+message DeleteUserKeyboardBindingRequest {
+  int64 id = 1;
+}
+
+message DeleteUserKeyboardBindingResponse {}
+
+message GetServerICECandidateRequest {
+  int64 roomId = 1;
+}
+
+message GetServerICECandidateResponse {
+  repeated string candidates = 1;
+}
