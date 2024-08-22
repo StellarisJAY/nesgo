@@ -7,6 +7,7 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/pion/webrtc/v3"
 	v1 "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
+	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/conf"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/codec"
 	"github.com/stellarisJAY/nesgo/emulator"
 	"github.com/stellarisJAY/nesgo/emulator/config"
@@ -79,15 +80,17 @@ type GameInstanceUseCase struct {
 	roomRepo     RoomRepo
 	logger       *log.Helper
 	startupTime  time.Time
+	stunServer   string
 }
 
-func NewGameInstanceUseCase(repo GameInstanceRepo, gameFileRepo GameFileRepo, roomRepo RoomRepo, logger log.Logger) *GameInstanceUseCase {
+func NewGameInstanceUseCase(repo GameInstanceRepo, gameFileRepo GameFileRepo, roomRepo RoomRepo, c *conf.IceServer, logger log.Logger) *GameInstanceUseCase {
 	return &GameInstanceUseCase{
 		repo:         repo,
 		gameFileRepo: gameFileRepo,
 		roomRepo:     roomRepo,
 		logger:       log.NewHelper(log.With(logger, "module", "biz/gameInstance")),
 		startupTime:  time.Now(),
+		stunServer:   c.StunServer,
 	}
 }
 
@@ -179,7 +182,7 @@ func (uc *GameInstanceUseCase) OpenGameConnection(ctx context.Context, roomId, u
 	if instance == nil {
 		return "", v1.ErrorUnknownError("game instance not found")
 	}
-	_, sdp, err := instance.NewConnection(userId)
+	_, sdp, err := instance.NewConnection(userId, uc.stunServer)
 	if err != nil {
 		return "", v1.ErrorOpenGameConnectionFailed("open game connection failed: %v", err)
 	}

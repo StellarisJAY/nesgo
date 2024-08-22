@@ -13,3 +13,5 @@ registry:
   etcd:
     endpoints:
       - localhost:2379
+iceServer:
+  stunServer: stun:localhost:3478

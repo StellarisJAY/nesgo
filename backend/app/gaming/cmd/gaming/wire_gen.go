@@ -23,7 +23,7 @@ import (
 // Injectors from wire.go:
 
 // wireApp init kratos application.
-func wireApp(confServer *conf.Server, confData *conf.Data, registry *conf.Registry, logger log.Logger) (*kratos.App, func(), error) {
+func wireApp(confServer *conf.Server, confData *conf.Data, registry *conf.Registry, iceServer *conf.IceServer, logger log.Logger) (*kratos.App, func(), error) {
 	client := server.NewEtcdClient(registry)
 	discovery := server.NewDiscovery(client)
 	dataData, cleanup, err := data.NewData(confData, confServer, discovery, logger)
@@ -33,7 +33,7 @@ func wireApp(confServer *conf.Server, confData *conf.Data, registry *conf.Regist
 	gameInstanceRepo := data.NewGameInstanceRepo(client, dataData, logger)
 	gameFileRepo := data.NewGameFileRepo(dataData, logger)
 	roomRepo := data.NewRoomRepo(dataData, logger)
-	gameInstanceUseCase := biz.NewGameInstanceUseCase(gameInstanceRepo, gameFileRepo, roomRepo, logger)
+	gameInstanceUseCase := biz.NewGameInstanceUseCase(gameInstanceRepo, gameFileRepo, roomRepo, iceServer, logger)
 	gameFileUseCase := biz.NewGameFileUseCase(gameFileRepo, logger)
 	gamingService := service.NewGamingService(gameInstanceUseCase, gameFileUseCase, logger)
 	grpcServer := server.NewGRPCServer(confServer, gamingService)

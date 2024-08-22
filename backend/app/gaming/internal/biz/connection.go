@@ -19,11 +19,11 @@ type Connection struct {
 	mutex           *sync.Mutex
 }
 
-func (g *GameInstance) NewConnection(userId int64) (*Connection, string, error) {
+func (g *GameInstance) NewConnection(userId int64, stunServer string) (*Connection, string, error) {
 	pc, err := webrtc.NewPeerConnection(webrtc.Configuration{
 		ICEServers: []webrtc.ICEServer{
 			{
-				URLs: []string{"stun:43.138.153.172:3478"},
+				URLs: []string{stunServer},
 			},
 		},
 	})
