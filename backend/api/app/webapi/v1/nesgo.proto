@@ -46,12 +46,6 @@ service WebApi {
       get: "/api/v1/user/{id}"
     };
   }
-  rpc GetRoomSession(GetRoomSessionRequest) returns (GetRoomSessionResponse) {
-    option (google.api.http) = {
-      get: "/api/v1/room/session"
-      body: "*"
-    };
-  }
   rpc OpenGameConnection(OpenGameConnectionRequest) returns (OpenGameConnectionResponse) {
     option (google.api.http) = {
       post: "/api/v1/game/connection"

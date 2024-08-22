@@ -587,24 +587,6 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.CreateRoomResponse'
-    /api/v1/room/session:
-        get:
-            tags:
-                - WebApi
-            operationId: WebApi_GetRoomSession
-            requestBody:
-                content:
-                    application/json:
-                        schema:
-                            $ref: '#/components/schemas/nesgo.webapi.v1.GetRoomSessionRequest'
-                required: true
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/nesgo.webapi.v1.GetRoomSessionResponse'
     /api/v1/room/{id}:
         get:
             tags:
@@ -1004,20 +986,6 @@ components:
                 createTime:
                     type: string
                 password:
-                    type: string
-        nesgo.webapi.v1.GetRoomSessionRequest:
-            type: object
-            properties:
-                roomId:
-                    type: string
-                userId:
-                    type: string
-        nesgo.webapi.v1.GetRoomSessionResponse:
-            type: object
-            properties:
-                roomId:
-                    type: string
-                endpoint:
                     type: string
         nesgo.webapi.v1.GetServerICECandidateResponse:
             type: object

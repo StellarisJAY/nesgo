@@ -28,7 +28,6 @@ const OperationWebApiDeleteSave = "/nesgo.webapi.v1.WebApi/DeleteSave"
 const OperationWebApiDeleteUserKeyboardBinding = "/nesgo.webapi.v1.WebApi/DeleteUserKeyboardBinding"
 const OperationWebApiGetRoom = "/nesgo.webapi.v1.WebApi/GetRoom"
 const OperationWebApiGetRoomMember = "/nesgo.webapi.v1.WebApi/GetRoomMember"
-const OperationWebApiGetRoomSession = "/nesgo.webapi.v1.WebApi/GetRoomSession"
 const OperationWebApiGetServerICECandidate = "/nesgo.webapi.v1.WebApi/GetServerICECandidate"
 const OperationWebApiGetUser = "/nesgo.webapi.v1.WebApi/GetUser"
 const OperationWebApiGetUserKeyboardBinding = "/nesgo.webapi.v1.WebApi/GetUserKeyboardBinding"
@@ -61,7 +60,6 @@ type WebApiHTTPServer interface {
 	DeleteUserKeyboardBinding(context.Context, *DeleteUserKeyboardBindingRequest) (*DeleteUserKeyboardBindingResponse, error)
 	GetRoom(context.Context, *GetRoomRequest) (*GetRoomResponse, error)
 	GetRoomMember(context.Context, *GetRoomMemberRequest) (*GetRoomMemberResponse, error)
-	GetRoomSession(context.Context, *GetRoomSessionRequest) (*GetRoomSessionResponse, error)
 	GetServerICECandidate(context.Context, *GetServerICECandidateRequest) (*GetServerICECandidateResponse, error)
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	GetUserKeyboardBinding(context.Context, *GetUserKeyboardBindingRequest) (*GetUserKeyboardBindingResponse, error)
@@ -94,7 +92,6 @@ func RegisterWebApiHTTPServer(s *http.Server, srv WebApiHTTPServer) {
 	r.POST("/api/v1/room", _WebApi_CreateRoom0_HTTP_Handler(srv))
 	r.GET("/api/v1/room/{id}", _WebApi_GetRoom0_HTTP_Handler(srv))
 	r.GET("/api/v1/user/{id}", _WebApi_GetUser0_HTTP_Handler(srv))
-	r.GET("/api/v1/room/session", _WebApi_GetRoomSession0_HTTP_Handler(srv))
 	r.POST("/api/v1/game/connection", _WebApi_OpenGameConnection0_HTTP_Handler(srv))
 	r.POST("/api/v1/game/sdp", _WebApi_SDPAnswer0_HTTP_Handler(srv))
 	r.POST("/api/v1/game/ice", _WebApi_AddICECandidate0_HTTP_Handler(srv))
@@ -264,28 +261,6 @@ func _WebApi_GetUser0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) 
 			return err
 		}
 		reply := out.(*GetUserResponse)
-		return ctx.Result(200, reply)
-	}
-}
-
-func _WebApi_GetRoomSession0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
-	return func(ctx http.Context) error {
-		var in GetRoomSessionRequest
-		if err := ctx.Bind(&in); err != nil {
-			return err
-		}
-		if err := ctx.BindQuery(&in); err != nil {
-			return err
-		}
-		http.SetOperation(ctx, OperationWebApiGetRoomSession)
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.GetRoomSession(ctx, req.(*GetRoomSessionRequest))
-		})
-		out, err := h(ctx, &in)
-		if err != nil {
-			return err
-		}
-		reply := out.(*GetRoomSessionResponse)
 		return ctx.Result(200, reply)
 	}
 }
@@ -791,7 +766,6 @@ type WebApiHTTPClient interface {
 	DeleteUserKeyboardBinding(ctx context.Context, req *DeleteUserKeyboardBindingRequest, opts ...http.CallOption) (rsp *DeleteUserKeyboardBindingResponse, err error)
 	GetRoom(ctx context.Context, req *GetRoomRequest, opts ...http.CallOption) (rsp *GetRoomResponse, err error)
 	GetRoomMember(ctx context.Context, req *GetRoomMemberRequest, opts ...http.CallOption) (rsp *GetRoomMemberResponse, err error)
-	GetRoomSession(ctx context.Context, req *GetRoomSessionRequest, opts ...http.CallOption) (rsp *GetRoomSessionResponse, err error)
 	GetServerICECandidate(ctx context.Context, req *GetServerICECandidateRequest, opts ...http.CallOption) (rsp *GetServerICECandidateResponse, err error)
 	GetUser(ctx context.Context, req *GetUserRequest, opts ...http.CallOption) (rsp *GetUserResponse, err error)
 	GetUserKeyboardBinding(ctx context.Context, req *GetUserKeyboardBindingRequest, opts ...http.CallOption) (rsp *GetUserKeyboardBindingResponse, err error)
@@ -934,19 +908,6 @@ func (c *WebApiHTTPClientImpl) GetRoomMember(ctx context.Context, in *GetRoomMem
 	opts = append(opts, http.Operation(OperationWebApiGetRoomMember))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return &out, nil
-}
-
-func (c *WebApiHTTPClientImpl) GetRoomSession(ctx context.Context, in *GetRoomSessionRequest, opts ...http.CallOption) (*GetRoomSessionResponse, error) {
-	var out GetRoomSessionResponse
-	pattern := "/api/v1/room/session"
-	path := binding.EncodeURL(pattern, in, false)
-	opts = append(opts, http.Operation(OperationWebApiGetRoomSession))
-	opts = append(opts, http.PathTemplate(pattern))
-	err := c.cc.Invoke(ctx, "GET", path, in, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
