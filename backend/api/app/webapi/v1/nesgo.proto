@@ -186,6 +186,19 @@ service WebApi {
       get: "/api/v1/ice/candidates"
     };
   }
+
+  rpc SetGraphicOptions(SetGraphicOptionsRequest) returns (SetGraphicOptionsResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/game/graphic"
+      body: "*"
+    };
+  }
+
+  rpc GetGraphicOptions(GetGraphicOptionsRequest) returns (GetGraphicOptionsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/game/graphic"
+    };
+  }
 }
 
 message RegisterRequest {
@@ -514,4 +527,35 @@ message GetServerICECandidateRequest {
 
 message GetServerICECandidateResponse {
   repeated string candidates = 1;
+}
+
+message FindRoomByNameRequest {
+  string name = 1;
+  int32 page = 2;
+  int32 pageSize = 3;
+}
+
+message FindRoomByNameResponse {
+  repeated Room rooms = 1;
+  int32 total = 2;
+}
+
+message SetGraphicOptionsRequest {
+  int64 roomId = 1;
+  bool highResOpen = 2;
+  bool reverseColor = 3;
+}
+
+message SetGraphicOptionsResponse {
+  bool highResOpen = 1;
+  bool reverseColor = 2;
+}
+
+message GetGraphicOptionsRequest {
+  int64 roomId = 1;
+}
+
+message GetGraphicOptionsResponse {
+  bool highResOpen = 1;
+  bool reverseColor = 2;
 }

@@ -155,13 +155,21 @@ const tourSteps = [
       <a-input placeholder="请输入消息..." v-model:value="chatMessage"></a-input>
     </a-modal>
     <!--settings-->
-    <a-drawer v-model:open="settingDrawerOpen" placement="right" title="设置" size="large">
+    <a-drawer v-model:open="settingDrawerOpen" placement="right" title="设置" size="default">
       <p>提示：点击按钮取消绑定，点击‘+’后按下键盘按键添加绑定</p>
       <a-button type="primary" @click="setKeyboardBindingEnabled">使用</a-button>
       <KeyboardSetting :show-default="true" :allow-create="false" :allow-delete="false" ref="refKeyboardSettings"></KeyboardSetting>
       <a-form>
         <a-form-item label="显示状态数据">
           <a-switch v-model:checked="configs.showStats"></a-switch>
+        </a-form-item>
+      </a-form>
+      <a-form>
+        <a-form-item label="高分辨率">
+          <a-switch v-model:checked="graphicOptions.highResOpen" :disabled="graphicOptionsDisabled" @change="updateGraphicOptions"></a-switch>
+        </a-form-item>
+        <a-form-item label="反色">
+          <a-switch v-model:checked="graphicOptions.reverseColor" :disabled="graphicOptionsDisabled" @change="updateGraphicOptions"></a-switch>
         </a-form-item>
       </a-form>
     </a-drawer>
@@ -275,6 +283,11 @@ export default {
       },
       joinRoomModalOpen: false,
       tourOpen: false,
+      graphicOptions: {
+        highResOpen: false,
+        reverseColor: false,
+      },
+      graphicOptionsDisabled: true,
     }
   },
   created() {
@@ -476,6 +489,8 @@ export default {
       this.saveBtnDisabled = this.memberSelf["role"] !== RoleNameHost;
       this.loadBtnDisabled = false;
       this.restartBtnDisabled = this.memberSelf["role"] !== RoleNameHost;
+      this.graphicOptionsDisabled = this.memberSelf["role"] !== RoleNameHost;
+      this.getGraphicOptions();
     },
     onDisconnected() {
       message.warn("连接断开");
@@ -485,6 +500,7 @@ export default {
       this.restartBtnDisabled = true;
       this.loadBtnDisabled = true;
       this.chatBtnDisabled = true;
+      this.graphicOptionsDisabled = true;
       this.getMemberSelf().then(_ => {
         this.connectBtnDisabled = false;
       }).catch(_ => {
@@ -681,6 +697,32 @@ export default {
       if(bytes <= 1024*1024) return (bytes>>10) + "KB";
       return (bytes>>20) + "MB";
     },
+
+    updateGraphicOptions: function() {
+      const _this = this;
+      this.graphicOptionsDisabled = true;
+      api.post("api/v1/game/graphic", {
+        "roomId": this.roomId,
+        "highResOpen": this.graphicOptions.highResOpen,
+        "reverseColor": this.graphicOptions.reverseColor,
+      }).then(resp => {
+        _this.graphicOptionsDisabled = false;
+        _this.graphicOptions.highResOpen = resp['highResOpen'];
+        _this.graphicOptions.reverseColor = resp['reverseColor'];
+        message.success("设置成功");
+      }).catch(_ => {
+        message.error("设置失败");
+        _this.graphicOptionsDisabled = false;
+      });
+    },
+
+    getGraphicOptions: function() {
+      const _this = this;
+      api.get("api/v1/game/graphic?roomId=" + this.roomId).then(resp => {
+        _this.graphicOptions.highResOpen = resp['highResOpen'];
+        _this.graphicOptions.reverseColor = resp['reverseColor'];
+      });
+    }
   }
 }
 </script>

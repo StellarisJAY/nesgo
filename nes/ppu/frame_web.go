@@ -8,7 +8,8 @@ import (
 )
 
 type Frame struct {
-	ycbcr *image.YCbCr
+	ycbcr        *image.YCbCr
+	pixelPreProc PixelPreprocessor
 }
 
 const (
@@ -16,13 +17,28 @@ const (
 	HEIGHT = 240
 )
 
+type PixelPreprocessor func(c Color) Color
+
 func NewFrame() *Frame {
 	return &Frame{
 		image.NewYCbCr(image.Rect(0, 0, WIDTH, HEIGHT), image.YCbCrSubsampleRatio444),
+		func(c Color) Color {
+			return c
+		},
+	}
+}
+
+func NewCustomSizeFrame(ycbcr *image.YCbCr) *Frame {
+	return &Frame{
+		ycbcr,
+		func(c Color) Color {
+			return c
+		},
 	}
 }
 
 func (f *Frame) setPixel(x, y uint32, c Color) {
+	c = f.pixelPreProc(c)
 	Y, cb, cr := color.RGBToYCbCr(c.R, c.G, c.B)
 	yOff := f.ycbcr.YOffset(int(x), int(y))
 	cOff := f.ycbcr.COffset(int(x), int(y))
@@ -43,4 +59,20 @@ func (f *Frame) Data() []byte {
 
 func (f *Frame) Read() (img image.Image, release func(), err error) {
 	return f.ycbcr, func() {}, nil
+}
+
+func (f *Frame) SetPixelPreprocessor(p PixelPreprocessor) {
+	f.pixelPreProc = p
+}
+
+func (f *Frame) UseReverseColorPreprocessor() {
+	f.pixelPreProc = func(c Color) Color {
+		return Color{^c.R, ^c.G, ^c.B}
+	}
+}
+
+func (f *Frame) ResetPixelPreprocessor() {
+	f.pixelPreProc = func(c Color) Color {
+		return c
+	}
 }

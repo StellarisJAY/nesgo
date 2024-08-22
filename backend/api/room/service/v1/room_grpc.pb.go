@@ -33,6 +33,7 @@ const (
 	Room_UpdateMember_FullMethodName             = "/room.v1.Room/UpdateMember"
 	Room_DeleteMember_FullMethodName             = "/room.v1.Room/DeleteMember"
 	Room_AddDeleteRoomSessionTask_FullMethodName = "/room.v1.Room/AddDeleteRoomSessionTask"
+	Room_FindRoomByName_FullMethodName           = "/room.v1.Room/FindRoomByName"
 )
 
 // RoomClient is the client API for Room service.
@@ -53,6 +54,7 @@ type RoomClient interface {
 	UpdateMember(ctx context.Context, in *UpdateMemberRequest, opts ...grpc.CallOption) (*UpdateMemberResponse, error)
 	DeleteMember(ctx context.Context, in *DeleteMemberRequest, opts ...grpc.CallOption) (*DeleteMemberResponse, error)
 	AddDeleteRoomSessionTask(ctx context.Context, in *AddDeleteRoomSessionTaskRequest, opts ...grpc.CallOption) (*AddDeleteRoomSessionTaskResponse, error)
+	FindRoomByName(ctx context.Context, in *FindRoomByNameRequest, opts ...grpc.CallOption) (*FindRoomByNameResponse, error)
 }
 
 type roomClient struct {
@@ -203,6 +205,16 @@ func (c *roomClient) AddDeleteRoomSessionTask(ctx context.Context, in *AddDelete
 	return out, nil
 }
 
+func (c *roomClient) FindRoomByName(ctx context.Context, in *FindRoomByNameRequest, opts ...grpc.CallOption) (*FindRoomByNameResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(FindRoomByNameResponse)
+	err := c.cc.Invoke(ctx, Room_FindRoomByName_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RoomServer is the server API for Room service.
 // All implementations must embed UnimplementedRoomServer
 // for forward compatibility.
@@ -221,6 +233,7 @@ type RoomServer interface {
 	UpdateMember(context.Context, *UpdateMemberRequest) (*UpdateMemberResponse, error)
 	DeleteMember(context.Context, *DeleteMemberRequest) (*DeleteMemberResponse, error)
 	AddDeleteRoomSessionTask(context.Context, *AddDeleteRoomSessionTaskRequest) (*AddDeleteRoomSessionTaskResponse, error)
+	FindRoomByName(context.Context, *FindRoomByNameRequest) (*FindRoomByNameResponse, error)
 	mustEmbedUnimplementedRoomServer()
 }
 
@@ -272,6 +285,9 @@ func (UnimplementedRoomServer) DeleteMember(context.Context, *DeleteMemberReques
 }
 func (UnimplementedRoomServer) AddDeleteRoomSessionTask(context.Context, *AddDeleteRoomSessionTaskRequest) (*AddDeleteRoomSessionTaskResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddDeleteRoomSessionTask not implemented")
+}
+func (UnimplementedRoomServer) FindRoomByName(context.Context, *FindRoomByNameRequest) (*FindRoomByNameResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FindRoomByName not implemented")
 }
 func (UnimplementedRoomServer) mustEmbedUnimplementedRoomServer() {}
 func (UnimplementedRoomServer) testEmbeddedByValue()              {}
@@ -546,6 +562,24 @@ func _Room_AddDeleteRoomSessionTask_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Room_FindRoomByName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FindRoomByNameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RoomServer).FindRoomByName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Room_FindRoomByName_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RoomServer).FindRoomByName(ctx, req.(*FindRoomByNameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Room_ServiceDesc is the grpc.ServiceDesc for Room service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -608,6 +642,10 @@ var Room_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "AddDeleteRoomSessionTask",
 			Handler:    _Room_AddDeleteRoomSessionTask_Handler,
+		},
+		{
+			MethodName: "FindRoomByName",
+			Handler:    _Room_FindRoomByName_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

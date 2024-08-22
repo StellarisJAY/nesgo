@@ -145,3 +145,41 @@ func (r *gamingRepo) GetServerICECandidate(ctx context.Context, roomId, userId i
 	}
 	return resp.Candidates, nil
 }
+
+func (r *gamingRepo) GetGraphicOptions(ctx context.Context, roomId int64, endpoint string) (*biz.GraphicOptions, error) {
+	conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(endpoint))
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+	gamingCli := gamingAPI.NewGamingClient(conn)
+	resp, err := gamingCli.GetGraphicOptions(ctx, &gamingAPI.GetGraphicOptionsRequest{
+		RoomId: roomId,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &biz.GraphicOptions{
+		HighResOpen: resp.HighResOpen,
+	}, nil
+}
+
+func (r *gamingRepo) SetGraphicOptions(ctx context.Context, roomId int64, options *biz.GraphicOptions, endpoint string) error {
+	conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(endpoint))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	gamingCli := gamingAPI.NewGamingClient(conn)
+	resp, err := gamingCli.SetGraphicOptions(ctx, &gamingAPI.SetGraphicOptionsRequest{
+		RoomId:       roomId,
+		HighResOpen:  options.HighResOpen,
+		ReverseColor: options.ReverseColor,
+	})
+	if err != nil {
+		return err
+	}
+	options.HighResOpen = resp.HighResOpen
+	options.ReverseColor = resp.ReverseColor
+	return nil
+}

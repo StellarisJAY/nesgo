@@ -40,6 +40,8 @@ const (
 	Gaming_LoadSave_FullMethodName               = "/gaming.v1.Gaming/LoadSave"
 	Gaming_ListSaves_FullMethodName              = "/gaming.v1.Gaming/ListSaves"
 	Gaming_DeleteSave_FullMethodName             = "/gaming.v1.Gaming/DeleteSave"
+	Gaming_SetGraphicOptions_FullMethodName      = "/gaming.v1.Gaming/SetGraphicOptions"
+	Gaming_GetGraphicOptions_FullMethodName      = "/gaming.v1.Gaming/GetGraphicOptions"
 )
 
 // GamingClient is the client API for Gaming service.
@@ -67,6 +69,8 @@ type GamingClient interface {
 	LoadSave(ctx context.Context, in *LoadSaveRequest, opts ...grpc.CallOption) (*LoadSaveResponse, error)
 	ListSaves(ctx context.Context, in *ListSavesRequest, opts ...grpc.CallOption) (*ListSavesResponse, error)
 	DeleteSave(ctx context.Context, in *DeleteSaveRequest, opts ...grpc.CallOption) (*DeleteSaveResponse, error)
+	SetGraphicOptions(ctx context.Context, in *SetGraphicOptionsRequest, opts ...grpc.CallOption) (*SetGraphicOptionsResponse, error)
+	GetGraphicOptions(ctx context.Context, in *GetGraphicOptionsRequest, opts ...grpc.CallOption) (*GetGraphicOptionsResponse, error)
 }
 
 type gamingClient struct {
@@ -287,6 +291,26 @@ func (c *gamingClient) DeleteSave(ctx context.Context, in *DeleteSaveRequest, op
 	return out, nil
 }
 
+func (c *gamingClient) SetGraphicOptions(ctx context.Context, in *SetGraphicOptionsRequest, opts ...grpc.CallOption) (*SetGraphicOptionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetGraphicOptionsResponse)
+	err := c.cc.Invoke(ctx, Gaming_SetGraphicOptions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gamingClient) GetGraphicOptions(ctx context.Context, in *GetGraphicOptionsRequest, opts ...grpc.CallOption) (*GetGraphicOptionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetGraphicOptionsResponse)
+	err := c.cc.Invoke(ctx, Gaming_GetGraphicOptions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GamingServer is the server API for Gaming service.
 // All implementations must embed UnimplementedGamingServer
 // for forward compatibility.
@@ -312,6 +336,8 @@ type GamingServer interface {
 	LoadSave(context.Context, *LoadSaveRequest) (*LoadSaveResponse, error)
 	ListSaves(context.Context, *ListSavesRequest) (*ListSavesResponse, error)
 	DeleteSave(context.Context, *DeleteSaveRequest) (*DeleteSaveResponse, error)
+	SetGraphicOptions(context.Context, *SetGraphicOptionsRequest) (*SetGraphicOptionsResponse, error)
+	GetGraphicOptions(context.Context, *GetGraphicOptionsRequest) (*GetGraphicOptionsResponse, error)
 	mustEmbedUnimplementedGamingServer()
 }
 
@@ -384,6 +410,12 @@ func (UnimplementedGamingServer) ListSaves(context.Context, *ListSavesRequest) (
 }
 func (UnimplementedGamingServer) DeleteSave(context.Context, *DeleteSaveRequest) (*DeleteSaveResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteSave not implemented")
+}
+func (UnimplementedGamingServer) SetGraphicOptions(context.Context, *SetGraphicOptionsRequest) (*SetGraphicOptionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetGraphicOptions not implemented")
+}
+func (UnimplementedGamingServer) GetGraphicOptions(context.Context, *GetGraphicOptionsRequest) (*GetGraphicOptionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetGraphicOptions not implemented")
 }
 func (UnimplementedGamingServer) mustEmbedUnimplementedGamingServer() {}
 func (UnimplementedGamingServer) testEmbeddedByValue()                {}
@@ -784,6 +816,42 @@ func _Gaming_DeleteSave_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Gaming_SetGraphicOptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetGraphicOptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).SetGraphicOptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_SetGraphicOptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).SetGraphicOptions(ctx, req.(*SetGraphicOptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Gaming_GetGraphicOptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetGraphicOptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).GetGraphicOptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_GetGraphicOptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).GetGraphicOptions(ctx, req.(*GetGraphicOptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Gaming_ServiceDesc is the grpc.ServiceDesc for Gaming service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -874,6 +942,14 @@ var Gaming_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteSave",
 			Handler:    _Gaming_DeleteSave_Handler,
+		},
+		{
+			MethodName: "SetGraphicOptions",
+			Handler:    _Gaming_SetGraphicOptions_Handler,
+		},
+		{
+			MethodName: "GetGraphicOptions",
+			Handler:    _Gaming_GetGraphicOptions_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -23,6 +23,8 @@ service Room {
   rpc DeleteMember(DeleteMemberRequest) returns (DeleteMemberResponse) {}
 
   rpc AddDeleteRoomSessionTask(AddDeleteRoomSessionTaskRequest) returns (AddDeleteRoomSessionTaskResponse) {}
+
+  rpc FindRoomByName(FindRoomByNameRequest) returns (FindRoomByNameResponse) {}
 }
 
 enum RoomRole {
@@ -175,3 +177,14 @@ message AddDeleteRoomSessionTaskRequest {
 }
 
 message AddDeleteRoomSessionTaskResponse {}
+
+message FindRoomByNameRequest {
+  string name = 1;
+  int32 page = 2;
+  int32 pageSize = 3;
+}
+
+message FindRoomByNameResponse {
+  repeated GetRoomResponse rooms = 1;
+  int32 total = 2;
+}

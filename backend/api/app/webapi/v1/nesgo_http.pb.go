@@ -26,6 +26,7 @@ const OperationWebApiDeleteMember = "/nesgo.webapi.v1.WebApi/DeleteMember"
 const OperationWebApiDeleteRoom = "/nesgo.webapi.v1.WebApi/DeleteRoom"
 const OperationWebApiDeleteSave = "/nesgo.webapi.v1.WebApi/DeleteSave"
 const OperationWebApiDeleteUserKeyboardBinding = "/nesgo.webapi.v1.WebApi/DeleteUserKeyboardBinding"
+const OperationWebApiGetGraphicOptions = "/nesgo.webapi.v1.WebApi/GetGraphicOptions"
 const OperationWebApiGetRoom = "/nesgo.webapi.v1.WebApi/GetRoom"
 const OperationWebApiGetRoomMember = "/nesgo.webapi.v1.WebApi/GetRoomMember"
 const OperationWebApiGetServerICECandidate = "/nesgo.webapi.v1.WebApi/GetServerICECandidate"
@@ -46,6 +47,7 @@ const OperationWebApiRestartEmulator = "/nesgo.webapi.v1.WebApi/RestartEmulator"
 const OperationWebApiSDPAnswer = "/nesgo.webapi.v1.WebApi/SDPAnswer"
 const OperationWebApiSaveGame = "/nesgo.webapi.v1.WebApi/SaveGame"
 const OperationWebApiSetController = "/nesgo.webapi.v1.WebApi/SetController"
+const OperationWebApiSetGraphicOptions = "/nesgo.webapi.v1.WebApi/SetGraphicOptions"
 const OperationWebApiUpdateMemberRole = "/nesgo.webapi.v1.WebApi/UpdateMemberRole"
 const OperationWebApiUpdateRoom = "/nesgo.webapi.v1.WebApi/UpdateRoom"
 const OperationWebApiUpdateUserKeyboardBinding = "/nesgo.webapi.v1.WebApi/UpdateUserKeyboardBinding"
@@ -58,6 +60,7 @@ type WebApiHTTPServer interface {
 	DeleteRoom(context.Context, *DeleteRoomRequest) (*DeleteRoomResponse, error)
 	DeleteSave(context.Context, *DeleteSaveRequest) (*DeleteSaveResponse, error)
 	DeleteUserKeyboardBinding(context.Context, *DeleteUserKeyboardBindingRequest) (*DeleteUserKeyboardBindingResponse, error)
+	GetGraphicOptions(context.Context, *GetGraphicOptionsRequest) (*GetGraphicOptionsResponse, error)
 	GetRoom(context.Context, *GetRoomRequest) (*GetRoomResponse, error)
 	GetRoomMember(context.Context, *GetRoomMemberRequest) (*GetRoomMemberResponse, error)
 	GetServerICECandidate(context.Context, *GetServerICECandidateRequest) (*GetServerICECandidateResponse, error)
@@ -78,6 +81,7 @@ type WebApiHTTPServer interface {
 	SDPAnswer(context.Context, *SDPAnswerRequest) (*SDPAnswerResponse, error)
 	SaveGame(context.Context, *SaveGameRequest) (*SaveGameResponse, error)
 	SetController(context.Context, *SetControllerRequest) (*SetControllerResponse, error)
+	SetGraphicOptions(context.Context, *SetGraphicOptionsRequest) (*SetGraphicOptionsResponse, error)
 	UpdateMemberRole(context.Context, *UpdateMemberRoleRequest) (*UpdateMemberRoleResponse, error)
 	UpdateRoom(context.Context, *UpdateRoomRequest) (*UpdateRoomResponse, error)
 	UpdateUserKeyboardBinding(context.Context, *UpdateUserKeyboardBindingRequest) (*UpdateUserKeyboardBindingResponse, error)
@@ -115,6 +119,8 @@ func RegisterWebApiHTTPServer(s *http.Server, srv WebApiHTTPServer) {
 	r.PUT("/api/v1/keyboard/binding", _WebApi_UpdateUserKeyboardBinding0_HTTP_Handler(srv))
 	r.DELETE("/api/v1/keyboard/binding/{id}", _WebApi_DeleteUserKeyboardBinding0_HTTP_Handler(srv))
 	r.GET("/api/v1/ice/candidates", _WebApi_GetServerICECandidate0_HTTP_Handler(srv))
+	r.POST("/api/v1/game/graphic", _WebApi_SetGraphicOptions0_HTTP_Handler(srv))
+	r.GET("/api/v1/game/graphic", _WebApi_GetGraphicOptions0_HTTP_Handler(srv))
 }
 
 func _WebApi_Register0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
@@ -756,6 +762,47 @@ func _WebApi_GetServerICECandidate0_HTTP_Handler(srv WebApiHTTPServer) func(ctx 
 	}
 }
 
+func _WebApi_SetGraphicOptions0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SetGraphicOptionsRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiSetGraphicOptions)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SetGraphicOptions(ctx, req.(*SetGraphicOptionsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*SetGraphicOptionsResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _WebApi_GetGraphicOptions0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetGraphicOptionsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiGetGraphicOptions)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetGraphicOptions(ctx, req.(*GetGraphicOptionsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetGraphicOptionsResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type WebApiHTTPClient interface {
 	AddICECandidate(ctx context.Context, req *AddICECandidateRequest, opts ...http.CallOption) (rsp *AddICECandidateResponse, err error)
 	CreateRoom(ctx context.Context, req *CreateRoomRequest, opts ...http.CallOption) (rsp *CreateRoomResponse, err error)
@@ -764,6 +811,7 @@ type WebApiHTTPClient interface {
 	DeleteRoom(ctx context.Context, req *DeleteRoomRequest, opts ...http.CallOption) (rsp *DeleteRoomResponse, err error)
 	DeleteSave(ctx context.Context, req *DeleteSaveRequest, opts ...http.CallOption) (rsp *DeleteSaveResponse, err error)
 	DeleteUserKeyboardBinding(ctx context.Context, req *DeleteUserKeyboardBindingRequest, opts ...http.CallOption) (rsp *DeleteUserKeyboardBindingResponse, err error)
+	GetGraphicOptions(ctx context.Context, req *GetGraphicOptionsRequest, opts ...http.CallOption) (rsp *GetGraphicOptionsResponse, err error)
 	GetRoom(ctx context.Context, req *GetRoomRequest, opts ...http.CallOption) (rsp *GetRoomResponse, err error)
 	GetRoomMember(ctx context.Context, req *GetRoomMemberRequest, opts ...http.CallOption) (rsp *GetRoomMemberResponse, err error)
 	GetServerICECandidate(ctx context.Context, req *GetServerICECandidateRequest, opts ...http.CallOption) (rsp *GetServerICECandidateResponse, err error)
@@ -784,6 +832,7 @@ type WebApiHTTPClient interface {
 	SDPAnswer(ctx context.Context, req *SDPAnswerRequest, opts ...http.CallOption) (rsp *SDPAnswerResponse, err error)
 	SaveGame(ctx context.Context, req *SaveGameRequest, opts ...http.CallOption) (rsp *SaveGameResponse, err error)
 	SetController(ctx context.Context, req *SetControllerRequest, opts ...http.CallOption) (rsp *SetControllerResponse, err error)
+	SetGraphicOptions(ctx context.Context, req *SetGraphicOptionsRequest, opts ...http.CallOption) (rsp *SetGraphicOptionsResponse, err error)
 	UpdateMemberRole(ctx context.Context, req *UpdateMemberRoleRequest, opts ...http.CallOption) (rsp *UpdateMemberRoleResponse, err error)
 	UpdateRoom(ctx context.Context, req *UpdateRoomRequest, opts ...http.CallOption) (rsp *UpdateRoomResponse, err error)
 	UpdateUserKeyboardBinding(ctx context.Context, req *UpdateUserKeyboardBindingRequest, opts ...http.CallOption) (rsp *UpdateUserKeyboardBindingResponse, err error)
@@ -882,6 +931,19 @@ func (c *WebApiHTTPClientImpl) DeleteUserKeyboardBinding(ctx context.Context, in
 	opts = append(opts, http.Operation(OperationWebApiDeleteUserKeyboardBinding))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) GetGraphicOptions(ctx context.Context, in *GetGraphicOptionsRequest, opts ...http.CallOption) (*GetGraphicOptionsResponse, error) {
+	var out GetGraphicOptionsResponse
+	pattern := "/api/v1/game/graphic"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationWebApiGetGraphicOptions))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1140,6 +1202,19 @@ func (c *WebApiHTTPClientImpl) SetController(ctx context.Context, in *SetControl
 	pattern := "/api/v1/game/controller"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationWebApiSetController))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) SetGraphicOptions(ctx context.Context, in *SetGraphicOptionsRequest, opts ...http.CallOption) (*SetGraphicOptionsResponse, error) {
+	var out SetGraphicOptionsResponse
+	pattern := "/api/v1/game/graphic"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationWebApiSetGraphicOptions))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {

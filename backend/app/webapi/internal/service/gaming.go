@@ -140,3 +140,31 @@ func (ws *WebApiService) GetServerICECandidate(ctx context.Context, request *v1.
 	}
 	return &v1.GetServerICECandidateResponse{Candidates: candidates}, nil
 }
+
+func (ws *WebApiService) GetGraphicOptions(ctx context.Context, request *v1.GetGraphicOptionsRequest) (*v1.GetGraphicOptionsResponse, error) {
+	options, err := ws.gc.GetGraphicOptions(ctx, request.RoomId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.GetGraphicOptionsResponse{
+		HighResOpen:  options.HighResOpen,
+		ReverseColor: options.ReverseColor,
+	}, nil
+}
+
+func (ws *WebApiService) SetGraphicOptions(ctx context.Context, request *v1.SetGraphicOptionsRequest) (*v1.SetGraphicOptionsResponse, error) {
+	c, _ := jwt.FromContext(ctx)
+	claims := c.(*biz.LoginClaims)
+	opts := &biz.GraphicOptions{
+		HighResOpen:  request.HighResOpen,
+		ReverseColor: request.ReverseColor,
+	}
+	err := ws.gc.SetGraphicOptions(ctx, request.RoomId, claims.UserId, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.SetGraphicOptionsResponse{
+		HighResOpen:  opts.HighResOpen,
+		ReverseColor: opts.ReverseColor,
+	}, nil
+}

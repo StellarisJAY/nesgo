@@ -36,6 +36,9 @@ service Gaming {
   rpc LoadSave(LoadSaveRequest) returns (LoadSaveResponse) {}
   rpc ListSaves(ListSavesRequest) returns (ListSavesResponse) {}
   rpc DeleteSave(DeleteSaveRequest) returns (DeleteSaveResponse) {}
+
+  rpc SetGraphicOptions(SetGraphicOptionsRequest) returns (SetGraphicOptionsResponse) {}
+  rpc GetGraphicOptions(GetGraphicOptionsRequest) returns (GetGraphicOptionsResponse) {}
 }
 
 message CreateGameInstanceRequest {
@@ -252,4 +255,24 @@ message GetServerICECandidateRequest {
 
 message GetServerICECandidateResponse {
   repeated string candidates = 1;
+}
+
+message SetGraphicOptionsRequest {
+  int64 roomId = 1;
+  bool highResOpen = 2;
+  bool reverseColor = 3;
+}
+
+message SetGraphicOptionsResponse {
+  bool highResOpen = 1;
+  bool reverseColor = 2;
+}
+
+message GetGraphicOptionsRequest {
+  int64 roomId = 1;
+}
+
+message GetGraphicOptionsResponse {
+  bool highResOpen = 1;
+  bool reverseColor = 2;
 }

@@ -200,6 +200,40 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.SetControllerResponse'
+    /api/v1/game/graphic:
+        get:
+            tags:
+                - WebApi
+            operationId: WebApi_GetGraphicOptions
+            parameters:
+                - name: roomId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.GetGraphicOptionsResponse'
+        post:
+            tags:
+                - WebApi
+            operationId: WebApi_SetGraphicOptions
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.SetGraphicOptionsRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.SetGraphicOptionsResponse'
     /api/v1/game/ice:
         post:
             tags:
@@ -959,6 +993,13 @@ components:
                     type: string
                 mirroring:
                     type: string
+        nesgo.webapi.v1.GetGraphicOptionsResponse:
+            type: object
+            properties:
+                highResOpen:
+                    type: boolean
+                reverseColor:
+                    type: boolean
         nesgo.webapi.v1.GetRoomMemberResponse:
             type: object
             properties:
@@ -1230,6 +1271,22 @@ components:
         nesgo.webapi.v1.SetControllerResponse:
             type: object
             properties: {}
+        nesgo.webapi.v1.SetGraphicOptionsRequest:
+            type: object
+            properties:
+                roomId:
+                    type: string
+                highResOpen:
+                    type: boolean
+                reverseColor:
+                    type: boolean
+        nesgo.webapi.v1.SetGraphicOptionsResponse:
+            type: object
+            properties:
+                highResOpen:
+                    type: boolean
+                reverseColor:
+                    type: boolean
         nesgo.webapi.v1.UpdateMemberRoleRequest:
             type: object
             properties:

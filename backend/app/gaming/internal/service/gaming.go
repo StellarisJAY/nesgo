@@ -249,3 +249,29 @@ func (g *GamingService) GetServerICECandidate(ctx context.Context, request *v1.G
 	}
 	return &v1.GetServerICECandidateResponse{Candidates: candidates}, nil
 }
+
+func (g *GamingService) SetGraphicOptions(ctx context.Context, request *v1.SetGraphicOptionsRequest) (*v1.SetGraphicOptionsResponse, error) {
+	opts := &biz.GraphicOptions{
+		HighResOpen:  request.HighResOpen,
+		ReverseColor: request.ReverseColor,
+	}
+	err := g.gi.SetGraphicOptions(ctx, request.RoomId, opts)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.SetGraphicOptionsResponse{
+		HighResOpen:  opts.HighResOpen,
+		ReverseColor: opts.ReverseColor,
+	}, nil
+}
+
+func (g *GamingService) GetGraphicOptions(ctx context.Context, request *v1.GetGraphicOptionsRequest) (*v1.GetGraphicOptionsResponse, error) {
+	options, err := g.gi.GetGraphicOptions(ctx, request.RoomId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.GetGraphicOptionsResponse{
+		HighResOpen:  options.HighResOpen,
+		ReverseColor: options.ReverseColor,
+	}, nil
+}

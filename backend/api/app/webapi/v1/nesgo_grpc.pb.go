@@ -49,6 +49,8 @@ const (
 	WebApi_UpdateUserKeyboardBinding_FullMethodName = "/nesgo.webapi.v1.WebApi/UpdateUserKeyboardBinding"
 	WebApi_DeleteUserKeyboardBinding_FullMethodName = "/nesgo.webapi.v1.WebApi/DeleteUserKeyboardBinding"
 	WebApi_GetServerICECandidate_FullMethodName     = "/nesgo.webapi.v1.WebApi/GetServerICECandidate"
+	WebApi_SetGraphicOptions_FullMethodName         = "/nesgo.webapi.v1.WebApi/SetGraphicOptions"
+	WebApi_GetGraphicOptions_FullMethodName         = "/nesgo.webapi.v1.WebApi/GetGraphicOptions"
 )
 
 // WebApiClient is the client API for WebApi service.
@@ -85,6 +87,8 @@ type WebApiClient interface {
 	UpdateUserKeyboardBinding(ctx context.Context, in *UpdateUserKeyboardBindingRequest, opts ...grpc.CallOption) (*UpdateUserKeyboardBindingResponse, error)
 	DeleteUserKeyboardBinding(ctx context.Context, in *DeleteUserKeyboardBindingRequest, opts ...grpc.CallOption) (*DeleteUserKeyboardBindingResponse, error)
 	GetServerICECandidate(ctx context.Context, in *GetServerICECandidateRequest, opts ...grpc.CallOption) (*GetServerICECandidateResponse, error)
+	SetGraphicOptions(ctx context.Context, in *SetGraphicOptionsRequest, opts ...grpc.CallOption) (*SetGraphicOptionsResponse, error)
+	GetGraphicOptions(ctx context.Context, in *GetGraphicOptionsRequest, opts ...grpc.CallOption) (*GetGraphicOptionsResponse, error)
 }
 
 type webApiClient struct {
@@ -395,6 +399,26 @@ func (c *webApiClient) GetServerICECandidate(ctx context.Context, in *GetServerI
 	return out, nil
 }
 
+func (c *webApiClient) SetGraphicOptions(ctx context.Context, in *SetGraphicOptionsRequest, opts ...grpc.CallOption) (*SetGraphicOptionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetGraphicOptionsResponse)
+	err := c.cc.Invoke(ctx, WebApi_SetGraphicOptions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *webApiClient) GetGraphicOptions(ctx context.Context, in *GetGraphicOptionsRequest, opts ...grpc.CallOption) (*GetGraphicOptionsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetGraphicOptionsResponse)
+	err := c.cc.Invoke(ctx, WebApi_GetGraphicOptions_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WebApiServer is the server API for WebApi service.
 // All implementations must embed UnimplementedWebApiServer
 // for forward compatibility.
@@ -429,6 +453,8 @@ type WebApiServer interface {
 	UpdateUserKeyboardBinding(context.Context, *UpdateUserKeyboardBindingRequest) (*UpdateUserKeyboardBindingResponse, error)
 	DeleteUserKeyboardBinding(context.Context, *DeleteUserKeyboardBindingRequest) (*DeleteUserKeyboardBindingResponse, error)
 	GetServerICECandidate(context.Context, *GetServerICECandidateRequest) (*GetServerICECandidateResponse, error)
+	SetGraphicOptions(context.Context, *SetGraphicOptionsRequest) (*SetGraphicOptionsResponse, error)
+	GetGraphicOptions(context.Context, *GetGraphicOptionsRequest) (*GetGraphicOptionsResponse, error)
 	mustEmbedUnimplementedWebApiServer()
 }
 
@@ -528,6 +554,12 @@ func (UnimplementedWebApiServer) DeleteUserKeyboardBinding(context.Context, *Del
 }
 func (UnimplementedWebApiServer) GetServerICECandidate(context.Context, *GetServerICECandidateRequest) (*GetServerICECandidateResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetServerICECandidate not implemented")
+}
+func (UnimplementedWebApiServer) SetGraphicOptions(context.Context, *SetGraphicOptionsRequest) (*SetGraphicOptionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetGraphicOptions not implemented")
+}
+func (UnimplementedWebApiServer) GetGraphicOptions(context.Context, *GetGraphicOptionsRequest) (*GetGraphicOptionsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetGraphicOptions not implemented")
 }
 func (UnimplementedWebApiServer) mustEmbedUnimplementedWebApiServer() {}
 func (UnimplementedWebApiServer) testEmbeddedByValue()                {}
@@ -1090,6 +1122,42 @@ func _WebApi_GetServerICECandidate_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WebApi_SetGraphicOptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetGraphicOptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).SetGraphicOptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_SetGraphicOptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).SetGraphicOptions(ctx, req.(*SetGraphicOptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WebApi_GetGraphicOptions_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetGraphicOptionsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).GetGraphicOptions(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_GetGraphicOptions_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).GetGraphicOptions(ctx, req.(*GetGraphicOptionsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WebApi_ServiceDesc is the grpc.ServiceDesc for WebApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1216,6 +1284,14 @@ var WebApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetServerICECandidate",
 			Handler:    _WebApi_GetServerICECandidate_Handler,
+		},
+		{
+			MethodName: "SetGraphicOptions",
+			Handler:    _WebApi_SetGraphicOptions_Handler,
+		},
+		{
+			MethodName: "GetGraphicOptions",
+			Handler:    _WebApi_GetGraphicOptions_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -63,3 +63,7 @@ func (e *Emulator) LoadAndRun(ctx context.Context, enableTrace bool) {
 		e.processor.LoadAndRunWithCallback(ctx, nil, nil)
 	}
 }
+
+func (e *Emulator) Frame() *ppu.Frame {
+	return e.ppu.Frame()
+}

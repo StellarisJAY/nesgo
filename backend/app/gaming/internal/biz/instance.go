@@ -12,6 +12,7 @@ import (
 	"github.com/stellarisJAY/nesgo/nes/bus"
 	"github.com/stellarisJAY/nesgo/nes/config"
 	"github.com/stellarisJAY/nesgo/nes/ppu"
+	"image"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -33,6 +34,7 @@ const (
 	MsgLoadSave
 	MsgRestartEmulator
 	MsgPing
+	MsgSetGraphicOptions
 )
 
 const (
@@ -87,10 +89,45 @@ type GameInstance struct {
 	InstanceId string
 
 	allConnCloseCallback func(instance *GameInstance)
+
+	enhancedFrame    *image.YCbCr
+	enhanceFrameOpen bool
+	frameEnhancer    func(frame *ppu.Frame) *ppu.Frame
+
+	reverseColorOpen bool
+}
+
+func (g *GameInstance) enhanceFrame(frame *ppu.Frame) *ppu.Frame {
+	original := frame.YCbCr()
+	enhancedFrame := g.enhancedFrame
+	for y := 0; y < ppu.HEIGHT; y++ {
+		for x := 0; x < ppu.WIDTH; x++ {
+			// 分辨率放大到原来的两倍，每个像素变成四个像素
+			offset := original.YOffset(x, y)
+			cOffset := original.COffset(x, y)
+			dx, dy := x*2, y*2
+			// TODO 优化性能，减少CPU占用
+			enhancedFrame.Y[enhancedFrame.YOffset(dx+1, dy+1)] = original.Y[offset]
+			enhancedFrame.Y[enhancedFrame.YOffset(dx+1, dy)] = original.Y[offset]
+			enhancedFrame.Y[enhancedFrame.YOffset(dx, dy+1)] = original.Y[offset]
+			enhancedFrame.Y[enhancedFrame.YOffset(dx, dy)] = original.Y[offset]
+
+			enhancedFrame.Cb[enhancedFrame.COffset(dx+1, dy+1)] = original.Cb[cOffset]
+			enhancedFrame.Cb[enhancedFrame.COffset(dx+1, dy)] = original.Cb[cOffset]
+			enhancedFrame.Cb[enhancedFrame.COffset(dx, dy+1)] = original.Cb[cOffset]
+			enhancedFrame.Cb[enhancedFrame.COffset(dx, dy)] = original.Cb[cOffset]
+
+			enhancedFrame.Cr[enhancedFrame.COffset(dx+1, dy+1)] = original.Cr[cOffset]
+			enhancedFrame.Cr[enhancedFrame.COffset(dx+1, dy)] = original.Cr[cOffset]
+			enhancedFrame.Cr[enhancedFrame.COffset(dx, dy+1)] = original.Cr[cOffset]
+			enhancedFrame.Cr[enhancedFrame.COffset(dx, dy)] = original.Cr[cOffset]
+		}
+	}
+	return ppu.NewCustomSizeFrame(enhancedFrame)
 }
 
 func (g *GameInstance) RenderCallback(ppu *ppu.PPU, logger *log.Helper) {
-	frame := ppu.Frame()
+	frame := g.frameEnhancer(ppu.Frame())
 	data, release, err := g.videoEncoder.Encode(frame)
 	if err != nil {
 		logger.Error("encode frame error", "err", err)
@@ -184,6 +221,8 @@ func (g *GameInstance) messageConsumer(ctx context.Context) {
 				msg.resultChan <- g.handleRestartEmulator(msg.Data.(*emulatorRestartRequest))
 			case MsgChat:
 				g.handleChat(msg)
+			case MsgSetGraphicOptions:
+				msg.resultChan <- g.setGraphicOptions(msg.Data.(*GraphicOptions))
 			default: // TODO handle unknown message
 			}
 		}
@@ -475,4 +514,48 @@ func (g *GameInstance) handleChat(msg *Message) {
 		raw, _ := json.Marshal(resp)
 		_ = conn.dataChannel.Send(raw)
 	}
+}
+
+func (g *GameInstance) SetGraphicOptions(options *GraphicOptions) {
+	resultCh := make(chan ConsumerResult)
+	g.messageChan <- &Message{Type: MsgSetGraphicOptions, Data: options, resultChan: resultCh}
+	_ = <-resultCh
+	close(resultCh)
+}
+
+func (g *GameInstance) setGraphicOptions(options *GraphicOptions) ConsumerResult {
+	g.e.Pause()
+	defer g.e.Resume()
+	defer func() {
+		options.HighResOpen = g.enhanceFrameOpen
+		options.ReverseColor = g.reverseColorOpen
+	}()
+	if g.enhanceFrameOpen != options.HighResOpen {
+		g.enhanceFrameOpen = options.HighResOpen
+		g.videoEncoder.Close()
+		enhanceRate := 1
+		if options.HighResOpen {
+			enhanceRate = 2
+			g.frameEnhancer = g.enhanceFrame
+		} else {
+			g.frameEnhancer = func(f *ppu.Frame) *ppu.Frame {
+				return f
+			}
+		}
+		enc, err := codec.NewVideoEncoder("vp8", ppu.WIDTH*enhanceRate, ppu.HEIGHT*enhanceRate)
+		if err != nil {
+			return ConsumerResult{Error: err}
+		}
+		g.videoEncoder = enc
+	}
+	if g.reverseColorOpen != options.ReverseColor {
+		g.reverseColorOpen = options.ReverseColor
+		if g.reverseColorOpen {
+			g.e.Frame().UseReverseColorPreprocessor()
+		} else {
+			g.e.Frame().ResetPixelPreprocessor()
+		}
+	}
+
+	return ConsumerResult{Success: true, Error: nil}
 }

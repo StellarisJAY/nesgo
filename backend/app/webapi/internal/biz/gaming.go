@@ -29,6 +29,11 @@ type SaveMetadata struct {
 	ExitSave   bool   `json:"exitSave"`
 }
 
+type GraphicOptions struct {
+	HighResOpen  bool `json:"highResOpen"`
+	ReverseColor bool `json:"reverseColor"`
+}
+
 type GamingRepo interface {
 	ListGames(ctx context.Context) ([]*GameMetadata, error)
 	DeleteMemberConnection(ctx context.Context, roomId, userId int64, endpoint string) error
@@ -38,6 +43,8 @@ type GamingRepo interface {
 	LoadSave(ctx context.Context, roomId, saveId int64, endpoint string) error
 	DeleteSave(ctx context.Context, saveId int64, endpoint string) error
 	GetServerICECandidate(ctx context.Context, roomId, userId int64, endpoint string) ([]string, error)
+	GetGraphicOptions(ctx context.Context, roomId int64, endpoint string) (*GraphicOptions, error)
+	SetGraphicOptions(ctx context.Context, roomId int64, options *GraphicOptions, endpoint string) error
 }
 
 func NewGamingUseCase(roomRepo RoomRepo, gamingRepo GamingRepo, logger log.Logger) *GamingUseCase {
@@ -216,4 +223,31 @@ func (uc *GamingUseCase) GetServerICECandidate(ctx context.Context, roomId, user
 		return nil, err
 	}
 	return candidates, nil
+}
+
+func (uc *GamingUseCase) GetGraphicOptions(ctx context.Context, roomId int64) (*GraphicOptions, error) {
+	session, _ := uc.roomRepo.GetRoomSession(ctx, roomId)
+	if session == nil {
+		return nil, v1.ErrorOperationFailed("room session not found")
+	}
+	options, err := uc.repo.GetGraphicOptions(ctx, roomId, session.Endpoint)
+	if err != nil {
+		return nil, err
+	}
+	return options, nil
+}
+
+func (uc *GamingUseCase) SetGraphicOptions(ctx context.Context, roomId, userId int64, options *GraphicOptions) error {
+	room, _ := uc.roomRepo.GetRoom(ctx, roomId)
+	if room == nil {
+		return v1.ErrorOperationFailed("room not found")
+	}
+	if room.Host != userId {
+		return v1.ErrorOperationFailed("only host can restart nes")
+	}
+	session, _ := uc.roomRepo.GetRoomSession(ctx, roomId)
+	if session == nil {
+		return v1.ErrorOperationFailed("room session not found")
+	}
+	return uc.repo.SetGraphicOptions(ctx, roomId, options, session.Endpoint)
 }

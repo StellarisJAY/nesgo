@@ -13,6 +13,7 @@ import (
 	"github.com/stellarisJAY/nesgo/nes/config"
 	"github.com/stellarisJAY/nesgo/nes/ppu"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
+	"image"
 	"runtime"
 	"sync"
 	"time"
@@ -49,6 +50,11 @@ type EndpointStats struct {
 	MemoryUsed    int64 `json:"memoryUsed"`
 	MemoryTotal   int64 `json:"memoryTotal"`
 	Uptime        int64 `json:"uptime"`
+}
+
+type GraphicOptions struct {
+	HighResOpen  bool `json:"highResOpen"`
+	ReverseColor bool `json:"reverseColor"`
 }
 
 type GameInstanceRepo interface {
@@ -112,6 +118,10 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 		connections:          make(map[int64]*Connection),
 		createTime:           time.Now(),
 		allConnCloseCallback: uc.OnGameInstanceConnectionsAllClosed,
+		enhancedFrame:        image.NewYCbCr(image.Rect(0, 0, ppu.WIDTH*2, ppu.HEIGHT*2), image.YCbCrSubsampleRatio444),
+		frameEnhancer: func(frame *ppu.Frame) *ppu.Frame {
+			return frame
+		},
 	}
 	emulatorConfig := config.Config{
 		Game:               game,
@@ -133,7 +143,7 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 	}
 	instance.e = e
 	// create video and audio encoder
-	videoEncoder, err := codec.NewVideoEncoder("vp8")
+	videoEncoder, err := codec.NewVideoEncoder("vp8", ppu.WIDTH, ppu.HEIGHT)
 	if err != nil {
 		return nil, v1.ErrorCreateGameInstanceFailed("create video encoder failed: %v", err)
 	}
@@ -440,4 +450,21 @@ func (uc *GameInstanceUseCase) OnGameInstanceConnectionsAllClosed(instance *Game
 	if err != nil {
 		uc.logger.Errorf("add delete room session task failed: %v", err)
 	}
+}
+
+func (uc *GameInstanceUseCase) GetGraphicOptions(ctx context.Context, roomId int64) (*GraphicOptions, error) {
+	instance, _ := uc.repo.GetGameInstance(ctx, roomId)
+	if instance == nil {
+		return nil, v1.ErrorGameInstanceNotAccessible("game instance not found")
+	}
+	return &GraphicOptions{HighResOpen: instance.enhanceFrameOpen, ReverseColor: instance.reverseColorOpen}, nil
+}
+
+func (uc *GameInstanceUseCase) SetGraphicOptions(ctx context.Context, roomId int64, options *GraphicOptions) error {
+	instance, _ := uc.repo.GetGameInstance(ctx, roomId)
+	if instance == nil {
+		return v1.ErrorGameInstanceNotAccessible("game instance not found")
+	}
+	instance.SetGraphicOptions(options)
+	return nil
 }

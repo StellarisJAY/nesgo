@@ -34,12 +34,12 @@ type VideoEncoder struct {
 	frameReader *FrameReader
 }
 
-func NewVideoEncoder(codec string) (IVideoEncoder, error) {
+func NewVideoEncoder(codec string, width, height int) (IVideoEncoder, error) {
 	media := prop.Media{
 		DeviceID: "nesgo-video",
 		Video: prop.Video{
-			Width:       ppu.WIDTH,
-			Height:      ppu.HEIGHT,
+			Width:       width,
+			Height:      height,
 			FrameRate:   60,
 			FrameFormat: frame.FormatI444,
 		},
