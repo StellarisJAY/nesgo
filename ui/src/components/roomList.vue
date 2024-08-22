@@ -152,18 +152,19 @@ export default {
       // TODO search room
     },
     tryJoinRoom(room) {
-      api.get("/room/" + room.id + "/member")
-        .then(_ => {
-          return router.push("/room/" + room.id)
-        })
-        .catch(_ => {
-          this.joinRoomFormState.id = room.id
-          if (room.private) {
-            this.joinRoomModalOpen = true
-          } else {
-            this.enterRoom()
+      const _this = this;
+      api.get("api/v1/member/"+room.id).then(_=>{
+        return router.push("/room/" + room.id)
+      }).catch(_=>{
+        api.get("api/v1/room/" + room.id).then(resp=>{
+          if (resp['private'] === true) {
+            _this.joinRoomFormState.id = room.id;
+            _this.joinRoomModalOpen = true
+          }else {
+            _this.enterRoom()
           }
-        })
+        });
+      });
     },
     enterRoom() {
       const roomId = this.joinRoomFormState.id

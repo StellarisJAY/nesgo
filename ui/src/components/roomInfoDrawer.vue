@@ -2,7 +2,7 @@
   <div>
     <a-form v-if="memberSelf['role'] === RoleNameHost">
       <a-form-item label="私人">
-        <a-switch v-model:checked="fullRoomInfo['private']" @change="alterRoomPrivacy"></a-switch>
+        <a-switch v-model:checked="fullRoomInfo['private']" @change="alterRoomPrivacy" :disabled="privacySwitchDisabled"></a-switch>
       </a-form-item>
       <a-form-item label="密码" v-if="fullRoomInfo['private']">
         <a-input-password readonly :value="fullRoomInfo['password']"></a-input-password>
@@ -78,6 +78,7 @@ export default {
       RoleNameHost: "Host",
       RoleNamePlayer: "Player",
       RoleNameObserver: "Observer",
+      privacySwitchDisabled: false,
     }
   },
   created() {
@@ -128,8 +129,23 @@ export default {
         message.success("修改成功");
       });
     },
+
     alterRoomPrivacy() {
-      // TODO update room
+      this.privacySwitchDisabled = true;
+      api.put("api/v1/room/" + this.roomId, {
+        "private": this.fullRoomInfo["private"],
+        "name": this.fullRoomInfo["name"],
+        "id": this.roomId,
+      }).then(resp=>{
+        message.info("修改成功");
+        this.privacySwitchDisabled = false;
+        this.fullRoomInfo["private"] = resp["private"];
+        this.fullRoomInfo["name"] = resp["name"];
+        this.fullRoomInfo["password"] = resp["password"];
+      }).catch(_=>{
+        message.warn("修改失败");
+        this.privacySwitchDisabled = false;
+      });
     },
   }
 }

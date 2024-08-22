@@ -1,6 +1,6 @@
 <script setup>
-import { ref } from "vue";
-const tourOpen = ref(true)
+import {ref} from "vue";
+
 const refConnBtn = ref(null)
 const refSelector = ref(null)
 const refRestart = ref(null)
@@ -166,6 +166,15 @@ const tourSteps = [
       </a-form>
     </a-drawer>
     <a-tour :steps="tourSteps" :open="tourOpen" @close="_ => { tourOpen = false }"></a-tour>
+
+    <a-modal title="输入房间密码" v-model:open="joinRoomModalOpen" :closable="false" :mask-closable="false" :keyboard="false">
+      <template #footer>
+        <a-button @click="joinRoomModalCancel">取消</a-button>
+        <a-button type="primary" @click="joinRoom">确认</a-button>
+      </template>
+      <a-input-password v-model:value="joinRoomFormState.password"></a-input-password>
+    </a-modal>
+
   </a-row>
   <p id="stats" v-if="configs.showStats">RTT:{{ stats.rtt }}ms FPS:{{ stats.fps }} D:{{formatBytes(stats.bytesPerSecond)}}/s</p>
 </template>
@@ -174,8 +183,7 @@ const tourSteps = [
 import api from "../api/request.js";
 import globalConfigs from "../api/const.js";
 import { Row, Col } from "ant-design-vue";
-import { CrownTwoTone } from '@ant-design/icons-vue';
-import { Card, Button, Drawer, RadioGroup, Select,Switch, notification } from "ant-design-vue";
+import { Card, Button, Drawer, Select,Switch, notification } from "ant-design-vue";
 import { message } from "ant-design-vue";
 import { Form, FormItem, Modal, Input } from "ant-design-vue";
 import router from "../router/index.js";
@@ -212,6 +220,7 @@ export default {
     ATour: Tour,
     AInput: Input,
     AModal: Modal,
+    AInputPassword: Input.Password,
     RoomInfoDrawer,
     SaveList,
     KeyboardSetting,
@@ -259,12 +268,20 @@ export default {
         fps: 0,
         bytesReceived: 0,
         bytesPerSecond: 0,
-      }
+      },
+      joinRoomFormState: {
+        id: 0,
+        password: "",
+      },
+      joinRoomModalOpen: false,
+      tourOpen: false,
     }
   },
   created() {
     this.roomId = this.$route["params"]["roomId"];
-    this.getMemberSelf();
+    this.getMemberSelf().catch(_=>{
+      this.tryJoinRoom();
+    });
     this.listGames();
   },
   unmounted() {
@@ -280,17 +297,39 @@ export default {
     },
 
     getMemberSelf: async function () {
-      try {
-        const resp = await api.get("api/v1/member/" + this.roomId);
-        const member = resp["member"];
-        this.memberSelf = member;
-        if (member.role === RoleNameHost) {
-          this.fullRoomInfo = await api.get("api/v1/room/" + this.roomId);
-        }
-      } catch (_) {
-        message.warn("无法访问房间");
-        router.push("/home");
+      const resp = await api.get("api/v1/member/" + this.roomId);
+      const member = resp["member"];
+      this.memberSelf = member;
+      if (member.role === RoleNameHost) {
+        this.fullRoomInfo = await api.get("api/v1/room/" + this.roomId);
       }
+      this.tourOpen = true;
+    },
+
+    tryJoinRoom: async function() {
+      const resp = await api.get("api/v1/room/" + this.roomId);
+      if (resp['private'] === false) {
+        await api.post("api/v1/room/" + this.roomId + "/join");
+        this.tourOpen = true;
+        return;
+      }
+      this.joinRoomModalOpen = true;
+    },
+
+    joinRoom: function() {
+      api.post("api/v1/room/" + this.roomId + "/join", {
+        "password": this.joinRoomFormState.password,
+      }).then(_=>{
+        message.info("加入成功");
+        this.tourOpen = true;
+        this.joinRoomModalOpen = false;
+      }).catch(_=>{
+        message.warn("无法加入房间");
+      })
+    },
+
+    joinRoomModalCancel: function() {
+      router.push("/home");
     },
 
     listGames: async function () {
