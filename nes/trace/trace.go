@@ -2,7 +2,7 @@ package trace
 
 import (
 	"fmt"
-	"github.com/stellarisJAY/nesgo/emulator/cpu"
+	"github.com/stellarisJAY/nesgo/nes/cpu"
 	"strings"
 )
 

@@ -9,9 +9,9 @@ import (
 	v1 "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/conf"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/codec"
-	"github.com/stellarisJAY/nesgo/emulator"
-	"github.com/stellarisJAY/nesgo/emulator/config"
-	"github.com/stellarisJAY/nesgo/emulator/ppu"
+	"github.com/stellarisJAY/nesgo/nes"
+	"github.com/stellarisJAY/nesgo/nes/config"
+	"github.com/stellarisJAY/nesgo/nes/ppu"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 	"runtime"
 	"sync"
@@ -123,13 +123,13 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 	}
 	instance.audioSampleRate = 48000
 	instance.audioSampleChan = make(chan float32, instance.audioSampleRate)
-	// create emulator
+	// create nes
 	renderCallback := func(ppu *ppu.PPU) {
 		instance.RenderCallback(ppu, uc.logger)
 	}
-	e, err := emulator.NewEmulatorWithGameData(gameData, emulatorConfig, renderCallback, instance.audioSampleChan, instance.audioSampleRate)
+	e, err := nes.NewEmulatorWithGameData(gameData, emulatorConfig, renderCallback, instance.audioSampleChan, instance.audioSampleRate)
 	if err != nil {
-		return nil, v1.ErrorCreateGameInstanceFailed("create emulator failed: %v", err)
+		return nil, v1.ErrorCreateGameInstanceFailed("create nes failed: %v", err)
 	}
 	instance.e = e
 	// create video and audio encoder
@@ -144,10 +144,10 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 	instance.videoEncoder = videoEncoder
 	instance.audioEncoder = audioEncoder
 
-	// start emulator
+	// start nes
 	emulatorCtx, cancel := context.WithCancel(context.Background())
 	instance.emulatorCancel = cancel
-	uc.logger.Infof("emulator created, roomId: %d", roomId)
+	uc.logger.Infof("nes created, roomId: %d", roomId)
 	go instance.e.LoadAndRun(emulatorCtx, false)
 	instance.e.Pause()
 	// collect audio samples
@@ -163,10 +163,10 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 	if save != nil {
 		err := instance.LoadSave(save.Data, save.Game, uc.gameFileRepo)
 		if err != nil {
-			uc.logger.Errorf("start emulator load exit save error: %v", err)
+			uc.logger.Errorf("start nes load exit save error: %v", err)
 		}
 	} else {
-		uc.logger.Errorf("start emulator load exit save error: %v", err)
+		uc.logger.Errorf("start nes load exit save error: %v", err)
 	}
 
 	leaseID, _ := uc.repo.CreateGameInstance(ctx, &instance)
@@ -368,7 +368,7 @@ func (uc *GameInstanceUseCase) SaveGame(ctx context.Context, roomId int64) error
 	}
 	save, err := instance.SaveGame()
 	if err != nil {
-		return v1.ErrorSaveGameFailed("emulator error: %v", err)
+		return v1.ErrorSaveGameFailed("nes error: %v", err)
 	}
 	save.RoomId = roomId
 	err = uc.gameFileRepo.SaveGame(ctx, save)
@@ -389,7 +389,7 @@ func (uc *GameInstanceUseCase) LoadSave(ctx context.Context, saveId int64) error
 	}
 	err = instance.LoadSave(save.Data, save.Game, uc.gameFileRepo)
 	if err != nil {
-		return v1.ErrorLoadSaveFailed("emulator error: %v", err)
+		return v1.ErrorLoadSaveFailed("nes error: %v", err)
 	}
 	return nil
 }
@@ -406,7 +406,7 @@ func (uc *GameInstanceUseCase) RestartEmulator(ctx context.Context, roomId int64
 	}
 	err = instance.RestartEmulator(game, data)
 	if err != nil {
-		return v1.ErrorRestartFailed("restart emulator error: %v", err)
+		return v1.ErrorRestartFailed("restart nes error: %v", err)
 	}
 	return nil
 }

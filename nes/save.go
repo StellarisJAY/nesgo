@@ -1,11 +1,11 @@
-package emulator
+package nes
 
 import (
 	"crypto"
 	_ "crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"github.com/stellarisJAY/nesgo/emulator/cartridge"
+	"github.com/stellarisJAY/nesgo/nes/cartridge"
 	"log"
 	"os"
 	"path/filepath"

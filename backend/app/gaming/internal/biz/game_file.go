@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/go-kratos/kratos/v2/log"
 	v1 "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
-	"github.com/stellarisJAY/nesgo/emulator/cartridge"
+	"github.com/stellarisJAY/nesgo/nes/cartridge"
 	"time"
 )
 

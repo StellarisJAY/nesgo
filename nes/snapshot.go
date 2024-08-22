@@ -1,13 +1,13 @@
-package emulator
+package nes
 
 import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
-	"github.com/stellarisJAY/nesgo/emulator/bus"
-	"github.com/stellarisJAY/nesgo/emulator/cartridge"
-	"github.com/stellarisJAY/nesgo/emulator/cpu"
-	"github.com/stellarisJAY/nesgo/emulator/ppu"
+	"github.com/stellarisJAY/nesgo/nes/bus"
+	"github.com/stellarisJAY/nesgo/nes/cartridge"
+	"github.com/stellarisJAY/nesgo/nes/cpu"
+	"github.com/stellarisJAY/nesgo/nes/ppu"
 	"time"
 )
 

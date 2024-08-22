@@ -3,7 +3,7 @@ package cpu
 import (
 	"context"
 	"fmt"
-	"github.com/stellarisJAY/nesgo/emulator/bus"
+	"github.com/stellarisJAY/nesgo/nes/bus"
 )
 
 const (

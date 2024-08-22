@@ -8,10 +8,10 @@ import (
 	"github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/codec"
-	"github.com/stellarisJAY/nesgo/emulator"
-	"github.com/stellarisJAY/nesgo/emulator/bus"
-	"github.com/stellarisJAY/nesgo/emulator/config"
-	"github.com/stellarisJAY/nesgo/emulator/ppu"
+	"github.com/stellarisJAY/nesgo/nes"
+	"github.com/stellarisJAY/nesgo/nes/bus"
+	"github.com/stellarisJAY/nesgo/nes/config"
+	"github.com/stellarisJAY/nesgo/nes/ppu"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -63,7 +63,7 @@ type Message struct {
 
 type GameInstance struct {
 	RoomId          int64
-	e               *emulator.Emulator
+	e               *nes.Emulator
 	emulatorCancel  context.CancelFunc
 	game            string
 	videoEncoder    codec.IVideoEncoder
@@ -371,7 +371,7 @@ func (g *GameInstance) handleLoadSave(loader *gameSaveLoader) ConsumerResult {
 	// 加载新游戏，重启模拟器
 	err = g.restartEmulator(loader.game, data)
 	if err != nil {
-		return ConsumerResult{Error: fmt.Errorf("restart emulator error: %v", err)}
+		return ConsumerResult{Error: fmt.Errorf("restart nes error: %v", err)}
 	}
 	// 模拟器加载存档数据
 	g.e.Pause()
@@ -400,11 +400,11 @@ func (g *GameInstance) restartEmulator(game string, gameData []byte) error {
 		SnapshotSerializer: "gob",
 	}
 	renderCallback := func(p *ppu.PPU) {
-		g.RenderCallback(p, log.NewHelper(log.With(log.DefaultLogger, "module", "emulator")))
+		g.RenderCallback(p, log.NewHelper(log.With(log.DefaultLogger, "module", "nes")))
 	}
-	e, err := emulator.NewEmulatorWithGameData(gameData, emulatorConfig, renderCallback, g.audioSampleChan, g.audioSampleRate)
+	e, err := nes.NewEmulatorWithGameData(gameData, emulatorConfig, renderCallback, g.audioSampleChan, g.audioSampleRate)
 	if err != nil {
-		return fmt.Errorf("create new emulator error: %v", err)
+		return fmt.Errorf("create new nes error: %v", err)
 	}
 	g.e = e
 	// 启动新模拟器goroutine

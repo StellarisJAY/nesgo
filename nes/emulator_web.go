@@ -1,20 +1,20 @@
 //go:build !sdl
 
-package emulator
+package nes
 
 import (
 	"context"
-	"github.com/stellarisJAY/nesgo/emulator/apu"
-	"github.com/stellarisJAY/nesgo/emulator/bus"
-	"github.com/stellarisJAY/nesgo/emulator/cartridge"
-	"github.com/stellarisJAY/nesgo/emulator/config"
-	"github.com/stellarisJAY/nesgo/emulator/cpu"
-	"github.com/stellarisJAY/nesgo/emulator/ppu"
-	"github.com/stellarisJAY/nesgo/emulator/trace"
+	"github.com/stellarisJAY/nesgo/nes/apu"
+	"github.com/stellarisJAY/nesgo/nes/bus"
+	"github.com/stellarisJAY/nesgo/nes/cartridge"
+	"github.com/stellarisJAY/nesgo/nes/config"
+	"github.com/stellarisJAY/nesgo/nes/cpu"
+	"github.com/stellarisJAY/nesgo/nes/ppu"
+	"github.com/stellarisJAY/nesgo/nes/trace"
 	"sync"
 )
 
-// Emulator browser render emulator
+// Emulator browser render nes
 type Emulator struct {
 	RawEmulator
 }

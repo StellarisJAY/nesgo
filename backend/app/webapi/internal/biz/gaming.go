@@ -148,7 +148,7 @@ func (uc *GamingUseCase) RestartEmulator(ctx context.Context, roomId, userId int
 		return v1.ErrorOperationFailed("room not found")
 	}
 	if room.Host != userId {
-		return v1.ErrorOperationFailed("only host can restart emulator")
+		return v1.ErrorOperationFailed("only host can restart nes")
 	}
 	session, _ := uc.roomRepo.GetRoomSession(ctx, roomId)
 	if session == nil {
@@ -167,7 +167,7 @@ func (uc *GamingUseCase) SaveGame(ctx context.Context, roomId, userId int64) err
 		return v1.ErrorOperationFailed("room not found")
 	}
 	if room.Host != userId {
-		return v1.ErrorOperationFailed("only host can restart emulator")
+		return v1.ErrorOperationFailed("only host can restart nes")
 	}
 	session, _ := uc.roomRepo.GetRoomSession(ctx, roomId)
 	if session == nil {
@@ -182,7 +182,7 @@ func (uc *GamingUseCase) LoadSave(ctx context.Context, roomId, saveId int64, use
 		return v1.ErrorOperationFailed("room not found")
 	}
 	if room.Host != userId {
-		return v1.ErrorOperationFailed("only host can restart emulator")
+		return v1.ErrorOperationFailed("only host can restart nes")
 	}
 	session, _ := uc.roomRepo.GetRoomSession(ctx, roomId)
 	if session == nil {
@@ -197,7 +197,7 @@ func (uc *GamingUseCase) DeleteSave(ctx context.Context, roomId, saveId, userId 
 		return v1.ErrorOperationFailed("room not found")
 	}
 	if room.Host != userId {
-		return v1.ErrorOperationFailed("only host can restart emulator")
+		return v1.ErrorOperationFailed("only host can restart nes")
 	}
 	session, _ := uc.roomRepo.GetRoomSession(ctx, roomId)
 	if session == nil {

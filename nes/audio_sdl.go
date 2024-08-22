@@ -1,6 +1,6 @@
 //go:build sdl
 
-package emulator
+package nes
 
 import (
 	"github.com/gordonklaus/portaudio"
