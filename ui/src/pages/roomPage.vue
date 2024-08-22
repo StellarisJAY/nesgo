@@ -578,7 +578,12 @@ export default {
     setKeyboardControl(enabled) {
       if (enabled) {
         const _this = this;
-        const setting = this.$refs.refKeyboardSettings.selected;
+        let setting;
+        if (this.$refs.refKeyboardSettings && this.$refs.refKeyboardSettings.selected) {
+          setting = this.$refs.refKeyboardSettings.selected;
+        }else {
+          setting = globalConfigs.defaultKeyboardSetting;
+        }
         window.onkeydown = ev => {
           const button = setting.bindings.find(item => item.buttons[0] === ev.code);
           if (button) {

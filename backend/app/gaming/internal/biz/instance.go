@@ -90,7 +90,6 @@ type GameInstance struct {
 }
 
 func (g *GameInstance) RenderCallback(ppu *ppu.PPU, logger *log.Helper) {
-	ppu.Render()
 	frame := ppu.Frame()
 	data, release, err := g.videoEncoder.Encode(frame)
 	if err != nil {

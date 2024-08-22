@@ -82,6 +82,7 @@ func (b *Bus) Tick(cycles uint64) {
 	b.ppu.Tick(cycles * 3)
 	if !before && b.ppu.PeekInterrupt() {
 		start := time.Now()
+		b.ppu.Render()
 		b.renderCallback(b.ppu)
 		renderTime := time.Now().Sub(start)
 		processorTime := start.Sub(b.lastRenderTime)

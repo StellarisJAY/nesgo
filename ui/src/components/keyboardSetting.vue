@@ -71,53 +71,9 @@ import {
 } from 'ant-design-vue';
 import api from "../api/request.js";
 import KeyboardKeyPicker from "./keyboardKeyPicker.vue";
+import globalConfig from "../api/const.js";
 
-const defaultSettings = {
-  "id": "0",
-  "name": "默认设置",
-  "bindings": [
-    {
-      "emulatorKey": "Left",
-      "emulatorKeyTranslated": "Left",
-      "buttons": ["KeyA"],
-    },
-    {
-      "emulatorKey": "Right",
-      "emulatorKeyTranslated": "Right",
-      "buttons": ["KeyD"],
-    },
-    {
-      "emulatorKey": "Up",
-      "emulatorKeyTranslated": "Up",
-      "buttons": ["KeyW"],
-    },
-    {
-      "emulatorKey": "Down",
-      "emulatorKeyTranslated": "Down",
-      "buttons": ["KeyS"],
-    },
-    {
-      "emulatorKey": "A",
-      "emulatorKeyTranslated": "A",
-      "buttons": ["Space"],
-    },
-    {
-      "emulatorKey": "B",
-      "emulatorKeyTranslated": "B",
-      "buttons": ["KeyJ"],
-    },
-    {
-      "emulatorKey": "Start",
-      "emulatorKeyTranslated": "Start",
-      "buttons": ["Enter"],
-    },
-    {
-      "emulatorKey": "Select",
-      "emulatorKeyTranslated": "Select",
-      "buttons": ["Tab"],
-    },
-  ]
-}
+const defaultSettings = globalConfig.defaultKeyboardSetting;
 const keyboardKeyTranslations = {
   "KeyA": "A",
   "KeyB": "B",
@@ -178,7 +134,7 @@ export default {
       keyboardSettings: [],      // 用户创建的所有按键绑定列表
       selectOptions: [], // 按键绑定选项列表
       selectedKey: null, // 选中的按键绑定的ID
-      selected: {},      // 选中的按键绑定
+      selected: defaultSettings,      // 选中的按键绑定
       bindingColumns: [
         {
           "title": "键盘按键",
