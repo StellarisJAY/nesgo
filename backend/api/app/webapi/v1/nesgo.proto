@@ -544,11 +544,13 @@ message SetGraphicOptionsRequest {
   int64 roomId = 1;
   bool highResOpen = 2;
   bool reverseColor = 3;
+  bool grayscale = 4;
 }
 
 message SetGraphicOptionsResponse {
   bool highResOpen = 1;
   bool reverseColor = 2;
+  bool grayscale = 3;
 }
 
 message GetGraphicOptionsRequest {
@@ -558,4 +560,5 @@ message GetGraphicOptionsRequest {
 message GetGraphicOptionsResponse {
   bool highResOpen = 1;
   bool reverseColor = 2;
+  bool grayscale = 3;
 }

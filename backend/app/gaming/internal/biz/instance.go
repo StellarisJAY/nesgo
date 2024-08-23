@@ -95,6 +95,7 @@ type GameInstance struct {
 	frameEnhancer    func(frame *ppu.Frame) *ppu.Frame
 
 	reverseColorOpen bool
+	grayscaleOpen    bool
 }
 
 func (g *GameInstance) enhanceFrame(frame *ppu.Frame) *ppu.Frame {
@@ -557,9 +558,21 @@ func (g *GameInstance) setGraphicOptions(options *GraphicOptions) ConsumerResult
 		if g.reverseColorOpen {
 			g.e.Frame().UseReverseColorPreprocessor()
 		} else {
-			g.e.Frame().ResetPixelPreprocessor()
+			g.e.Frame().RemoveReverseColorPreprocessor()
 		}
 	}
 
+	if g.grayscaleOpen != options.Grayscale {
+		g.grayscaleOpen = options.Grayscale
+		if g.grayscaleOpen {
+			g.e.Frame().UseGrayscalePreprocessor()
+		} else {
+			g.e.Frame().RemoveGrayscalePreprocessor()
+		}
+	}
+
+	options.Grayscale = g.grayscaleOpen
+	options.HighResOpen = g.enhanceFrameOpen
+	options.ReverseColor = g.reverseColorOpen
 	return ConsumerResult{Success: true, Error: nil}
 }

@@ -32,6 +32,7 @@ type SaveMetadata struct {
 type GraphicOptions struct {
 	HighResOpen  bool `json:"highResOpen"`
 	ReverseColor bool `json:"reverseColor"`
+	Grayscale    bool `json:"grayscale"`
 }
 
 type GamingRepo interface {

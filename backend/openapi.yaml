@@ -1000,6 +1000,8 @@ components:
                     type: boolean
                 reverseColor:
                     type: boolean
+                grayscale:
+                    type: boolean
         nesgo.webapi.v1.GetRoomMemberResponse:
             type: object
             properties:
@@ -1280,12 +1282,16 @@ components:
                     type: boolean
                 reverseColor:
                     type: boolean
+                grayscale:
+                    type: boolean
         nesgo.webapi.v1.SetGraphicOptionsResponse:
             type: object
             properties:
                 highResOpen:
                     type: boolean
                 reverseColor:
+                    type: boolean
+                grayscale:
                     type: boolean
         nesgo.webapi.v1.UpdateMemberRoleRequest:
             type: object

@@ -55,6 +55,7 @@ type EndpointStats struct {
 type GraphicOptions struct {
 	HighResOpen  bool `json:"highResOpen"`
 	ReverseColor bool `json:"reverseColor"`
+	Grayscale    bool `json:"grayscale"`
 }
 
 type GameInstanceRepo interface {
@@ -457,7 +458,7 @@ func (uc *GameInstanceUseCase) GetGraphicOptions(ctx context.Context, roomId int
 	if instance == nil {
 		return nil, v1.ErrorGameInstanceNotAccessible("game instance not found")
 	}
-	return &GraphicOptions{HighResOpen: instance.enhanceFrameOpen, ReverseColor: instance.reverseColorOpen}, nil
+	return &GraphicOptions{HighResOpen: instance.enhanceFrameOpen, ReverseColor: instance.reverseColorOpen, Grayscale: instance.grayscaleOpen}, nil
 }
 
 func (uc *GameInstanceUseCase) SetGraphicOptions(ctx context.Context, roomId int64, options *GraphicOptions) error {

@@ -254,6 +254,7 @@ func (g *GamingService) SetGraphicOptions(ctx context.Context, request *v1.SetGr
 	opts := &biz.GraphicOptions{
 		HighResOpen:  request.HighResOpen,
 		ReverseColor: request.ReverseColor,
+		Grayscale:    request.Grayscale,
 	}
 	err := g.gi.SetGraphicOptions(ctx, request.RoomId, opts)
 	if err != nil {
@@ -262,6 +263,7 @@ func (g *GamingService) SetGraphicOptions(ctx context.Context, request *v1.SetGr
 	return &v1.SetGraphicOptionsResponse{
 		HighResOpen:  opts.HighResOpen,
 		ReverseColor: opts.ReverseColor,
+		Grayscale:    opts.Grayscale,
 	}, nil
 }
 
@@ -273,5 +275,6 @@ func (g *GamingService) GetGraphicOptions(ctx context.Context, request *v1.GetGr
 	return &v1.GetGraphicOptionsResponse{
 		HighResOpen:  options.HighResOpen,
 		ReverseColor: options.ReverseColor,
+		Grayscale:    options.Grayscale,
 	}, nil
 }

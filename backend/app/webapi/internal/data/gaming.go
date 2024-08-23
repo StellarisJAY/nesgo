@@ -160,7 +160,9 @@ func (r *gamingRepo) GetGraphicOptions(ctx context.Context, roomId int64, endpoi
 		return nil, err
 	}
 	return &biz.GraphicOptions{
-		HighResOpen: resp.HighResOpen,
+		HighResOpen:  resp.HighResOpen,
+		ReverseColor: resp.ReverseColor,
+		Grayscale:    resp.Grayscale,
 	}, nil
 }
 
@@ -175,11 +177,13 @@ func (r *gamingRepo) SetGraphicOptions(ctx context.Context, roomId int64, option
 		RoomId:       roomId,
 		HighResOpen:  options.HighResOpen,
 		ReverseColor: options.ReverseColor,
+		Grayscale:    options.Grayscale,
 	})
 	if err != nil {
 		return err
 	}
 	options.HighResOpen = resp.HighResOpen
 	options.ReverseColor = resp.ReverseColor
+	options.Grayscale = resp.Grayscale
 	return nil
 }

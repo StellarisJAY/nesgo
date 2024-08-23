@@ -149,6 +149,7 @@ func (ws *WebApiService) GetGraphicOptions(ctx context.Context, request *v1.GetG
 	return &v1.GetGraphicOptionsResponse{
 		HighResOpen:  options.HighResOpen,
 		ReverseColor: options.ReverseColor,
+		Grayscale:    options.Grayscale,
 	}, nil
 }
 
@@ -158,6 +159,7 @@ func (ws *WebApiService) SetGraphicOptions(ctx context.Context, request *v1.SetG
 	opts := &biz.GraphicOptions{
 		HighResOpen:  request.HighResOpen,
 		ReverseColor: request.ReverseColor,
+		Grayscale:    request.Grayscale,
 	}
 	err := ws.gc.SetGraphicOptions(ctx, request.RoomId, claims.UserId, opts)
 	if err != nil {
@@ -166,5 +168,6 @@ func (ws *WebApiService) SetGraphicOptions(ctx context.Context, request *v1.SetG
 	return &v1.SetGraphicOptionsResponse{
 		HighResOpen:  opts.HighResOpen,
 		ReverseColor: opts.ReverseColor,
+		Grayscale:    opts.Grayscale,
 	}, nil
 }
