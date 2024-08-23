@@ -95,6 +95,7 @@ type GameInstance struct {
 	frameEnhancer    func(frame *ppu.Frame) *ppu.Frame
 
 	reverseColorOpen bool
+	grayscaleOpen    bool
 }
 
 func (g *GameInstance) enhanceFrame(frame *ppu.Frame) *ppu.Frame {
@@ -431,6 +432,16 @@ func (g *GameInstance) restartEmulator(game string, gameData []byte) error {
 	// 结束旧模拟器goroutine
 	g.emulatorCancel()
 
+	// 清空上一个模拟器输出的还未发送的音频
+LOOP:
+	for {
+		select {
+		case <-g.audioSampleChan:
+		default:
+			break LOOP
+		}
+	}
+
 	g.game = game
 	// 创建新模拟器
 	emulatorConfig := config.Config{
@@ -453,6 +464,8 @@ func (g *GameInstance) restartEmulator(game string, gameData []byte) error {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	g.emulatorCancel = cancelFunc
 	go e.LoadAndRun(ctx, false)
+	// emulatorCancel后会结束旧的音频发送器，需要重启音频发送goroutine
+	go g.audioSampleListener(ctx, log.NewHelper(log.With(log.DefaultLogger, "module", "audioSender")))
 	return nil
 }
 
@@ -557,9 +570,21 @@ func (g *GameInstance) setGraphicOptions(options *GraphicOptions) ConsumerResult
 		if g.reverseColorOpen {
 			g.e.Frame().UseReverseColorPreprocessor()
 		} else {
-			g.e.Frame().ResetPixelPreprocessor()
+			g.e.Frame().RemoveReverseColorPreprocessor()
 		}
 	}
 
+	if g.grayscaleOpen != options.Grayscale {
+		g.grayscaleOpen = options.Grayscale
+		if g.grayscaleOpen {
+			g.e.Frame().UseGrayscalePreprocessor()
+		} else {
+			g.e.Frame().RemoveGrayscalePreprocessor()
+		}
+	}
+
+	options.Grayscale = g.grayscaleOpen
+	options.HighResOpen = g.enhanceFrameOpen
+	options.ReverseColor = g.reverseColorOpen
 	return ConsumerResult{Success: true, Error: nil}
 }

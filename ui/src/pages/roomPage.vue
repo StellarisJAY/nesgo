@@ -177,6 +177,9 @@ const tourSteps = [
         <a-form-item label="反色">
           <a-switch v-model:checked="graphicOptions.reverseColor" :disabled="graphicOptionsDisabled" @change="updateGraphicOptions"></a-switch>
         </a-form-item>
+        <a-form-item label="黑白">
+          <a-switch v-model:checked="graphicOptions.grayscale" :disabled="graphicOptionsDisabled" @change="updateGraphicOptions"></a-switch>
+        </a-form-item>
       </a-form>
     </a-drawer>
     <a-tour :steps="tourSteps" :open="tourOpen" @close="_ => { tourOpen = false }"></a-tour>
@@ -293,6 +296,7 @@ export default {
       graphicOptions: {
         highResOpen: false,
         reverseColor: false,
+        grayscale: false,
       },
       graphicOptionsDisabled: true,
       mobileDevice: false,
@@ -717,10 +721,12 @@ export default {
         "roomId": this.roomId,
         "highResOpen": this.graphicOptions.highResOpen,
         "reverseColor": this.graphicOptions.reverseColor,
+        "grayscale": this.graphicOptions.grayscale,
       }).then(resp => {
         _this.graphicOptionsDisabled = false;
         _this.graphicOptions.highResOpen = resp['highResOpen'];
         _this.graphicOptions.reverseColor = resp['reverseColor'];
+        _this.graphicOptions.grayscale = resp['grayscale'];
         message.success("设置成功");
       }).catch(_ => {
         message.error("设置失败");
@@ -733,6 +739,7 @@ export default {
       api.get("api/v1/game/graphic?roomId=" + this.roomId).then(resp => {
         _this.graphicOptions.highResOpen = resp['highResOpen'];
         _this.graphicOptions.reverseColor = resp['reverseColor'];
+        _this.graphicOptions.grayscale = resp['grayscale'];
       });
     }
   }

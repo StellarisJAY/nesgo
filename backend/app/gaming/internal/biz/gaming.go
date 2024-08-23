@@ -55,6 +55,7 @@ type EndpointStats struct {
 type GraphicOptions struct {
 	HighResOpen  bool `json:"highResOpen"`
 	ReverseColor bool `json:"reverseColor"`
+	Grayscale    bool `json:"grayscale"`
 }
 
 type GameInstanceRepo interface {
@@ -161,7 +162,7 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 	go instance.e.LoadAndRun(emulatorCtx, false)
 	instance.e.Pause()
 	// collect audio samples
-	go instance.audioSampleListener(emulatorCtx, uc.logger)
+	go instance.audioSampleListener(emulatorCtx, log.NewHelper(log.With(log.DefaultLogger, "module", "audioSender")))
 
 	// start message consumer
 	msgConsumerCtx, msgConsumerCancel := context.WithCancel(context.Background())
@@ -457,7 +458,7 @@ func (uc *GameInstanceUseCase) GetGraphicOptions(ctx context.Context, roomId int
 	if instance == nil {
 		return nil, v1.ErrorGameInstanceNotAccessible("game instance not found")
 	}
-	return &GraphicOptions{HighResOpen: instance.enhanceFrameOpen, ReverseColor: instance.reverseColorOpen}, nil
+	return &GraphicOptions{HighResOpen: instance.enhanceFrameOpen, ReverseColor: instance.reverseColorOpen, Grayscale: instance.grayscaleOpen}, nil
 }
 
 func (uc *GameInstanceUseCase) SetGraphicOptions(ctx context.Context, roomId int64, options *GraphicOptions) error {
