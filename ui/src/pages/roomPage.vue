@@ -7,6 +7,7 @@ const refRestart = ref(null)
 const refSaveBtn = ref(null)
 const refLoadBtn = ref(null)
 const refRoomBtn = ref(null)
+const refSettingBtn = ref(null)
 const refKeyboardSettings = ref(null)
 const tourSteps = [
   {
@@ -38,6 +39,11 @@ const tourSteps = [
     title: "房间管理",
     description: "点击此处弹出房间面板，房主可通过此面板修改房间信息以及玩家权限。",
     target: () => refRoomBtn.value && refRoomBtn.value.$el,
+  },
+  {
+    title: "游戏设置",
+    description: "点击此处弹出设置面板，可设置游戏图像，键盘按键绑定。",
+    target: ()=> refSettingBtn.value && refSettingBtn.value.$el,
   }
 ]
 </script>
@@ -107,7 +113,7 @@ const tourSteps = [
           </a-col>
           <a-col :span="6"></a-col>
           <a-col :span="6">
-            <a-button style="width: 90%" type="primary" @click="openSettingDrawer">设置</a-button>
+            <a-button ref="refSettingBtn" style="width: 90%" type="primary" @click="openSettingDrawer">设置</a-button>
           </a-col>
         </a-row>
         <a-row>
@@ -156,9 +162,9 @@ const tourSteps = [
     </a-modal>
     <!--settings-->
     <a-drawer v-model:open="settingDrawerOpen" placement="right" title="设置" size="default">
-      <p>提示：点击按钮取消绑定，点击‘+’后按下键盘按键添加绑定</p>
-      <a-button type="primary" @click="setKeyboardBindingEnabled">使用</a-button>
-      <KeyboardSetting :show-default="true" :allow-create="false" :allow-delete="false" ref="refKeyboardSettings"></KeyboardSetting>
+      <p v-if="!mobileDevice">提示：点击按钮取消绑定，点击‘+’后按下键盘按键添加绑定</p>
+      <a-button v-if="!mobileDevice" type="primary" @click="setKeyboardBindingEnabled">使用</a-button>
+      <KeyboardSetting v-if="!mobileDevice" :show-default="true" :allow-create="false" :allow-delete="false" ref="refKeyboardSettings"></KeyboardSetting>
       <a-form>
         <a-form-item label="显示状态数据">
           <a-switch v-model:checked="configs.showStats"></a-switch>
@@ -200,6 +206,7 @@ import { Tour } from "ant-design-vue";
 import RoomInfoDrawer from "../components/roomInfoDrawer.vue";
 import SaveList from "../components/saveList.vue";
 import KeyboardSetting from "../components/keyboardSetting.vue";
+import platform from "../util/platform.js";
 
 const MessageGameButtonPressed = 0
 const MessageGameButtonReleased = 1
@@ -288,9 +295,14 @@ export default {
         reverseColor: false,
       },
       graphicOptionsDisabled: true,
+      mobileDevice: false,
     }
   },
   created() {
+    this.mobileDevice = platform.isMobile();
+    if (platform.isPortraitOrientation()) {
+      message.info("请使用横屏全屏来获取最佳游戏体验");
+    }
     this.roomId = this.$route["params"]["roomId"];
     this.getMemberSelf().catch(_=>{
       this.tryJoinRoom();

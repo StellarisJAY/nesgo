@@ -1,6 +1,6 @@
 <template>
   <a-card :bordered="false">
-    <KeyboardSetting :allow-delete="true" :allow-create="true" :show-default="false"></KeyboardSetting>
+    <KeyboardSetting v-if="!mobileDevice" :allow-delete="true" :allow-create="true" :show-default="false"></KeyboardSetting>
   </a-card>
 </template>
 
@@ -12,6 +12,7 @@ import {
   Row,
 } from 'ant-design-vue';
 import KeyboardSetting from "./keyboardSetting.vue";
+import platform from "../util/platform.js";
 export default {
   props: {
   },
@@ -24,8 +25,12 @@ export default {
   },
   data() {
     return {
+      mobileDevice: false
     }
   },
+  created() {
+    this.mobileDevice = platform.isMobile();
+  }
 }
 </script>
 
