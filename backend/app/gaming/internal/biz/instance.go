@@ -278,7 +278,6 @@ func (g *GameInstance) handlePeerConnected(_ *Connection) {
 
 func (g *GameInstance) handleMsgCloseConn(conn *Connection) {
 	g.mutex.Lock()
-	defer g.mutex.Unlock()
 	// 被动关闭连接，可能是因为新连接挤掉旧连接，需要避免删除新连接
 	if cur, ok := g.connections[conn.userId]; ok {
 		if cur.pc.ConnectionState() == webrtc.PeerConnectionStateClosed ||
@@ -290,6 +289,11 @@ func (g *GameInstance) handleMsgCloseConn(conn *Connection) {
 	active := g.filterConnection(func(conn *Connection) bool {
 		return conn.pc.ConnectionState() == webrtc.PeerConnectionStateConnected
 	})
+	// 在Pause之前必须释放连接列表锁，避免 模拟器goroutine和messageConsumer死锁
+	// 死锁循环等待：模拟器RenderCallback等待获取g.mutex, 之后消费processor.channel(无缓冲通道)
+	//             closeConn获取到了g.mutex, 之后向processor.channel发送消息。
+	// 模拟器等待g.mutex, closeConn等待processor.channel，循环等待导致死锁
+	g.mutex.Unlock()
 	// 没有活跃连接，暂停模拟器
 	if len(active) == 0 {
 		g.e.Pause()
