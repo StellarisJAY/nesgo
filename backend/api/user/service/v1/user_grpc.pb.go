@@ -29,6 +29,10 @@ const (
 	User_GetUserKeyboardBinding_FullMethodName    = "/user.v1.User/GetUserKeyboardBinding"
 	User_UpdateUserKeyboardBinding_FullMethodName = "/user.v1.User/UpdateUserKeyboardBinding"
 	User_DeleteUserKeyboardBinding_FullMethodName = "/user.v1.User/DeleteUserKeyboardBinding"
+	User_CreateMacro_FullMethodName               = "/user.v1.User/CreateMacro"
+	User_GetMacro_FullMethodName                  = "/user.v1.User/GetMacro"
+	User_ListMacro_FullMethodName                 = "/user.v1.User/ListMacro"
+	User_DeleteMacro_FullMethodName               = "/user.v1.User/DeleteMacro"
 )
 
 // UserClient is the client API for User service.
@@ -45,6 +49,10 @@ type UserClient interface {
 	GetUserKeyboardBinding(ctx context.Context, in *GetUserKeyboardBindingRequest, opts ...grpc.CallOption) (*GetUserKeyboardBindingResponse, error)
 	UpdateUserKeyboardBinding(ctx context.Context, in *UpdateUserKeyboardBindingRequest, opts ...grpc.CallOption) (*UpdateUserKeyboardBindingResponse, error)
 	DeleteUserKeyboardBinding(ctx context.Context, in *DeleteUserKeyboardBindingRequest, opts ...grpc.CallOption) (*DeleteUserKeyboardBindingResponse, error)
+	CreateMacro(ctx context.Context, in *CreateMacroRequest, opts ...grpc.CallOption) (*CreateMacroResponse, error)
+	GetMacro(ctx context.Context, in *GetMacroRequest, opts ...grpc.CallOption) (*GetMacroResponse, error)
+	ListMacro(ctx context.Context, in *ListMacroRequest, opts ...grpc.CallOption) (*ListMacroResponse, error)
+	DeleteMacro(ctx context.Context, in *DeleteMacroRequest, opts ...grpc.CallOption) (*DeleteMacroResponse, error)
 }
 
 type userClient struct {
@@ -155,6 +163,46 @@ func (c *userClient) DeleteUserKeyboardBinding(ctx context.Context, in *DeleteUs
 	return out, nil
 }
 
+func (c *userClient) CreateMacro(ctx context.Context, in *CreateMacroRequest, opts ...grpc.CallOption) (*CreateMacroResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateMacroResponse)
+	err := c.cc.Invoke(ctx, User_CreateMacro_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) GetMacro(ctx context.Context, in *GetMacroRequest, opts ...grpc.CallOption) (*GetMacroResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetMacroResponse)
+	err := c.cc.Invoke(ctx, User_GetMacro_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) ListMacro(ctx context.Context, in *ListMacroRequest, opts ...grpc.CallOption) (*ListMacroResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListMacroResponse)
+	err := c.cc.Invoke(ctx, User_ListMacro_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userClient) DeleteMacro(ctx context.Context, in *DeleteMacroRequest, opts ...grpc.CallOption) (*DeleteMacroResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteMacroResponse)
+	err := c.cc.Invoke(ctx, User_DeleteMacro_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // UserServer is the server API for User service.
 // All implementations must embed UnimplementedUserServer
 // for forward compatibility.
@@ -169,6 +217,10 @@ type UserServer interface {
 	GetUserKeyboardBinding(context.Context, *GetUserKeyboardBindingRequest) (*GetUserKeyboardBindingResponse, error)
 	UpdateUserKeyboardBinding(context.Context, *UpdateUserKeyboardBindingRequest) (*UpdateUserKeyboardBindingResponse, error)
 	DeleteUserKeyboardBinding(context.Context, *DeleteUserKeyboardBindingRequest) (*DeleteUserKeyboardBindingResponse, error)
+	CreateMacro(context.Context, *CreateMacroRequest) (*CreateMacroResponse, error)
+	GetMacro(context.Context, *GetMacroRequest) (*GetMacroResponse, error)
+	ListMacro(context.Context, *ListMacroRequest) (*ListMacroResponse, error)
+	DeleteMacro(context.Context, *DeleteMacroRequest) (*DeleteMacroResponse, error)
 	mustEmbedUnimplementedUserServer()
 }
 
@@ -208,6 +260,18 @@ func (UnimplementedUserServer) UpdateUserKeyboardBinding(context.Context, *Updat
 }
 func (UnimplementedUserServer) DeleteUserKeyboardBinding(context.Context, *DeleteUserKeyboardBindingRequest) (*DeleteUserKeyboardBindingResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteUserKeyboardBinding not implemented")
+}
+func (UnimplementedUserServer) CreateMacro(context.Context, *CreateMacroRequest) (*CreateMacroResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateMacro not implemented")
+}
+func (UnimplementedUserServer) GetMacro(context.Context, *GetMacroRequest) (*GetMacroResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMacro not implemented")
+}
+func (UnimplementedUserServer) ListMacro(context.Context, *ListMacroRequest) (*ListMacroResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListMacro not implemented")
+}
+func (UnimplementedUserServer) DeleteMacro(context.Context, *DeleteMacroRequest) (*DeleteMacroResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteMacro not implemented")
 }
 func (UnimplementedUserServer) mustEmbedUnimplementedUserServer() {}
 func (UnimplementedUserServer) testEmbeddedByValue()              {}
@@ -410,6 +474,78 @@ func _User_DeleteUserKeyboardBinding_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _User_CreateMacro_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateMacroRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).CreateMacro(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_CreateMacro_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).CreateMacro(ctx, req.(*CreateMacroRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_GetMacro_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMacroRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).GetMacro(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_GetMacro_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).GetMacro(ctx, req.(*GetMacroRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_ListMacro_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListMacroRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).ListMacro(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_ListMacro_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).ListMacro(ctx, req.(*ListMacroRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _User_DeleteMacro_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteMacroRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServer).DeleteMacro(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: User_DeleteMacro_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServer).DeleteMacro(ctx, req.(*DeleteMacroRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // User_ServiceDesc is the grpc.ServiceDesc for User service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -456,6 +592,22 @@ var User_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteUserKeyboardBinding",
 			Handler:    _User_DeleteUserKeyboardBinding_Handler,
+		},
+		{
+			MethodName: "CreateMacro",
+			Handler:    _User_CreateMacro_Handler,
+		},
+		{
+			MethodName: "GetMacro",
+			Handler:    _User_GetMacro_Handler,
+		},
+		{
+			MethodName: "ListMacro",
+			Handler:    _User_ListMacro_Handler,
+		},
+		{
+			MethodName: "DeleteMacro",
+			Handler:    _User_DeleteMacro_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

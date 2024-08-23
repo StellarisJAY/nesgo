@@ -20,13 +20,16 @@ var _ = binding.EncodeURL
 const _ = http.SupportPackageIsVersion1
 
 const OperationWebApiAddICECandidate = "/nesgo.webapi.v1.WebApi/AddICECandidate"
+const OperationWebApiCreateMacro = "/nesgo.webapi.v1.WebApi/CreateMacro"
 const OperationWebApiCreateRoom = "/nesgo.webapi.v1.WebApi/CreateRoom"
 const OperationWebApiCreateUserKeyboardBinding = "/nesgo.webapi.v1.WebApi/CreateUserKeyboardBinding"
+const OperationWebApiDeleteMacro = "/nesgo.webapi.v1.WebApi/DeleteMacro"
 const OperationWebApiDeleteMember = "/nesgo.webapi.v1.WebApi/DeleteMember"
 const OperationWebApiDeleteRoom = "/nesgo.webapi.v1.WebApi/DeleteRoom"
 const OperationWebApiDeleteSave = "/nesgo.webapi.v1.WebApi/DeleteSave"
 const OperationWebApiDeleteUserKeyboardBinding = "/nesgo.webapi.v1.WebApi/DeleteUserKeyboardBinding"
 const OperationWebApiGetGraphicOptions = "/nesgo.webapi.v1.WebApi/GetGraphicOptions"
+const OperationWebApiGetMacro = "/nesgo.webapi.v1.WebApi/GetMacro"
 const OperationWebApiGetRoom = "/nesgo.webapi.v1.WebApi/GetRoom"
 const OperationWebApiGetRoomMember = "/nesgo.webapi.v1.WebApi/GetRoomMember"
 const OperationWebApiGetServerICECandidate = "/nesgo.webapi.v1.WebApi/GetServerICECandidate"
@@ -35,6 +38,7 @@ const OperationWebApiGetUserKeyboardBinding = "/nesgo.webapi.v1.WebApi/GetUserKe
 const OperationWebApiJoinRoom = "/nesgo.webapi.v1.WebApi/JoinRoom"
 const OperationWebApiListAllRooms = "/nesgo.webapi.v1.WebApi/ListAllRooms"
 const OperationWebApiListGames = "/nesgo.webapi.v1.WebApi/ListGames"
+const OperationWebApiListMacro = "/nesgo.webapi.v1.WebApi/ListMacro"
 const OperationWebApiListMembers = "/nesgo.webapi.v1.WebApi/ListMembers"
 const OperationWebApiListMyRooms = "/nesgo.webapi.v1.WebApi/ListMyRooms"
 const OperationWebApiListSaves = "/nesgo.webapi.v1.WebApi/ListSaves"
@@ -54,13 +58,16 @@ const OperationWebApiUpdateUserKeyboardBinding = "/nesgo.webapi.v1.WebApi/Update
 
 type WebApiHTTPServer interface {
 	AddICECandidate(context.Context, *AddICECandidateRequest) (*AddICECandidateResponse, error)
+	CreateMacro(context.Context, *CreateMacroRequest) (*CreateMacroResponse, error)
 	CreateRoom(context.Context, *CreateRoomRequest) (*CreateRoomResponse, error)
 	CreateUserKeyboardBinding(context.Context, *CreateUserKeyboardBindingRequest) (*CreateUserKeyboardBindingResponse, error)
+	DeleteMacro(context.Context, *DeleteMacroRequest) (*DeleteMacroResponse, error)
 	DeleteMember(context.Context, *DeleteMemberRequest) (*DeleteMemberResponse, error)
 	DeleteRoom(context.Context, *DeleteRoomRequest) (*DeleteRoomResponse, error)
 	DeleteSave(context.Context, *DeleteSaveRequest) (*DeleteSaveResponse, error)
 	DeleteUserKeyboardBinding(context.Context, *DeleteUserKeyboardBindingRequest) (*DeleteUserKeyboardBindingResponse, error)
 	GetGraphicOptions(context.Context, *GetGraphicOptionsRequest) (*GetGraphicOptionsResponse, error)
+	GetMacro(context.Context, *GetMacroRequest) (*GetMacroResponse, error)
 	GetRoom(context.Context, *GetRoomRequest) (*GetRoomResponse, error)
 	GetRoomMember(context.Context, *GetRoomMemberRequest) (*GetRoomMemberResponse, error)
 	GetServerICECandidate(context.Context, *GetServerICECandidateRequest) (*GetServerICECandidateResponse, error)
@@ -69,6 +76,7 @@ type WebApiHTTPServer interface {
 	JoinRoom(context.Context, *JoinRoomRequest) (*JoinRoomResponse, error)
 	ListAllRooms(context.Context, *ListRoomRequest) (*ListRoomResponse, error)
 	ListGames(context.Context, *ListGamesRequest) (*ListGamesResponse, error)
+	ListMacro(context.Context, *ListMacroRequest) (*ListMacroResponse, error)
 	ListMembers(context.Context, *ListMemberRequest) (*ListMemberResponse, error)
 	ListMyRooms(context.Context, *ListRoomRequest) (*ListRoomResponse, error)
 	ListSaves(context.Context, *ListSavesRequest) (*ListSavesResponse, error)
@@ -121,6 +129,10 @@ func RegisterWebApiHTTPServer(s *http.Server, srv WebApiHTTPServer) {
 	r.GET("/api/v1/ice/candidates", _WebApi_GetServerICECandidate0_HTTP_Handler(srv))
 	r.POST("/api/v1/game/graphic", _WebApi_SetGraphicOptions0_HTTP_Handler(srv))
 	r.GET("/api/v1/game/graphic", _WebApi_GetGraphicOptions0_HTTP_Handler(srv))
+	r.POST("/api/v1/macro", _WebApi_CreateMacro0_HTTP_Handler(srv))
+	r.GET("/api/v1/macro/{id}", _WebApi_GetMacro0_HTTP_Handler(srv))
+	r.GET("/api/v1/macros", _WebApi_ListMacro0_HTTP_Handler(srv))
+	r.DELETE("/api/v1/macro/{id}", _WebApi_DeleteMacro0_HTTP_Handler(srv))
 }
 
 func _WebApi_Register0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
@@ -803,15 +815,103 @@ func _WebApi_GetGraphicOptions0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http
 	}
 }
 
+func _WebApi_CreateMacro0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateMacroRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiCreateMacro)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateMacro(ctx, req.(*CreateMacroRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CreateMacroResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _WebApi_GetMacro0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetMacroRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiGetMacro)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetMacro(ctx, req.(*GetMacroRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetMacroResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _WebApi_ListMacro0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListMacroRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiListMacro)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListMacro(ctx, req.(*ListMacroRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListMacroResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _WebApi_DeleteMacro0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteMacroRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiDeleteMacro)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteMacro(ctx, req.(*DeleteMacroRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteMacroResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type WebApiHTTPClient interface {
 	AddICECandidate(ctx context.Context, req *AddICECandidateRequest, opts ...http.CallOption) (rsp *AddICECandidateResponse, err error)
+	CreateMacro(ctx context.Context, req *CreateMacroRequest, opts ...http.CallOption) (rsp *CreateMacroResponse, err error)
 	CreateRoom(ctx context.Context, req *CreateRoomRequest, opts ...http.CallOption) (rsp *CreateRoomResponse, err error)
 	CreateUserKeyboardBinding(ctx context.Context, req *CreateUserKeyboardBindingRequest, opts ...http.CallOption) (rsp *CreateUserKeyboardBindingResponse, err error)
+	DeleteMacro(ctx context.Context, req *DeleteMacroRequest, opts ...http.CallOption) (rsp *DeleteMacroResponse, err error)
 	DeleteMember(ctx context.Context, req *DeleteMemberRequest, opts ...http.CallOption) (rsp *DeleteMemberResponse, err error)
 	DeleteRoom(ctx context.Context, req *DeleteRoomRequest, opts ...http.CallOption) (rsp *DeleteRoomResponse, err error)
 	DeleteSave(ctx context.Context, req *DeleteSaveRequest, opts ...http.CallOption) (rsp *DeleteSaveResponse, err error)
 	DeleteUserKeyboardBinding(ctx context.Context, req *DeleteUserKeyboardBindingRequest, opts ...http.CallOption) (rsp *DeleteUserKeyboardBindingResponse, err error)
 	GetGraphicOptions(ctx context.Context, req *GetGraphicOptionsRequest, opts ...http.CallOption) (rsp *GetGraphicOptionsResponse, err error)
+	GetMacro(ctx context.Context, req *GetMacroRequest, opts ...http.CallOption) (rsp *GetMacroResponse, err error)
 	GetRoom(ctx context.Context, req *GetRoomRequest, opts ...http.CallOption) (rsp *GetRoomResponse, err error)
 	GetRoomMember(ctx context.Context, req *GetRoomMemberRequest, opts ...http.CallOption) (rsp *GetRoomMemberResponse, err error)
 	GetServerICECandidate(ctx context.Context, req *GetServerICECandidateRequest, opts ...http.CallOption) (rsp *GetServerICECandidateResponse, err error)
@@ -820,6 +920,7 @@ type WebApiHTTPClient interface {
 	JoinRoom(ctx context.Context, req *JoinRoomRequest, opts ...http.CallOption) (rsp *JoinRoomResponse, err error)
 	ListAllRooms(ctx context.Context, req *ListRoomRequest, opts ...http.CallOption) (rsp *ListRoomResponse, err error)
 	ListGames(ctx context.Context, req *ListGamesRequest, opts ...http.CallOption) (rsp *ListGamesResponse, err error)
+	ListMacro(ctx context.Context, req *ListMacroRequest, opts ...http.CallOption) (rsp *ListMacroResponse, err error)
 	ListMembers(ctx context.Context, req *ListMemberRequest, opts ...http.CallOption) (rsp *ListMemberResponse, err error)
 	ListMyRooms(ctx context.Context, req *ListRoomRequest, opts ...http.CallOption) (rsp *ListRoomResponse, err error)
 	ListSaves(ctx context.Context, req *ListSavesRequest, opts ...http.CallOption) (rsp *ListSavesResponse, err error)
@@ -859,6 +960,19 @@ func (c *WebApiHTTPClientImpl) AddICECandidate(ctx context.Context, in *AddICECa
 	return &out, nil
 }
 
+func (c *WebApiHTTPClientImpl) CreateMacro(ctx context.Context, in *CreateMacroRequest, opts ...http.CallOption) (*CreateMacroResponse, error) {
+	var out CreateMacroResponse
+	pattern := "/api/v1/macro"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationWebApiCreateMacro))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *WebApiHTTPClientImpl) CreateRoom(ctx context.Context, in *CreateRoomRequest, opts ...http.CallOption) (*CreateRoomResponse, error) {
 	var out CreateRoomResponse
 	pattern := "/api/v1/room"
@@ -879,6 +993,19 @@ func (c *WebApiHTTPClientImpl) CreateUserKeyboardBinding(ctx context.Context, in
 	opts = append(opts, http.Operation(OperationWebApiCreateUserKeyboardBinding))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) DeleteMacro(ctx context.Context, in *DeleteMacroRequest, opts ...http.CallOption) (*DeleteMacroResponse, error) {
+	var out DeleteMacroResponse
+	pattern := "/api/v1/macro/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationWebApiDeleteMacro))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -942,6 +1069,19 @@ func (c *WebApiHTTPClientImpl) GetGraphicOptions(ctx context.Context, in *GetGra
 	pattern := "/api/v1/game/graphic"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationWebApiGetGraphicOptions))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) GetMacro(ctx context.Context, in *GetMacroRequest, opts ...http.CallOption) (*GetMacroResponse, error) {
+	var out GetMacroResponse
+	pattern := "/api/v1/macro/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationWebApiGetMacro))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
@@ -1046,6 +1186,19 @@ func (c *WebApiHTTPClientImpl) ListGames(ctx context.Context, in *ListGamesReque
 	pattern := "/api/v1/games"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationWebApiListGames))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) ListMacro(ctx context.Context, in *ListMacroRequest, opts ...http.CallOption) (*ListMacroResponse, error) {
+	var out ListMacroResponse
+	pattern := "/api/v1/macros"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationWebApiListMacro))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

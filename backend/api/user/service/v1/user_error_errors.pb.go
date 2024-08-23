@@ -94,3 +94,39 @@ func IsDeleteKeyboardBindingFailed(err error) bool {
 func ErrorDeleteKeyboardBindingFailed(format string, args ...interface{}) *errors.Error {
 	return errors.New(500, UserServiceErrorReason_DELETE_KEYBOARD_BINDING_FAILED.String(), fmt.Sprintf(format, args...))
 }
+
+func IsCreateMacroFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_CREATE_MACRO_FAILED.String() && e.Code == 500
+}
+
+func ErrorCreateMacroFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_CREATE_MACRO_FAILED.String(), fmt.Sprintf(format, args...))
+}
+
+func IsGetMacroFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_GET_MACRO_FAILED.String() && e.Code == 500
+}
+
+func ErrorGetMacroFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_GET_MACRO_FAILED.String(), fmt.Sprintf(format, args...))
+}
+
+func IsDeleteMacroFailed(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == UserServiceErrorReason_DELETE_MACRO_FAILED.String() && e.Code == 500
+}
+
+func ErrorDeleteMacroFailed(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, UserServiceErrorReason_DELETE_MACRO_FAILED.String(), fmt.Sprintf(format, args...))
+}

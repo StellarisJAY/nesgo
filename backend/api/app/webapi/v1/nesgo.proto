@@ -199,6 +199,28 @@ service WebApi {
       get: "/api/v1/game/graphic"
     };
   }
+
+  rpc CreateMacro(CreateMacroRequest) returns (CreateMacroResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/macro"
+      body: "*"
+    };
+  }
+  rpc GetMacro(GetMacroRequest) returns (GetMacroResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/macro/{id}"
+    };
+  }
+  rpc ListMacro(ListMacroRequest) returns (ListMacroResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/macros"
+    };
+  }
+  rpc DeleteMacro(DeleteMacroRequest) returns (DeleteMacroResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/macro/{id}"
+    };
+  }
 }
 
 message RegisterRequest {
@@ -562,3 +584,48 @@ message GetGraphicOptionsResponse {
   bool reverseColor = 2;
   bool grayscale = 3;
 }
+
+message MacroAction {
+  string emulatorKey = 1;
+  int64 releaseDelay = 2;
+}
+
+message Macro {
+  int64 id = 1;
+  int64 userId = 2;
+  string name = 3;
+  string keyboardKey = 4;
+  repeated MacroAction actions = 5;
+}
+
+message CreateMacroRequest {
+  string name = 1;
+  string keyboardKey = 2;
+  repeated MacroAction actions = 3;
+}
+
+message CreateMacroResponse {}
+
+message GetMacroRequest {
+  int64 id = 1;
+}
+
+message GetMacroResponse {
+  Macro macro = 1;
+}
+
+message ListMacroRequest {
+  int32 page = 1;
+  int32 pageSize = 2;
+}
+
+message ListMacroResponse {
+  repeated Macro macros = 1;
+  int32 total = 2;
+}
+
+message DeleteMacroRequest {
+  int64 id = 1;
+}
+
+message DeleteMacroResponse {}

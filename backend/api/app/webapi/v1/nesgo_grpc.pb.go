@@ -51,6 +51,10 @@ const (
 	WebApi_GetServerICECandidate_FullMethodName     = "/nesgo.webapi.v1.WebApi/GetServerICECandidate"
 	WebApi_SetGraphicOptions_FullMethodName         = "/nesgo.webapi.v1.WebApi/SetGraphicOptions"
 	WebApi_GetGraphicOptions_FullMethodName         = "/nesgo.webapi.v1.WebApi/GetGraphicOptions"
+	WebApi_CreateMacro_FullMethodName               = "/nesgo.webapi.v1.WebApi/CreateMacro"
+	WebApi_GetMacro_FullMethodName                  = "/nesgo.webapi.v1.WebApi/GetMacro"
+	WebApi_ListMacro_FullMethodName                 = "/nesgo.webapi.v1.WebApi/ListMacro"
+	WebApi_DeleteMacro_FullMethodName               = "/nesgo.webapi.v1.WebApi/DeleteMacro"
 )
 
 // WebApiClient is the client API for WebApi service.
@@ -89,6 +93,10 @@ type WebApiClient interface {
 	GetServerICECandidate(ctx context.Context, in *GetServerICECandidateRequest, opts ...grpc.CallOption) (*GetServerICECandidateResponse, error)
 	SetGraphicOptions(ctx context.Context, in *SetGraphicOptionsRequest, opts ...grpc.CallOption) (*SetGraphicOptionsResponse, error)
 	GetGraphicOptions(ctx context.Context, in *GetGraphicOptionsRequest, opts ...grpc.CallOption) (*GetGraphicOptionsResponse, error)
+	CreateMacro(ctx context.Context, in *CreateMacroRequest, opts ...grpc.CallOption) (*CreateMacroResponse, error)
+	GetMacro(ctx context.Context, in *GetMacroRequest, opts ...grpc.CallOption) (*GetMacroResponse, error)
+	ListMacro(ctx context.Context, in *ListMacroRequest, opts ...grpc.CallOption) (*ListMacroResponse, error)
+	DeleteMacro(ctx context.Context, in *DeleteMacroRequest, opts ...grpc.CallOption) (*DeleteMacroResponse, error)
 }
 
 type webApiClient struct {
@@ -419,6 +427,46 @@ func (c *webApiClient) GetGraphicOptions(ctx context.Context, in *GetGraphicOpti
 	return out, nil
 }
 
+func (c *webApiClient) CreateMacro(ctx context.Context, in *CreateMacroRequest, opts ...grpc.CallOption) (*CreateMacroResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateMacroResponse)
+	err := c.cc.Invoke(ctx, WebApi_CreateMacro_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *webApiClient) GetMacro(ctx context.Context, in *GetMacroRequest, opts ...grpc.CallOption) (*GetMacroResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetMacroResponse)
+	err := c.cc.Invoke(ctx, WebApi_GetMacro_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *webApiClient) ListMacro(ctx context.Context, in *ListMacroRequest, opts ...grpc.CallOption) (*ListMacroResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListMacroResponse)
+	err := c.cc.Invoke(ctx, WebApi_ListMacro_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *webApiClient) DeleteMacro(ctx context.Context, in *DeleteMacroRequest, opts ...grpc.CallOption) (*DeleteMacroResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteMacroResponse)
+	err := c.cc.Invoke(ctx, WebApi_DeleteMacro_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WebApiServer is the server API for WebApi service.
 // All implementations must embed UnimplementedWebApiServer
 // for forward compatibility.
@@ -455,6 +503,10 @@ type WebApiServer interface {
 	GetServerICECandidate(context.Context, *GetServerICECandidateRequest) (*GetServerICECandidateResponse, error)
 	SetGraphicOptions(context.Context, *SetGraphicOptionsRequest) (*SetGraphicOptionsResponse, error)
 	GetGraphicOptions(context.Context, *GetGraphicOptionsRequest) (*GetGraphicOptionsResponse, error)
+	CreateMacro(context.Context, *CreateMacroRequest) (*CreateMacroResponse, error)
+	GetMacro(context.Context, *GetMacroRequest) (*GetMacroResponse, error)
+	ListMacro(context.Context, *ListMacroRequest) (*ListMacroResponse, error)
+	DeleteMacro(context.Context, *DeleteMacroRequest) (*DeleteMacroResponse, error)
 	mustEmbedUnimplementedWebApiServer()
 }
 
@@ -560,6 +612,18 @@ func (UnimplementedWebApiServer) SetGraphicOptions(context.Context, *SetGraphicO
 }
 func (UnimplementedWebApiServer) GetGraphicOptions(context.Context, *GetGraphicOptionsRequest) (*GetGraphicOptionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetGraphicOptions not implemented")
+}
+func (UnimplementedWebApiServer) CreateMacro(context.Context, *CreateMacroRequest) (*CreateMacroResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateMacro not implemented")
+}
+func (UnimplementedWebApiServer) GetMacro(context.Context, *GetMacroRequest) (*GetMacroResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetMacro not implemented")
+}
+func (UnimplementedWebApiServer) ListMacro(context.Context, *ListMacroRequest) (*ListMacroResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListMacro not implemented")
+}
+func (UnimplementedWebApiServer) DeleteMacro(context.Context, *DeleteMacroRequest) (*DeleteMacroResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteMacro not implemented")
 }
 func (UnimplementedWebApiServer) mustEmbedUnimplementedWebApiServer() {}
 func (UnimplementedWebApiServer) testEmbeddedByValue()                {}
@@ -1158,6 +1222,78 @@ func _WebApi_GetGraphicOptions_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WebApi_CreateMacro_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateMacroRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).CreateMacro(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_CreateMacro_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).CreateMacro(ctx, req.(*CreateMacroRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WebApi_GetMacro_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMacroRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).GetMacro(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_GetMacro_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).GetMacro(ctx, req.(*GetMacroRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WebApi_ListMacro_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListMacroRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).ListMacro(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_ListMacro_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).ListMacro(ctx, req.(*ListMacroRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WebApi_DeleteMacro_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteMacroRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).DeleteMacro(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_DeleteMacro_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).DeleteMacro(ctx, req.(*DeleteMacroRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WebApi_ServiceDesc is the grpc.ServiceDesc for WebApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1292,6 +1428,22 @@ var WebApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetGraphicOptions",
 			Handler:    _WebApi_GetGraphicOptions_Handler,
+		},
+		{
+			MethodName: "CreateMacro",
+			Handler:    _WebApi_CreateMacro_Handler,
+		},
+		{
+			MethodName: "GetMacro",
+			Handler:    _WebApi_GetMacro_Handler,
+		},
+		{
+			MethodName: "ListMacro",
+			Handler:    _WebApi_ListMacro_Handler,
+		},
+		{
+			MethodName: "DeleteMacro",
+			Handler:    _WebApi_DeleteMacro_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

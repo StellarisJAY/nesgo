@@ -511,6 +511,82 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.LoginResponse'
+    /api/v1/macro:
+        post:
+            tags:
+                - WebApi
+            operationId: WebApi_CreateMacro
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.CreateMacroRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.CreateMacroResponse'
+    /api/v1/macro/{id}:
+        get:
+            tags:
+                - WebApi
+            operationId: WebApi_GetMacro
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.GetMacroResponse'
+        delete:
+            tags:
+                - WebApi
+            operationId: WebApi_DeleteMacro
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.DeleteMacroResponse'
+    /api/v1/macros:
+        get:
+            tags:
+                - WebApi
+            operationId: WebApi_ListMacro
+            parameters:
+                - name: page
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+                - name: pageSize
+                  in: query
+                  schema:
+                    type: integer
+                    format: int32
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.ListMacroResponse'
     /api/v1/member:
         delete:
             tags:
@@ -937,6 +1013,20 @@ components:
                     type: string
                 userId:
                     type: string
+        nesgo.webapi.v1.CreateMacroRequest:
+            type: object
+            properties:
+                name:
+                    type: string
+                keyboardKey:
+                    type: string
+                actions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/nesgo.webapi.v1.MacroAction'
+        nesgo.webapi.v1.CreateMacroResponse:
+            type: object
+            properties: {}
         nesgo.webapi.v1.CreateRoomRequest:
             type: object
             properties:
@@ -972,6 +1062,9 @@ components:
         nesgo.webapi.v1.CreateUserKeyboardBindingResponse:
             type: object
             properties: {}
+        nesgo.webapi.v1.DeleteMacroResponse:
+            type: object
+            properties: {}
         nesgo.webapi.v1.DeleteMemberResponse:
             type: object
             properties: {}
@@ -1002,6 +1095,11 @@ components:
                     type: boolean
                 grayscale:
                     type: boolean
+        nesgo.webapi.v1.GetMacroResponse:
+            type: object
+            properties:
+                macro:
+                    $ref: '#/components/schemas/nesgo.webapi.v1.Macro'
         nesgo.webapi.v1.GetRoomMemberResponse:
             type: object
             properties:
@@ -1087,6 +1185,16 @@ components:
                     type: array
                     items:
                         $ref: '#/components/schemas/nesgo.webapi.v1.GameFileMetadata'
+        nesgo.webapi.v1.ListMacroResponse:
+            type: object
+            properties:
+                macros:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/nesgo.webapi.v1.Macro'
+                total:
+                    type: integer
+                    format: int32
         nesgo.webapi.v1.ListMemberResponse:
             type: object
             properties:
@@ -1145,6 +1253,28 @@ components:
             type: object
             properties:
                 token:
+                    type: string
+        nesgo.webapi.v1.Macro:
+            type: object
+            properties:
+                id:
+                    type: string
+                userId:
+                    type: string
+                name:
+                    type: string
+                keyboardKey:
+                    type: string
+                actions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/nesgo.webapi.v1.MacroAction'
+        nesgo.webapi.v1.MacroAction:
+            type: object
+            properties:
+                emulatorKey:
+                    type: string
+                releaseDelay:
                     type: string
         nesgo.webapi.v1.Member:
             type: object

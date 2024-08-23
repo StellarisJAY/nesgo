@@ -18,6 +18,11 @@ service User {
   rpc GetUserKeyboardBinding(GetUserKeyboardBindingRequest) returns (GetUserKeyboardBindingResponse) {}
   rpc UpdateUserKeyboardBinding(UpdateUserKeyboardBindingRequest) returns (UpdateUserKeyboardBindingResponse) {}
   rpc DeleteUserKeyboardBinding(DeleteUserKeyboardBindingRequest) returns (DeleteUserKeyboardBindingResponse) {}
+
+  rpc CreateMacro(CreateMacroRequest) returns (CreateMacroResponse) {}
+  rpc GetMacro(GetMacroRequest) returns (GetMacroResponse) {}
+  rpc ListMacro(ListMacroRequest) returns (ListMacroResponse) {}
+  rpc DeleteMacro(DeleteMacroRequest) returns (DeleteMacroResponse) {}
 }
 
 message GetUserRequest {
@@ -122,4 +127,51 @@ message DeleteUserKeyboardBindingRequest {
 }
 
 message DeleteUserKeyboardBindingResponse {}
+
+message MacroAction {
+  string emulatorKey = 1;
+  int64 releaseDelay = 2;
+}
+
+message Macro {
+  int64 id = 1;
+  int64 userId = 2;
+  string name = 3;
+  string keyboardKey = 4;
+  repeated MacroAction actions = 5;
+}
+
+message CreateMacroRequest {
+  int64 userId = 1;
+  string name = 2;
+  string keyboardKey = 3;
+  repeated MacroAction actions = 4;
+}
+
+message CreateMacroResponse {}
+
+message GetMacroRequest {
+  int64 id = 1;
+}
+
+message GetMacroResponse {
+  Macro macro = 1;
+}
+
+message ListMacroRequest {
+  int64 userId = 1;
+  int32 page = 2;
+  int32 pageSize = 3;
+}
+
+message ListMacroResponse {
+  repeated Macro macros = 1;
+  int32 total = 2;
+}
+
+message DeleteMacroRequest {
+  int64 id = 1;
+}
+
+message DeleteMacroResponse {}
 
