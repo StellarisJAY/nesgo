@@ -371,6 +371,40 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.webapi.v1.SDPAnswerResponse'
+    /api/v1/game/speed:
+        get:
+            tags:
+                - WebApi
+            operationId: WebApi_GetEmulatorSpeed
+            parameters:
+                - name: roomId
+                  in: query
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.GetEmulatorSpeedResponse'
+        post:
+            tags:
+                - WebApi
+            operationId: WebApi_SetEmulatorSpeed
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/nesgo.webapi.v1.SetEmulatorSpeedRequest'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.SetEmulatorSpeedResponse'
     /api/v1/games:
         get:
             tags:
@@ -1086,6 +1120,12 @@ components:
                     type: string
                 mirroring:
                     type: string
+        nesgo.webapi.v1.GetEmulatorSpeedResponse:
+            type: object
+            properties:
+                rate:
+                    type: number
+                    format: double
         nesgo.webapi.v1.GetGraphicOptionsResponse:
             type: object
             properties:
@@ -1403,6 +1443,22 @@ components:
         nesgo.webapi.v1.SetControllerResponse:
             type: object
             properties: {}
+        nesgo.webapi.v1.SetEmulatorSpeedRequest:
+            type: object
+            properties:
+                roomId:
+                    type: string
+                rate:
+                    type: number
+                    format: double
+        nesgo.webapi.v1.SetEmulatorSpeedResponse:
+            type: object
+            properties:
+                roomId:
+                    type: string
+                rate:
+                    type: number
+                    format: double
         nesgo.webapi.v1.SetGraphicOptionsRequest:
             type: object
             properties:
