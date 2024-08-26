@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	"github.com/go-kratos/kratos/v2/middleware/auth/jwt"
 	v1 "github.com/stellarisJAY/nesgo/backend/api/app/webapi/v1"
 	"github.com/stellarisJAY/nesgo/backend/app/webapi/internal/biz"
@@ -170,4 +171,22 @@ func (ws *WebApiService) SetGraphicOptions(ctx context.Context, request *v1.SetG
 		ReverseColor: opts.ReverseColor,
 		Grayscale:    opts.Grayscale,
 	}, nil
+}
+
+func (ws *WebApiService) GetEmulatorSpeed(ctx context.Context, request *v1.GetEmulatorSpeedRequest) (*v1.GetEmulatorSpeedResponse, error) {
+	rate, err := ws.gc.GetEmulatorSpeed(ctx, request.RoomId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.GetEmulatorSpeedResponse{Rate: rate}, nil
+}
+
+func (ws *WebApiService) SetEmulatorSpeed(ctx context.Context, request *v1.SetEmulatorSpeedRequest) (*v1.SetEmulatorSpeedResponse, error) {
+	c, _ := jwt.FromContext(ctx)
+	claims := c.(*biz.LoginClaims)
+	rate, err := ws.gc.SetEmulatorSpeed(ctx, request.RoomId, claims.UserId, request.Rate)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.SetEmulatorSpeedResponse{Rate: rate}, nil
 }

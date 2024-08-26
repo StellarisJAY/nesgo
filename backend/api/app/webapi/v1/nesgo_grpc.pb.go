@@ -55,6 +55,8 @@ const (
 	WebApi_GetMacro_FullMethodName                  = "/nesgo.webapi.v1.WebApi/GetMacro"
 	WebApi_ListMacro_FullMethodName                 = "/nesgo.webapi.v1.WebApi/ListMacro"
 	WebApi_DeleteMacro_FullMethodName               = "/nesgo.webapi.v1.WebApi/DeleteMacro"
+	WebApi_SetEmulatorSpeed_FullMethodName          = "/nesgo.webapi.v1.WebApi/SetEmulatorSpeed"
+	WebApi_GetEmulatorSpeed_FullMethodName          = "/nesgo.webapi.v1.WebApi/GetEmulatorSpeed"
 )
 
 // WebApiClient is the client API for WebApi service.
@@ -97,6 +99,8 @@ type WebApiClient interface {
 	GetMacro(ctx context.Context, in *GetMacroRequest, opts ...grpc.CallOption) (*GetMacroResponse, error)
 	ListMacro(ctx context.Context, in *ListMacroRequest, opts ...grpc.CallOption) (*ListMacroResponse, error)
 	DeleteMacro(ctx context.Context, in *DeleteMacroRequest, opts ...grpc.CallOption) (*DeleteMacroResponse, error)
+	SetEmulatorSpeed(ctx context.Context, in *SetEmulatorSpeedRequest, opts ...grpc.CallOption) (*SetEmulatorSpeedResponse, error)
+	GetEmulatorSpeed(ctx context.Context, in *GetEmulatorSpeedRequest, opts ...grpc.CallOption) (*GetEmulatorSpeedResponse, error)
 }
 
 type webApiClient struct {
@@ -467,6 +471,26 @@ func (c *webApiClient) DeleteMacro(ctx context.Context, in *DeleteMacroRequest, 
 	return out, nil
 }
 
+func (c *webApiClient) SetEmulatorSpeed(ctx context.Context, in *SetEmulatorSpeedRequest, opts ...grpc.CallOption) (*SetEmulatorSpeedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetEmulatorSpeedResponse)
+	err := c.cc.Invoke(ctx, WebApi_SetEmulatorSpeed_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *webApiClient) GetEmulatorSpeed(ctx context.Context, in *GetEmulatorSpeedRequest, opts ...grpc.CallOption) (*GetEmulatorSpeedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetEmulatorSpeedResponse)
+	err := c.cc.Invoke(ctx, WebApi_GetEmulatorSpeed_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WebApiServer is the server API for WebApi service.
 // All implementations must embed UnimplementedWebApiServer
 // for forward compatibility.
@@ -507,6 +531,8 @@ type WebApiServer interface {
 	GetMacro(context.Context, *GetMacroRequest) (*GetMacroResponse, error)
 	ListMacro(context.Context, *ListMacroRequest) (*ListMacroResponse, error)
 	DeleteMacro(context.Context, *DeleteMacroRequest) (*DeleteMacroResponse, error)
+	SetEmulatorSpeed(context.Context, *SetEmulatorSpeedRequest) (*SetEmulatorSpeedResponse, error)
+	GetEmulatorSpeed(context.Context, *GetEmulatorSpeedRequest) (*GetEmulatorSpeedResponse, error)
 	mustEmbedUnimplementedWebApiServer()
 }
 
@@ -624,6 +650,12 @@ func (UnimplementedWebApiServer) ListMacro(context.Context, *ListMacroRequest) (
 }
 func (UnimplementedWebApiServer) DeleteMacro(context.Context, *DeleteMacroRequest) (*DeleteMacroResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteMacro not implemented")
+}
+func (UnimplementedWebApiServer) SetEmulatorSpeed(context.Context, *SetEmulatorSpeedRequest) (*SetEmulatorSpeedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetEmulatorSpeed not implemented")
+}
+func (UnimplementedWebApiServer) GetEmulatorSpeed(context.Context, *GetEmulatorSpeedRequest) (*GetEmulatorSpeedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetEmulatorSpeed not implemented")
 }
 func (UnimplementedWebApiServer) mustEmbedUnimplementedWebApiServer() {}
 func (UnimplementedWebApiServer) testEmbeddedByValue()                {}
@@ -1294,6 +1326,42 @@ func _WebApi_DeleteMacro_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WebApi_SetEmulatorSpeed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetEmulatorSpeedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).SetEmulatorSpeed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_SetEmulatorSpeed_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).SetEmulatorSpeed(ctx, req.(*SetEmulatorSpeedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _WebApi_GetEmulatorSpeed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEmulatorSpeedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).GetEmulatorSpeed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_GetEmulatorSpeed_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).GetEmulatorSpeed(ctx, req.(*GetEmulatorSpeedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WebApi_ServiceDesc is the grpc.ServiceDesc for WebApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1444,6 +1512,14 @@ var WebApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteMacro",
 			Handler:    _WebApi_DeleteMacro_Handler,
+		},
+		{
+			MethodName: "SetEmulatorSpeed",
+			Handler:    _WebApi_SetEmulatorSpeed_Handler,
+		},
+		{
+			MethodName: "GetEmulatorSpeed",
+			Handler:    _WebApi_GetEmulatorSpeed_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

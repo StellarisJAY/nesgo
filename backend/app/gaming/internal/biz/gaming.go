@@ -4,6 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"image"
+	"runtime"
+	"sync"
+	"time"
+
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/pion/webrtc/v3"
 	v1 "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
@@ -13,10 +18,6 @@ import (
 	"github.com/stellarisJAY/nesgo/nes/config"
 	"github.com/stellarisJAY/nesgo/nes/ppu"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
-	"image"
-	"runtime"
-	"sync"
-	"time"
 )
 
 type GameSave struct {
@@ -468,4 +469,20 @@ func (uc *GameInstanceUseCase) SetGraphicOptions(ctx context.Context, roomId int
 	}
 	instance.SetGraphicOptions(options)
 	return nil
+}
+
+func (uc *GameInstanceUseCase) SetEmulatorSpeed(ctx context.Context, roomId int64, rate float64) (float64, error) {
+	instance, _ := uc.repo.GetGameInstance(ctx, roomId)
+	if instance == nil {
+		return 0.0, v1.ErrorGameInstanceNotAccessible("game instance not found")
+	}
+	return instance.SetEmulatorSpeed(rate), nil
+}
+
+func (uc *GameInstanceUseCase) GetEmulatorSpeed(ctx context.Context, roomId int64) (float64, error) {
+	instance, _ := uc.repo.GetGameInstance(ctx, roomId)
+	if instance == nil {
+		return 0.0, v1.ErrorGameInstanceNotAccessible("game instance not found")
+	}
+	return instance.e.CPUBoostRate(), nil
 }

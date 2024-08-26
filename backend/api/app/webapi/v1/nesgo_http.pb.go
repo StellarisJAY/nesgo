@@ -28,6 +28,7 @@ const OperationWebApiDeleteMember = "/nesgo.webapi.v1.WebApi/DeleteMember"
 const OperationWebApiDeleteRoom = "/nesgo.webapi.v1.WebApi/DeleteRoom"
 const OperationWebApiDeleteSave = "/nesgo.webapi.v1.WebApi/DeleteSave"
 const OperationWebApiDeleteUserKeyboardBinding = "/nesgo.webapi.v1.WebApi/DeleteUserKeyboardBinding"
+const OperationWebApiGetEmulatorSpeed = "/nesgo.webapi.v1.WebApi/GetEmulatorSpeed"
 const OperationWebApiGetGraphicOptions = "/nesgo.webapi.v1.WebApi/GetGraphicOptions"
 const OperationWebApiGetMacro = "/nesgo.webapi.v1.WebApi/GetMacro"
 const OperationWebApiGetRoom = "/nesgo.webapi.v1.WebApi/GetRoom"
@@ -51,6 +52,7 @@ const OperationWebApiRestartEmulator = "/nesgo.webapi.v1.WebApi/RestartEmulator"
 const OperationWebApiSDPAnswer = "/nesgo.webapi.v1.WebApi/SDPAnswer"
 const OperationWebApiSaveGame = "/nesgo.webapi.v1.WebApi/SaveGame"
 const OperationWebApiSetController = "/nesgo.webapi.v1.WebApi/SetController"
+const OperationWebApiSetEmulatorSpeed = "/nesgo.webapi.v1.WebApi/SetEmulatorSpeed"
 const OperationWebApiSetGraphicOptions = "/nesgo.webapi.v1.WebApi/SetGraphicOptions"
 const OperationWebApiUpdateMemberRole = "/nesgo.webapi.v1.WebApi/UpdateMemberRole"
 const OperationWebApiUpdateRoom = "/nesgo.webapi.v1.WebApi/UpdateRoom"
@@ -66,6 +68,7 @@ type WebApiHTTPServer interface {
 	DeleteRoom(context.Context, *DeleteRoomRequest) (*DeleteRoomResponse, error)
 	DeleteSave(context.Context, *DeleteSaveRequest) (*DeleteSaveResponse, error)
 	DeleteUserKeyboardBinding(context.Context, *DeleteUserKeyboardBindingRequest) (*DeleteUserKeyboardBindingResponse, error)
+	GetEmulatorSpeed(context.Context, *GetEmulatorSpeedRequest) (*GetEmulatorSpeedResponse, error)
 	GetGraphicOptions(context.Context, *GetGraphicOptionsRequest) (*GetGraphicOptionsResponse, error)
 	GetMacro(context.Context, *GetMacroRequest) (*GetMacroResponse, error)
 	GetRoom(context.Context, *GetRoomRequest) (*GetRoomResponse, error)
@@ -89,6 +92,7 @@ type WebApiHTTPServer interface {
 	SDPAnswer(context.Context, *SDPAnswerRequest) (*SDPAnswerResponse, error)
 	SaveGame(context.Context, *SaveGameRequest) (*SaveGameResponse, error)
 	SetController(context.Context, *SetControllerRequest) (*SetControllerResponse, error)
+	SetEmulatorSpeed(context.Context, *SetEmulatorSpeedRequest) (*SetEmulatorSpeedResponse, error)
 	SetGraphicOptions(context.Context, *SetGraphicOptionsRequest) (*SetGraphicOptionsResponse, error)
 	UpdateMemberRole(context.Context, *UpdateMemberRoleRequest) (*UpdateMemberRoleResponse, error)
 	UpdateRoom(context.Context, *UpdateRoomRequest) (*UpdateRoomResponse, error)
@@ -133,6 +137,8 @@ func RegisterWebApiHTTPServer(s *http.Server, srv WebApiHTTPServer) {
 	r.GET("/api/v1/macro/{id}", _WebApi_GetMacro0_HTTP_Handler(srv))
 	r.GET("/api/v1/macros", _WebApi_ListMacro0_HTTP_Handler(srv))
 	r.DELETE("/api/v1/macro/{id}", _WebApi_DeleteMacro0_HTTP_Handler(srv))
+	r.POST("/api/v1/game/speed", _WebApi_SetEmulatorSpeed0_HTTP_Handler(srv))
+	r.GET("/api/v1/game/speed", _WebApi_GetEmulatorSpeed0_HTTP_Handler(srv))
 }
 
 func _WebApi_Register0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
@@ -900,6 +906,47 @@ func _WebApi_DeleteMacro0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Conte
 	}
 }
 
+func _WebApi_SetEmulatorSpeed0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in SetEmulatorSpeedRequest
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiSetEmulatorSpeed)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.SetEmulatorSpeed(ctx, req.(*SetEmulatorSpeedRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*SetEmulatorSpeedResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _WebApi_GetEmulatorSpeed0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetEmulatorSpeedRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiGetEmulatorSpeed)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetEmulatorSpeed(ctx, req.(*GetEmulatorSpeedRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetEmulatorSpeedResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type WebApiHTTPClient interface {
 	AddICECandidate(ctx context.Context, req *AddICECandidateRequest, opts ...http.CallOption) (rsp *AddICECandidateResponse, err error)
 	CreateMacro(ctx context.Context, req *CreateMacroRequest, opts ...http.CallOption) (rsp *CreateMacroResponse, err error)
@@ -910,6 +957,7 @@ type WebApiHTTPClient interface {
 	DeleteRoom(ctx context.Context, req *DeleteRoomRequest, opts ...http.CallOption) (rsp *DeleteRoomResponse, err error)
 	DeleteSave(ctx context.Context, req *DeleteSaveRequest, opts ...http.CallOption) (rsp *DeleteSaveResponse, err error)
 	DeleteUserKeyboardBinding(ctx context.Context, req *DeleteUserKeyboardBindingRequest, opts ...http.CallOption) (rsp *DeleteUserKeyboardBindingResponse, err error)
+	GetEmulatorSpeed(ctx context.Context, req *GetEmulatorSpeedRequest, opts ...http.CallOption) (rsp *GetEmulatorSpeedResponse, err error)
 	GetGraphicOptions(ctx context.Context, req *GetGraphicOptionsRequest, opts ...http.CallOption) (rsp *GetGraphicOptionsResponse, err error)
 	GetMacro(ctx context.Context, req *GetMacroRequest, opts ...http.CallOption) (rsp *GetMacroResponse, err error)
 	GetRoom(ctx context.Context, req *GetRoomRequest, opts ...http.CallOption) (rsp *GetRoomResponse, err error)
@@ -933,6 +981,7 @@ type WebApiHTTPClient interface {
 	SDPAnswer(ctx context.Context, req *SDPAnswerRequest, opts ...http.CallOption) (rsp *SDPAnswerResponse, err error)
 	SaveGame(ctx context.Context, req *SaveGameRequest, opts ...http.CallOption) (rsp *SaveGameResponse, err error)
 	SetController(ctx context.Context, req *SetControllerRequest, opts ...http.CallOption) (rsp *SetControllerResponse, err error)
+	SetEmulatorSpeed(ctx context.Context, req *SetEmulatorSpeedRequest, opts ...http.CallOption) (rsp *SetEmulatorSpeedResponse, err error)
 	SetGraphicOptions(ctx context.Context, req *SetGraphicOptionsRequest, opts ...http.CallOption) (rsp *SetGraphicOptionsResponse, err error)
 	UpdateMemberRole(ctx context.Context, req *UpdateMemberRoleRequest, opts ...http.CallOption) (rsp *UpdateMemberRoleResponse, err error)
 	UpdateRoom(ctx context.Context, req *UpdateRoomRequest, opts ...http.CallOption) (rsp *UpdateRoomResponse, err error)
@@ -1058,6 +1107,19 @@ func (c *WebApiHTTPClientImpl) DeleteUserKeyboardBinding(ctx context.Context, in
 	opts = append(opts, http.Operation(OperationWebApiDeleteUserKeyboardBinding))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) GetEmulatorSpeed(ctx context.Context, in *GetEmulatorSpeedRequest, opts ...http.CallOption) (*GetEmulatorSpeedResponse, error) {
+	var out GetEmulatorSpeedResponse
+	pattern := "/api/v1/game/speed"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationWebApiGetEmulatorSpeed))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -1355,6 +1417,19 @@ func (c *WebApiHTTPClientImpl) SetController(ctx context.Context, in *SetControl
 	pattern := "/api/v1/game/controller"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationWebApiSetController))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) SetEmulatorSpeed(ctx context.Context, in *SetEmulatorSpeedRequest, opts ...http.CallOption) (*SetEmulatorSpeedResponse, error) {
+	var out SetEmulatorSpeedResponse
+	pattern := "/api/v1/game/speed"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationWebApiSetEmulatorSpeed))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {

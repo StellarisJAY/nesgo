@@ -221,6 +221,20 @@ service WebApi {
       delete: "/api/v1/macro/{id}"
     };
   }
+
+  rpc SetEmulatorSpeed(SetEmulatorSpeedRequest) returns (SetEmulatorSpeedResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/game/speed"
+      body: "*"
+    };
+  }
+
+  rpc GetEmulatorSpeed(GetEmulatorSpeedRequest) returns (GetEmulatorSpeedResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/game/speed"
+    };
+  }
+
 }
 
 message RegisterRequest {
@@ -629,3 +643,21 @@ message DeleteMacroRequest {
 }
 
 message DeleteMacroResponse {}
+
+message SetEmulatorSpeedRequest {
+  int64 roomId = 1;
+  double rate = 2;
+}
+
+message SetEmulatorSpeedResponse {
+  int64 roomId = 1;
+  double rate = 2;
+}
+
+message GetEmulatorSpeedRequest {
+  int64 roomId = 1;
+}
+
+message GetEmulatorSpeedResponse {
+  double rate = 1;
+}

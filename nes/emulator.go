@@ -2,6 +2,12 @@ package nes
 
 import (
 	"fmt"
+	"io"
+	"log"
+	"os"
+	"sync"
+	"time"
+
 	"github.com/stellarisJAY/nesgo/nes/apu"
 	"github.com/stellarisJAY/nesgo/nes/bus"
 	"github.com/stellarisJAY/nesgo/nes/cartridge"
@@ -9,11 +15,6 @@ import (
 	"github.com/stellarisJAY/nesgo/nes/cpu"
 	"github.com/stellarisJAY/nesgo/nes/ppu"
 	"github.com/stellarisJAY/nesgo/nes/trace"
-	"io"
-	"log"
-	"os"
-	"sync"
-	"time"
 )
 
 type RawEmulator struct {
@@ -70,4 +71,8 @@ func (e *RawEmulator) SetCPUBoostRate(rate float64) float64 {
 
 func (e *RawEmulator) BoostCPU(delta float64) float64 {
 	return e.bus.BoostCPU(delta)
+}
+
+func (e *RawEmulator) CPUBoostRate() float64 {
+	return e.bus.CPUBoostRate()
 }

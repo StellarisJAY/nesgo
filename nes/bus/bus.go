@@ -1,10 +1,11 @@
 package bus
 
 import (
+	"time"
+
 	"github.com/stellarisJAY/nesgo/nes/apu"
 	"github.com/stellarisJAY/nesgo/nes/cartridge"
 	"github.com/stellarisJAY/nesgo/nes/ppu"
-	"time"
 )
 
 const (
@@ -13,7 +14,8 @@ const (
 	CpuRAMMask     uint16  = 0x7FF
 	PPURegisterEnd         = 0x3FFF
 	CPUFrequency           = 1790000 // Approximate CPUFrequency 1.79MHz see:https://www.nesdev.org/wiki/CPU
-	CPUMaxBoost    float64 = 5.0
+	CPUMaxBoost    float64 = 2.0
+	CPUMinBoost    float64 = 0.5
 )
 
 type RenderCallback func(*ppu.PPU)
@@ -87,7 +89,7 @@ func (b *Bus) Tick(cycles uint64) {
 		renderTime := time.Now().Sub(start)
 		processorTime := start.Sub(b.lastRenderTime)
 		// 两次渲染之间的cpu cycles除以CPU频率等于帧之间的间隔时间, nanoseconds
-		freq := uint64(CPUFrequency * b.cpuBoost)
+		freq := uint64(float64(CPUFrequency) * b.cpuBoost)
 		frameTime := (b.cycles - b.lastRenderCycles) * 1000_000_000 / freq
 		sleepTime := time.Duration(frameTime - uint64(renderTime.Nanoseconds()) - uint64(processorTime.Nanoseconds()))
 		time.Sleep(sleepTime)
@@ -105,7 +107,11 @@ func (b *Bus) BoostCPU(delta float64) float64 {
 }
 
 func (b *Bus) SetCPUBoostRate(rate float64) float64 {
-	b.cpuBoost = min(CPUMaxBoost, max(1.0, rate))
+	b.cpuBoost = min(CPUMaxBoost, max(CPUMinBoost, rate))
+	return b.cpuBoost
+}
+
+func (b *Bus) CPUBoostRate() float64 {
 	return b.cpuBoost
 }
 

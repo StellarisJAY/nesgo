@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	"github.com/go-kratos/kratos/v2/log"
 	v1 "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/biz"
@@ -277,4 +278,20 @@ func (g *GamingService) GetGraphicOptions(ctx context.Context, request *v1.GetGr
 		ReverseColor: options.ReverseColor,
 		Grayscale:    options.Grayscale,
 	}, nil
+}
+
+func (g *GamingService) GetEmulatorSpeed(ctx context.Context, request *v1.GetEmulatorSpeedRequest) (*v1.GetEmulatorSpeedResponse, error) {
+	speed, err := g.gi.GetEmulatorSpeed(ctx, request.RoomId)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.GetEmulatorSpeedResponse{Rate: speed}, nil
+}
+
+func (g *GamingService) SetEmulatorSpeed(ctx context.Context, request *v1.SetEmulatorSpeedRequest) (*v1.SetEmulatorSpeedResponse, error) {
+	rate, err := g.gi.SetEmulatorSpeed(ctx, request.RoomId, request.Rate)
+	if err != nil {
+		return nil, err
+	}
+	return &v1.SetEmulatorSpeedResponse{RoomId: request.RoomId, Rate: rate}, nil
 }

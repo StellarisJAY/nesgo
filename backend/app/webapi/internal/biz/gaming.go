@@ -2,6 +2,7 @@ package biz
 
 import (
 	"context"
+
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	v1 "github.com/stellarisJAY/nesgo/backend/api/app/webapi/v1"
@@ -46,6 +47,8 @@ type GamingRepo interface {
 	GetServerICECandidate(ctx context.Context, roomId, userId int64, endpoint string) ([]string, error)
 	GetGraphicOptions(ctx context.Context, roomId int64, endpoint string) (*GraphicOptions, error)
 	SetGraphicOptions(ctx context.Context, roomId int64, options *GraphicOptions, endpoint string) error
+	SetEmulatorSpeed(ctx context.Context, roomId int64, rate float64, endpoint string) (float64, error)
+	GetEmulatorSpeed(ctx context.Context, roomId int64, endpoint string) (float64, error)
 }
 
 func NewGamingUseCase(roomRepo RoomRepo, gamingRepo GamingRepo, logger log.Logger) *GamingUseCase {
@@ -251,4 +254,27 @@ func (uc *GamingUseCase) SetGraphicOptions(ctx context.Context, roomId, userId i
 		return v1.ErrorOperationFailed("room session not found")
 	}
 	return uc.repo.SetGraphicOptions(ctx, roomId, options, session.Endpoint)
+}
+
+func (uc *GamingUseCase) GetEmulatorSpeed(ctx context.Context, roomId int64) (float64, error) {
+	session, _ := uc.roomRepo.GetRoomSession(ctx, roomId)
+	if session == nil {
+		return 0, v1.ErrorOperationFailed("room session not found")
+	}
+	return uc.repo.GetEmulatorSpeed(ctx, roomId, session.Endpoint)
+}
+
+func (uc *GamingUseCase) SetEmulatorSpeed(ctx context.Context, roomId, userId int64, rate float64) (float64, error) {
+	room, _ := uc.roomRepo.GetRoom(ctx, roomId)
+	if room == nil {
+		return 0, v1.ErrorOperationFailed("room not found")
+	}
+	if room.Host != userId {
+		return 0, v1.ErrorOperationFailed("only host can set emulator speed")
+	}
+	session, _ := uc.roomRepo.GetRoomSession(ctx, roomId)
+	if session == nil {
+		return 0, v1.ErrorOperationFailed("room session not found")
+	}
+	return uc.repo.SetEmulatorSpeed(ctx, roomId, rate, session.Endpoint)
 }

@@ -42,6 +42,8 @@ const (
 	Gaming_DeleteSave_FullMethodName             = "/gaming.v1.Gaming/DeleteSave"
 	Gaming_SetGraphicOptions_FullMethodName      = "/gaming.v1.Gaming/SetGraphicOptions"
 	Gaming_GetGraphicOptions_FullMethodName      = "/gaming.v1.Gaming/GetGraphicOptions"
+	Gaming_SetEmulatorSpeed_FullMethodName       = "/gaming.v1.Gaming/SetEmulatorSpeed"
+	Gaming_GetEmulatorSpeed_FullMethodName       = "/gaming.v1.Gaming/GetEmulatorSpeed"
 )
 
 // GamingClient is the client API for Gaming service.
@@ -71,6 +73,8 @@ type GamingClient interface {
 	DeleteSave(ctx context.Context, in *DeleteSaveRequest, opts ...grpc.CallOption) (*DeleteSaveResponse, error)
 	SetGraphicOptions(ctx context.Context, in *SetGraphicOptionsRequest, opts ...grpc.CallOption) (*SetGraphicOptionsResponse, error)
 	GetGraphicOptions(ctx context.Context, in *GetGraphicOptionsRequest, opts ...grpc.CallOption) (*GetGraphicOptionsResponse, error)
+	SetEmulatorSpeed(ctx context.Context, in *SetEmulatorSpeedRequest, opts ...grpc.CallOption) (*SetEmulatorSpeedResponse, error)
+	GetEmulatorSpeed(ctx context.Context, in *GetEmulatorSpeedRequest, opts ...grpc.CallOption) (*GetEmulatorSpeedResponse, error)
 }
 
 type gamingClient struct {
@@ -311,6 +315,26 @@ func (c *gamingClient) GetGraphicOptions(ctx context.Context, in *GetGraphicOpti
 	return out, nil
 }
 
+func (c *gamingClient) SetEmulatorSpeed(ctx context.Context, in *SetEmulatorSpeedRequest, opts ...grpc.CallOption) (*SetEmulatorSpeedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SetEmulatorSpeedResponse)
+	err := c.cc.Invoke(ctx, Gaming_SetEmulatorSpeed_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gamingClient) GetEmulatorSpeed(ctx context.Context, in *GetEmulatorSpeedRequest, opts ...grpc.CallOption) (*GetEmulatorSpeedResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetEmulatorSpeedResponse)
+	err := c.cc.Invoke(ctx, Gaming_GetEmulatorSpeed_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GamingServer is the server API for Gaming service.
 // All implementations must embed UnimplementedGamingServer
 // for forward compatibility.
@@ -338,6 +362,8 @@ type GamingServer interface {
 	DeleteSave(context.Context, *DeleteSaveRequest) (*DeleteSaveResponse, error)
 	SetGraphicOptions(context.Context, *SetGraphicOptionsRequest) (*SetGraphicOptionsResponse, error)
 	GetGraphicOptions(context.Context, *GetGraphicOptionsRequest) (*GetGraphicOptionsResponse, error)
+	SetEmulatorSpeed(context.Context, *SetEmulatorSpeedRequest) (*SetEmulatorSpeedResponse, error)
+	GetEmulatorSpeed(context.Context, *GetEmulatorSpeedRequest) (*GetEmulatorSpeedResponse, error)
 	mustEmbedUnimplementedGamingServer()
 }
 
@@ -416,6 +442,12 @@ func (UnimplementedGamingServer) SetGraphicOptions(context.Context, *SetGraphicO
 }
 func (UnimplementedGamingServer) GetGraphicOptions(context.Context, *GetGraphicOptionsRequest) (*GetGraphicOptionsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetGraphicOptions not implemented")
+}
+func (UnimplementedGamingServer) SetEmulatorSpeed(context.Context, *SetEmulatorSpeedRequest) (*SetEmulatorSpeedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetEmulatorSpeed not implemented")
+}
+func (UnimplementedGamingServer) GetEmulatorSpeed(context.Context, *GetEmulatorSpeedRequest) (*GetEmulatorSpeedResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetEmulatorSpeed not implemented")
 }
 func (UnimplementedGamingServer) mustEmbedUnimplementedGamingServer() {}
 func (UnimplementedGamingServer) testEmbeddedByValue()                {}
@@ -852,6 +884,42 @@ func _Gaming_GetGraphicOptions_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Gaming_SetEmulatorSpeed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetEmulatorSpeedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).SetEmulatorSpeed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_SetEmulatorSpeed_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).SetEmulatorSpeed(ctx, req.(*SetEmulatorSpeedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Gaming_GetEmulatorSpeed_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEmulatorSpeedRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).GetEmulatorSpeed(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_GetEmulatorSpeed_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).GetEmulatorSpeed(ctx, req.(*GetEmulatorSpeedRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Gaming_ServiceDesc is the grpc.ServiceDesc for Gaming service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -950,6 +1018,14 @@ var Gaming_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetGraphicOptions",
 			Handler:    _Gaming_GetGraphicOptions_Handler,
+		},
+		{
+			MethodName: "SetEmulatorSpeed",
+			Handler:    _Gaming_SetEmulatorSpeed_Handler,
+		},
+		{
+			MethodName: "GetEmulatorSpeed",
+			Handler:    _Gaming_GetEmulatorSpeed_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

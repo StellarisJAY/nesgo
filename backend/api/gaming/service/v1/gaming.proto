@@ -39,6 +39,9 @@ service Gaming {
 
   rpc SetGraphicOptions(SetGraphicOptionsRequest) returns (SetGraphicOptionsResponse) {}
   rpc GetGraphicOptions(GetGraphicOptionsRequest) returns (GetGraphicOptionsResponse) {}
+
+  rpc SetEmulatorSpeed(SetEmulatorSpeedRequest) returns (SetEmulatorSpeedResponse) {}
+  rpc GetEmulatorSpeed(GetEmulatorSpeedRequest) returns (GetEmulatorSpeedResponse) {}
 }
 
 message CreateGameInstanceRequest {
@@ -278,4 +281,23 @@ message GetGraphicOptionsResponse {
   bool highResOpen = 1;
   bool reverseColor = 2;
   bool grayscale = 3;
+}
+
+
+message SetEmulatorSpeedRequest {
+  int64 roomId = 1;
+  double rate = 2;
+}
+
+message SetEmulatorSpeedResponse {
+  int64 roomId = 1;
+  double rate = 2;
+}
+
+message GetEmulatorSpeedRequest {
+  int64 roomId = 1;
+}
+
+message GetEmulatorSpeedResponse {
+  double rate = 1;
 }

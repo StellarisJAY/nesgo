@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	gamingAPI "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
@@ -186,4 +187,37 @@ func (r *gamingRepo) SetGraphicOptions(ctx context.Context, roomId int64, option
 	options.ReverseColor = resp.ReverseColor
 	options.Grayscale = resp.Grayscale
 	return nil
+}
+
+func (r *gamingRepo) GetEmulatorSpeed(ctx context.Context, roomId int64, endpoint string) (float64, error) {
+	conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(endpoint))
+	if err != nil {
+		return 0, err
+	}
+	defer conn.Close()
+	gamingCli := gamingAPI.NewGamingClient(conn)
+	resp, err := gamingCli.GetEmulatorSpeed(ctx, &gamingAPI.GetEmulatorSpeedRequest{
+		RoomId: roomId,
+	})
+	if err != nil {
+		return 0.0, err
+	}
+	return resp.Rate, nil
+}
+
+func (r *gamingRepo) SetEmulatorSpeed(ctx context.Context, roomId int64, rate float64, endpoint string) (float64, error) {
+	conn, err := grpc.DialInsecure(ctx, grpc.WithEndpoint(endpoint))
+	if err != nil {
+		return 0.0, err
+	}
+	defer conn.Close()
+	gamingCli := gamingAPI.NewGamingClient(conn)
+	resp, err := gamingCli.SetEmulatorSpeed(ctx, &gamingAPI.SetEmulatorSpeedRequest{
+		RoomId: roomId,
+		Rate:   rate,
+	})
+	if err != nil {
+		return 0.0, err
+	}
+	return resp.Rate, nil
 }

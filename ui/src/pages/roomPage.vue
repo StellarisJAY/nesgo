@@ -180,6 +180,9 @@ const tourSteps = [
         <a-form-item label="黑白">
           <a-switch v-model:checked="graphicOptions.grayscale" :disabled="graphicOptionsDisabled" @change="updateGraphicOptions"></a-switch>
         </a-form-item>
+        <a-form-item label="模拟器速度">
+          <a-slider v-model:value="emulatorSpeedRate" :min="0.5" :max="2.0" :marks="allowedEmulatorSpeedRates" :step="null" @afterChange="setEmulatorSpeed" :disabled="emulatorSpeedSliderDisabled"></a-slider>
+        </a-form-item>
       </a-form>
     </a-drawer>
     <a-tour :steps="tourSteps" :open="tourOpen" @close="_ => { tourOpen = false }"></a-tour>
@@ -200,7 +203,7 @@ const tourSteps = [
 import api from "../api/request.js";
 import globalConfigs from "../api/const.js";
 import { Row, Col } from "ant-design-vue";
-import { Card, Button, Drawer, Select,Switch, notification } from "ant-design-vue";
+import { Card, Button, Drawer, Select,Switch, notification, Slider } from "ant-design-vue";
 import { message } from "ant-design-vue";
 import { Form, FormItem, Modal, Input } from "ant-design-vue";
 import router from "../router/index.js";
@@ -242,6 +245,7 @@ export default {
     RoomInfoDrawer,
     SaveList,
     KeyboardSetting,
+    ASlider: Slider,
   },
   data() {
     return {
@@ -300,6 +304,16 @@ export default {
       },
       graphicOptionsDisabled: true,
       mobileDevice: false,
+      emulatorSpeedRate: 1.0,
+      allowedEmulatorSpeedRates: {
+        0.5: "0.5x",
+        0.75: "0.75x",
+        1.0: "1.0x",
+        1.25: "1.25x",
+        1.5: "1.5x",
+        2.0: "2.0x"
+      },
+      emulatorSpeedSliderDisabled: true,
     }
   },
   created() {
@@ -506,7 +520,9 @@ export default {
       this.loadBtnDisabled = false;
       this.restartBtnDisabled = this.memberSelf["role"] !== RoleNameHost;
       this.graphicOptionsDisabled = this.memberSelf["role"] !== RoleNameHost;
+      this.emulatorSpeedSliderDisabled = this.memberSelf["role"] !== RoleNameHost;
       this.getGraphicOptions();
+      this.getEmulatorSpeed();
     },
     onDisconnected() {
       message.warn("连接断开");
@@ -740,6 +756,29 @@ export default {
         _this.graphicOptions.highResOpen = resp['highResOpen'];
         _this.graphicOptions.reverseColor = resp['reverseColor'];
         _this.graphicOptions.grayscale = resp['grayscale'];
+      });
+    },
+
+    getEmulatorSpeed: function() {
+      const _this = this;
+      api.get("api/v1/game/speed?roomId=" + this.roomId).then(resp => {
+        _this.emulatorSpeedRate = resp['rate'];
+      });
+    },
+
+    setEmulatorSpeed: function() {
+      const _this = this;
+      this.emulatorSpeedSliderDisabled = true;
+      api.post("api/v1/game/speed", {
+        "roomId": this.roomId,
+        "rate": this.emulatorSpeedRate
+      }).then(resp=>{
+        _this.emulatorSpeedSliderDisabled = false;
+        _this.emulatorSpeedRate = resp["rate"];
+        message.success("设置成功");
+      }).catch(_=>{
+        _this.emulatorSpeedSliderDisabled = false;
+        message.error("设置失败");
       });
     }
   }

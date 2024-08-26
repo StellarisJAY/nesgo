@@ -4,6 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"image"
+	"sync"
+	"sync/atomic"
+	"time"
+
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media"
@@ -12,10 +17,6 @@ import (
 	"github.com/stellarisJAY/nesgo/nes/bus"
 	"github.com/stellarisJAY/nesgo/nes/config"
 	"github.com/stellarisJAY/nesgo/nes/ppu"
-	"image"
-	"sync"
-	"sync/atomic"
-	"time"
 )
 
 const (
@@ -35,6 +36,7 @@ const (
 	MsgRestartEmulator
 	MsgPing
 	MsgSetGraphicOptions
+	MsgSetEmulatorSpeed
 )
 
 const (
@@ -224,6 +226,8 @@ func (g *GameInstance) messageConsumer(ctx context.Context) {
 				g.handleChat(msg)
 			case MsgSetGraphicOptions:
 				msg.resultChan <- g.setGraphicOptions(msg.Data.(*GraphicOptions))
+			case MsgSetEmulatorSpeed:
+				msg.resultChan <- g.setEmulatorSpeed(msg.Data.(float64))
 			default: // TODO handle unknown message
 			}
 		}
@@ -587,4 +591,20 @@ func (g *GameInstance) setGraphicOptions(options *GraphicOptions) ConsumerResult
 	options.HighResOpen = g.enhanceFrameOpen
 	options.ReverseColor = g.reverseColorOpen
 	return ConsumerResult{Success: true, Error: nil}
+}
+
+func (g *GameInstance) SetEmulatorSpeed(boostRate float64) float64 {
+	resultCh := make(chan ConsumerResult)
+	g.messageChan <- &Message{Type: MsgSetEmulatorSpeed, Data: boostRate, resultChan: resultCh}
+	result := <-resultCh
+	close(resultCh)
+	return result.Data.(float64)
+
+}
+
+func (g *GameInstance) setEmulatorSpeed(boostRate float64) ConsumerResult {
+	g.e.Pause()
+	defer g.e.Resume()
+	rate := g.e.SetCPUBoostRate(boostRate)
+	return ConsumerResult{Success: true, Error: nil, Data: rate}
 }
