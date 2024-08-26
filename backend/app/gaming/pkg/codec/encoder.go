@@ -2,13 +2,14 @@ package codec
 
 import (
 	"errors"
+	"image"
+	"log"
+
 	"github.com/pion/mediadevices/pkg/codec"
 	"github.com/pion/mediadevices/pkg/frame"
 	"github.com/pion/mediadevices/pkg/prop"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/codec/opus"
 	"github.com/stellarisJAY/nesgo/nes/ppu"
-	"image"
-	"log"
 )
 
 type IVideoEncoder interface {
@@ -41,7 +42,7 @@ func NewVideoEncoder(codec string, width, height int) (IVideoEncoder, error) {
 			Width:       width,
 			Height:      height,
 			FrameRate:   60,
-			FrameFormat: frame.FormatI444,
+			FrameFormat: frame.FormatI420,
 		},
 	}
 	switch codec {
