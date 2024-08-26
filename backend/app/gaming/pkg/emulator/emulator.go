@@ -26,6 +26,13 @@ type IEmulator interface {
 	Restart(options IEmulatorOptions) error
 	// Stop 结束模拟器
 	Stop() error
+	// SubmitInput 提交模拟器按键输入
+	SubmitInput(controllerId int, keyCode string, pressed bool)
+	// SetGraphicOptions 修改模拟器画面设置
+	SetGraphicOptions(*GraphicOptions)
+
+	GetCPUBoostRate() float64
+	SetCPUBoostRate(float64) float64
 }
 
 // IEmulatorOptions 模拟器选项接口
@@ -41,9 +48,14 @@ type IEmulatorSave interface {
 	SaveData() []byte
 }
 
+type GraphicOptions struct {
+	ReverseColor bool
+	Grayscale    bool
+}
+
 type BaseEmulatorSave struct {
-	game string
-	data []byte
+	Game string
+	Data []byte
 }
 
 var (
@@ -71,9 +83,9 @@ func makeNESEmulatorAdapter(options IEmulatorOptions) (IEmulator, error) {
 }
 
 func (s *BaseEmulatorSave) GameName() string {
-	return s.game
+	return s.Game
 }
 
 func (s *BaseEmulatorSave) SaveData() []byte {
-	return s.data
+	return s.Data
 }

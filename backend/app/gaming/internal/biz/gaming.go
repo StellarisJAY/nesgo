@@ -14,8 +14,7 @@ import (
 	v1 "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/internal/conf"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/codec"
-	"github.com/stellarisJAY/nesgo/nes"
-	"github.com/stellarisJAY/nesgo/nes/config"
+	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/emulator"
 	"github.com/stellarisJAY/nesgo/nes/ppu"
 	"go.mongodb.org/mongo-driver/mongo/gridfs"
 )
@@ -112,6 +111,13 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 	if err != nil {
 		return nil, v1.ErrorCreateGameInstanceFailed("gem game file failed: %v", err)
 	}
+
+	opts := &emulator.NesEmulatorOptions{
+		NesGame:               game,
+		NesGameData:           gameData,
+		OutputAudioSampleRate: 48000,
+	}
+
 	instance := GameInstance{
 		RoomId:               roomId,
 		game:                 game,
@@ -125,23 +131,18 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 			return frame
 		},
 	}
-	emulatorConfig := config.Config{
-		Game:               game,
-		EnableTrace:        false,
-		Disassemble:        false,
-		MuteApu:            false,
-		Debug:              false,
-		SnapshotSerializer: "gob",
-	}
+
 	instance.audioSampleRate = 48000
 	instance.audioSampleChan = make(chan float32, instance.audioSampleRate)
-	// create nes
-	renderCallback := func(ppu *ppu.PPU) {
-		instance.RenderCallback(ppu, uc.logger)
+	opts.OutputAudioSampleChan = instance.audioSampleChan
+	opts.NesRenderCallback = func(frame *ppu.Frame) {
+		instance.RenderCallback(frame, uc.logger)
 	}
-	e, err := nes.NewEmulatorWithGameData(gameData, emulatorConfig, renderCallback, instance.audioSampleChan, instance.audioSampleRate)
+	// TODO selectable emulator
+	e, err := emulator.MakeEmulator("nes", opts)
 	if err != nil {
-		return nil, v1.ErrorCreateGameInstanceFailed("create nes failed: %v", err)
+		return nil, v1.ErrorCreateGameInstanceFailed("create emulator failed: %v", err)
+
 	}
 	instance.e = e
 	// create video and audio encoder
@@ -157,13 +158,10 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 	instance.audioEncoder = audioEncoder
 
 	// start nes
-	emulatorCtx, cancel := context.WithCancel(context.Background())
-	instance.emulatorCancel = cancel
-	uc.logger.Infof("nes created, roomId: %d", roomId)
-	go instance.e.LoadAndRun(emulatorCtx, false)
-	instance.e.Pause()
+	e.Start()
+	e.Pause()
 	// collect audio samples
-	go instance.audioSampleListener(emulatorCtx, log.NewHelper(log.With(log.DefaultLogger, "module", "audioSender")))
+	// go instance.audioSampleListener(emulatorCtx, log.NewHelper(log.With(log.DefaultLogger, "module", "audioSender")))
 
 	// start message consumer
 	msgConsumerCtx, msgConsumerCancel := context.WithCancel(context.Background())
@@ -277,7 +275,7 @@ func (uc *GameInstanceUseCase) ReleaseGameInstance(ctx context.Context, roomId i
 	if err != nil {
 		return v1.ErrorSaveGameFailed("exit save game failed: %v", err)
 	}
-	instance.emulatorCancel()
+	instance.e.Stop()
 	instance.cancel()
 	instance.status.Store(InstanceStatusStopped)
 	save.ExitSave = true
@@ -484,5 +482,5 @@ func (uc *GameInstanceUseCase) GetEmulatorSpeed(ctx context.Context, roomId int6
 	if instance == nil {
 		return 0.0, v1.ErrorGameInstanceNotAccessible("game instance not found")
 	}
-	return instance.e.CPUBoostRate(), nil
+	return instance.e.GetCPUBoostRate(), nil
 }

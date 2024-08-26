@@ -3,7 +3,6 @@ package biz
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"image"
 	"sync"
 	"sync/atomic"
@@ -13,9 +12,7 @@ import (
 	"github.com/pion/webrtc/v3"
 	"github.com/pion/webrtc/v3/pkg/media"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/codec"
-	"github.com/stellarisJAY/nesgo/nes"
-	"github.com/stellarisJAY/nesgo/nes/bus"
-	"github.com/stellarisJAY/nesgo/nes/config"
+	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/emulator"
 	"github.com/stellarisJAY/nesgo/nes/ppu"
 )
 
@@ -66,38 +63,31 @@ type Message struct {
 }
 
 type GameInstance struct {
-	RoomId          int64
-	e               *nes.Emulator
-	emulatorCancel  context.CancelFunc
-	game            string
-	videoEncoder    codec.IVideoEncoder
-	audioSampleRate int
-	audioEncoder    codec.IAudioEncoder
-	audioSampleChan chan float32 // audioSampleChan 音频输出channel
-	controller1     int64        // controller1 模拟器P1控制权玩家
-	controller2     int64        // controller2 模拟器P2控制权玩家
-
-	messageChan chan *Message
-	cancel      context.CancelFunc
-
-	connections map[int64]*Connection
-	mutex       *sync.RWMutex
-
-	destroyed bool
-	LeaseID   int64
-	status    atomic.Int32
-
-	createTime time.Time
-	InstanceId string
-
-	allConnCloseCallback func(instance *GameInstance)
-
-	enhancedFrame    *image.YCbCr
-	enhanceFrameOpen bool
-	frameEnhancer    func(frame *ppu.Frame) *ppu.Frame
-
-	reverseColorOpen bool
-	grayscaleOpen    bool
+	RoomId               int64
+	EmulatorName         string             // 模拟器类型名称，比如nes
+	e                    emulator.IEmulator // 模拟器接口
+	emulatorCancel       context.CancelFunc
+	game                 string
+	videoEncoder         codec.IVideoEncoder
+	audioSampleRate      int
+	audioEncoder         codec.IAudioEncoder
+	audioSampleChan      chan float32          // audioSampleChan 音频输出channel
+	controller1          int64                 // controller1 模拟器P1控制权玩家
+	controller2          int64                 // controller2 模拟器P2控制权玩家
+	messageChan          chan *Message         // 消息接收通道，单线程处理多个客户端发送的消息
+	cancel               context.CancelFunc    // 消息接收取消函数
+	connections          map[int64]*Connection // 连接列表
+	mutex                *sync.RWMutex         // 连接列表mutex
+	LeaseID              int64
+	status               atomic.Int32
+	createTime           time.Time                    // 实例创建时间
+	InstanceId           string                       // 实例ID
+	allConnCloseCallback func(instance *GameInstance) // 所有连接关闭后回调，用于异步释放房间会话
+	enhancedFrame        *image.YCbCr                 // 高分辨率画面缓存
+	enhanceFrameOpen     bool
+	frameEnhancer        func(frame *ppu.Frame) *ppu.Frame // 高分辨率画面生成器
+	reverseColorOpen     bool
+	grayscaleOpen        bool
 }
 
 func (g *GameInstance) enhanceFrame(frame *ppu.Frame) *ppu.Frame {
@@ -129,8 +119,8 @@ func (g *GameInstance) enhanceFrame(frame *ppu.Frame) *ppu.Frame {
 	return ppu.NewCustomSizeFrame(enhancedFrame)
 }
 
-func (g *GameInstance) RenderCallback(ppu *ppu.PPU, logger *log.Helper) {
-	frame := g.frameEnhancer(ppu.Frame())
+func (g *GameInstance) RenderCallback(frame *ppu.Frame, logger *log.Helper) {
+	frame = g.frameEnhancer(frame)
 	data, release, err := g.videoEncoder.Encode(frame)
 	if err != nil {
 		logger.Error("encode frame error", "err", err)
@@ -314,24 +304,7 @@ func (g *GameInstance) handlePlayerControl(keyCode string, action byte, player i
 	if player == g.controller2 {
 		id = 2
 	}
-	switch keyCode {
-	case "Up":
-		g.e.SetJoyPadButtonPressed(id, bus.Up, action == MsgPlayerControlButtonPressed)
-	case "Down":
-		g.e.SetJoyPadButtonPressed(id, bus.Down, action == MsgPlayerControlButtonPressed)
-	case "Left":
-		g.e.SetJoyPadButtonPressed(id, bus.Left, action == MsgPlayerControlButtonPressed)
-	case "Right":
-		g.e.SetJoyPadButtonPressed(id, bus.Right, action == MsgPlayerControlButtonPressed)
-	case "A":
-		g.e.SetJoyPadButtonPressed(id, bus.ButtonA, action == MsgPlayerControlButtonPressed)
-	case "B":
-		g.e.SetJoyPadButtonPressed(id, bus.ButtonB, action == MsgPlayerControlButtonPressed)
-	case "Select":
-		g.e.SetJoyPadButtonPressed(id, bus.Select, action == MsgPlayerControlButtonPressed)
-	case "Start":
-		g.e.SetJoyPadButtonPressed(id, bus.Start, action == MsgPlayerControlButtonPressed)
-	}
+	g.e.SubmitInput(id, keyCode, action == MsgPlayerControlButtonPressed)
 }
 
 func (g *GameInstance) handleSetController(playerId int64, id int) ConsumerResult {
@@ -395,36 +368,23 @@ func (g *GameInstance) DeleteConnection(userId int64) {
 }
 
 func (g *GameInstance) handleSaveGame() ConsumerResult {
-	g.e.Pause()
-	defer g.e.Resume()
-	data, err := g.e.GetSaveData()
-	success := err == nil
-	return ConsumerResult{Success: success, Data: data, Error: err}
-}
-
-// handleLoadSave 加载存档，如果存档的游戏与当前模拟器运行的游戏不同，需要先重启模拟器
-func (g *GameInstance) handleLoadSave(loader *gameSaveLoader) ConsumerResult {
-	if g.game == loader.game {
-		g.e.Pause()
-		defer g.e.Resume()
-		err := g.e.Load(loader.data)
-		return ConsumerResult{Success: err == nil, Error: err}
-	}
-	// 加载存档需要切换游戏，从repo获取游戏数据
-	data, err := loader.gameFileRepo.GetGameData(context.Background(), loader.game)
+	save, err := g.e.Save()
 	if err != nil {
 		return ConsumerResult{Error: err}
 	}
-	// 加载新游戏，重启模拟器
-	err = g.restartEmulator(loader.game, data)
+	return ConsumerResult{Success: true, Data: save.SaveData()}
+}
+
+// handleLoadSave 加载存档
+func (g *GameInstance) handleLoadSave(loader *gameSaveLoader) ConsumerResult {
+	err := g.e.LoadSave(&emulator.BaseEmulatorSave{
+		Game: loader.game,
+		Data: loader.data,
+	}, loader.gameFileRepo)
 	if err != nil {
-		return ConsumerResult{Error: fmt.Errorf("restart nes error: %v", err)}
+		return ConsumerResult{Error: err}
 	}
-	// 模拟器加载存档数据
-	g.e.Pause()
-	defer g.e.Resume()
-	err = g.e.Load(loader.data)
-	return ConsumerResult{Success: err == nil, Error: err}
+	return ConsumerResult{Success: true}
 }
 
 func (g *GameInstance) handleRestartEmulator(request *emulatorRestartRequest) ConsumerResult {
@@ -433,44 +393,16 @@ func (g *GameInstance) handleRestartEmulator(request *emulatorRestartRequest) Co
 }
 
 func (g *GameInstance) restartEmulator(game string, gameData []byte) error {
-	// 结束旧模拟器goroutine
-	g.emulatorCancel()
-
-	// 清空上一个模拟器输出的还未发送的音频
-LOOP:
-	for {
-		select {
-		case <-g.audioSampleChan:
-		default:
-			break LOOP
-		}
-	}
-
-	g.game = game
-	// 创建新模拟器
-	emulatorConfig := config.Config{
-		Game:               game,
-		EnableTrace:        false,
-		Disassemble:        false,
-		MuteApu:            false,
-		Debug:              false,
-		SnapshotSerializer: "gob",
-	}
-	renderCallback := func(p *ppu.PPU) {
-		g.RenderCallback(p, log.NewHelper(log.With(log.DefaultLogger, "module", "nes")))
-	}
-	e, err := nes.NewEmulatorWithGameData(gameData, emulatorConfig, renderCallback, g.audioSampleChan, g.audioSampleRate)
-	if err != nil {
-		return fmt.Errorf("create new nes error: %v", err)
-	}
-	g.e = e
-	// 启动新模拟器goroutine
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	g.emulatorCancel = cancelFunc
-	go e.LoadAndRun(ctx, false)
-	// emulatorCancel后会结束旧的音频发送器，需要重启音频发送goroutine
-	go g.audioSampleListener(ctx, log.NewHelper(log.With(log.DefaultLogger, "module", "audioSender")))
-	return nil
+	err := g.e.Restart(&emulator.NesEmulatorOptions{
+		NesGame:               game,
+		NesGameData:           gameData,
+		OutputAudioSampleRate: g.audioSampleRate,
+		OutputAudioSampleChan: g.audioSampleChan,
+		NesRenderCallback: func(frame *ppu.Frame) {
+			g.RenderCallback(frame, log.NewHelper(log.DefaultLogger))
+		},
+	})
+	return err
 }
 
 func (g *GameInstance) SaveGame() (*GameSave, error) {
@@ -569,24 +501,10 @@ func (g *GameInstance) setGraphicOptions(options *GraphicOptions) ConsumerResult
 		}
 		g.videoEncoder = enc
 	}
-	if g.reverseColorOpen != options.ReverseColor {
-		g.reverseColorOpen = options.ReverseColor
-		if g.reverseColorOpen {
-			g.e.Frame().UseReverseColorPreprocessor()
-		} else {
-			g.e.Frame().RemoveReverseColorPreprocessor()
-		}
-	}
-
-	if g.grayscaleOpen != options.Grayscale {
-		g.grayscaleOpen = options.Grayscale
-		if g.grayscaleOpen {
-			g.e.Frame().UseGrayscalePreprocessor()
-		} else {
-			g.e.Frame().RemoveGrayscalePreprocessor()
-		}
-	}
-
+	g.e.SetGraphicOptions(&emulator.GraphicOptions{
+		Grayscale:    options.Grayscale,
+		ReverseColor: options.ReverseColor,
+	})
 	options.Grayscale = g.grayscaleOpen
 	options.HighResOpen = g.enhanceFrameOpen
 	options.ReverseColor = g.reverseColorOpen

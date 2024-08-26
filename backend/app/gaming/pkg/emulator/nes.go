@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/stellarisJAY/nesgo/nes"
+	nesBus "github.com/stellarisJAY/nesgo/nes/bus"
 	nesConfig "github.com/stellarisJAY/nesgo/nes/config"
 	"github.com/stellarisJAY/nesgo/nes/ppu"
 )
@@ -88,13 +89,12 @@ func (n *NesEmulatorAdapter) Save() (IEmulatorSave, error) {
 		return nil, err
 	}
 	return &BaseEmulatorSave{
-		data: s,
+		Data: s,
 	}, nil
 }
 
 func (n *NesEmulatorAdapter) LoadSave(save IEmulatorSave, gameFileRepo IGameFileRepo) error {
 	n.e.Pause()
-	defer n.e.Resume()
 	// 如果游戏名称不同，需要加载新的游戏文件，并重启模拟器
 	if n.options.Game() != save.GameName() {
 		gameData, err := gameFileRepo.GetGameData(context.Background(), save.GameName())
@@ -114,8 +114,52 @@ func (n *NesEmulatorAdapter) LoadSave(save IEmulatorSave, gameFileRepo IGameFile
 		}
 		return n.e.Load(save.SaveData())
 	} else {
+		defer n.e.Resume()
 		return n.e.Load(save.SaveData())
 	}
+}
+
+func (n *NesEmulatorAdapter) SubmitInput(controllId int, keyCode string, pressed bool) {
+	switch keyCode {
+	case "Up":
+		n.e.SetJoyPadButtonPressed(controllId, nesBus.Up, pressed)
+	case "Down":
+		n.e.SetJoyPadButtonPressed(controllId, nesBus.Down, pressed)
+	case "Left":
+		n.e.SetJoyPadButtonPressed(controllId, nesBus.Left, pressed)
+	case "Right":
+		n.e.SetJoyPadButtonPressed(controllId, nesBus.Right, pressed)
+	case "A":
+		n.e.SetJoyPadButtonPressed(controllId, nesBus.ButtonA, pressed)
+	case "B":
+		n.e.SetJoyPadButtonPressed(controllId, nesBus.ButtonB, pressed)
+	case "Select":
+		n.e.SetJoyPadButtonPressed(controllId, nesBus.Select, pressed)
+	case "Start":
+		n.e.SetJoyPadButtonPressed(controllId, nesBus.Start, pressed)
+	}
+}
+
+func (n *NesEmulatorAdapter) SetGraphicOptions(opts *GraphicOptions) {
+	if opts.ReverseColor {
+		n.e.Frame().UseReverseColorPreprocessor()
+	} else {
+		n.e.Frame().RemoveReverseColorPreprocessor()
+	}
+
+	if opts.Grayscale {
+		n.e.Frame().UseGrayscalePreprocessor()
+	} else {
+		n.e.Frame().RemoveGrayscalePreprocessor()
+	}
+}
+
+func (n *NesEmulatorAdapter) GetCPUBoostRate() float64 {
+	return n.e.CPUBoostRate()
+}
+
+func (n *NesEmulatorAdapter) SetCPUBoostRate(rate float64) float64 {
+	return n.e.SetCPUBoostRate(rate)
 }
 
 func makeNESEmulator(options IEmulatorOptions) (*nes.Emulator, error) {
