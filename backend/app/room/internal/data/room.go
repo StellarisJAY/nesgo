@@ -7,18 +7,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
+	"net/url"
+	"time"
+
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	gamingAPI "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
-	"github.com/stellarisJAY/nesgo/backend/api/room/service/v1"
+	v1 "github.com/stellarisJAY/nesgo/backend/api/room/service/v1"
 	"github.com/stellarisJAY/nesgo/backend/app/room/internal/biz"
 	"github.com/stellarisJAY/nesgo/backend/pkg/cache"
 	etcdAPI "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/concurrency"
 	"gorm.io/gorm"
-	"math/rand"
-	"net/url"
-	"time"
 )
 
 type roomRepo struct {
@@ -35,6 +36,7 @@ type Room struct {
 	PasswordReal string    `gorm:"size:16"`
 	MemberLimit  int       `gorm:"not null"`
 	CreatedAt    time.Time `gorm:"column:created_at"`
+	EmulatorName string    `gorm:"not null"`
 }
 
 type RoomMember struct {
@@ -60,12 +62,13 @@ func NewRoomRepo(data *Data, logger log.Logger) biz.RoomRepo {
 func (r *roomRepo) CreateRoom(ctx context.Context, room *biz.Room) error {
 	room.Id = r.data.snowflake.Generate().Int64()
 	roomModel := Room{
-		Name:        room.Name,
-		Host:        room.Host,
-		Private:     room.Private,
-		Id:          room.Id,
-		MemberLimit: room.MemberLimit,
-		CreatedAt:   time.Now(),
+		Name:         room.Name,
+		Host:         room.Host,
+		Private:      room.Private,
+		Id:           room.Id,
+		MemberLimit:  room.MemberLimit,
+		CreatedAt:    time.Now(),
+		EmulatorName: room.EmulatorType,
 	}
 	if roomModel.Private {
 		hashPassword := hex.EncodeToString(md5.New().Sum([]byte(room.Password)))
@@ -194,7 +197,7 @@ func roomCacheKey(roomId int64) string { return fmt.Sprintf("nesgo/room/%d", roo
 
 // GetOrCreateRoomSession 获取或创建房间会话
 // 从所有模拟器节点选择一个作为目标节点，在目标节点创建模拟器实例，并保存房间ID与目标节点映射
-func (r *roomRepo) GetOrCreateRoomSession(ctx context.Context, roomId int64, game string) (*biz.RoomSession, bool, error) {
+func (r *roomRepo) GetOrCreateRoomSession(ctx context.Context, roomId int64, game string, emulatorType string) (*biz.RoomSession, bool, error) {
 	key := roomSessionKey(roomId)
 	lockKey := roomSessionLockKey(roomId)
 	// 分布式锁，避免同时创建多个session
@@ -238,8 +241,9 @@ func (r *roomRepo) GetOrCreateRoomSession(ctx context.Context, roomId int64, gam
 	}
 	defer conn.Close()
 	instance, err := gamingAPI.NewGamingClient(conn).CreateGameInstance(ctx, &gamingAPI.CreateGameInstanceRequest{
-		RoomId: roomId,
-		Game:   game,
+		RoomId:       roomId,
+		Game:         game,
+		EmulatorType: emulatorType,
 	})
 	if err != nil {
 		return nil, false, err
@@ -248,7 +252,7 @@ func (r *roomRepo) GetOrCreateRoomSession(ctx context.Context, roomId int64, gam
 	// 保存session，使用目标节点返回的lease保活
 	bytes, _ := json.Marshal(session)
 	_, err = r.data.etcdCli.KV.Put(ctx, key, string(bytes), etcdAPI.WithLease(etcdAPI.LeaseID(instance.LeaseId)))
-	return session, false, nil
+	return session, false, err
 }
 
 // GetRoomSession 获取房间会话，返回模拟器节点地址
@@ -480,6 +484,7 @@ func (r *Room) ToBizRoom() *biz.Room {
 		PasswordHash: r.PasswordHash,
 		MemberLimit:  r.MemberLimit,
 		CreateTime:   r.CreatedAt,
+		EmulatorType: r.EmulatorName,
 	}
 }
 
@@ -494,6 +499,7 @@ func (jr *JoinedRoom) ToBizJoinedRoom() *biz.JoinedRoom {
 			PasswordHash: jr.PasswordHash,
 			MemberLimit:  jr.MemberLimit,
 			CreateTime:   jr.CreatedAt,
+			EmulatorType: jr.EmulatorName,
 		},
 		UserId: jr.UserId,
 		Role:   v1.RoomRole(jr.Role),

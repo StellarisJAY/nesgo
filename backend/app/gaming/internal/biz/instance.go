@@ -13,7 +13,6 @@ import (
 	"github.com/pion/webrtc/v3/pkg/media"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/codec"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/emulator"
-	"github.com/stellarisJAY/nesgo/nes/ppu"
 )
 
 const (
@@ -66,7 +65,7 @@ type Message struct {
 
 type GameInstance struct {
 	RoomId               int64
-	EmulatorName         string             // 模拟器类型名称，比如nes
+	EmulatorType         string             // 模拟器类型名称，比如nes
 	e                    emulator.IEmulator // 模拟器接口
 	game                 string
 	videoEncoder         codec.IVideoEncoder
@@ -388,16 +387,11 @@ func (g *GameInstance) handleRestartEmulator(request *emulatorRestartRequest) Co
 }
 
 func (g *GameInstance) restartEmulator(game string, gameData []byte) error {
-	err := g.e.Restart(&emulator.NesEmulatorOptions{
-		NesGame:               game,
-		NesGameData:           gameData,
-		OutputAudioSampleRate: g.audioSampleRate,
-		OutputAudioSampleChan: g.audioSampleChan,
-		NesRenderCallback: func(frame *ppu.Frame) {
-			adapter := emulator.MakeNESFrameAdapter(frame)
-			g.RenderCallback(adapter, log.NewHelper(log.DefaultLogger))
-		},
-	})
+	opts, err := g.makeEmulatorOptions(g.EmulatorType, game, gameData)
+	if err != nil {
+		return err
+	}
+	err = g.e.Restart(opts)
 	return err
 }
 
@@ -526,7 +520,7 @@ func (g *GameInstance) setEmulatorSpeed(boostRate float64) ConsumerResult {
 
 func (g *GameInstance) makeEmulatorOptions(emulatorName string, game string, gameData []byte) (emulator.IEmulatorOptions, error) {
 	switch emulatorName {
-	case "nes":
+	case emulator.EmulatorTypeNES:
 		return emulator.MakeNesEmulatorOptions(game, gameData, g.audioSampleRate, g.audioSampleChan, func(frame emulator.IFrame) {
 			g.RenderCallback(frame, nil)
 		}), nil

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	"github.com/go-kratos/kratos/v2/middleware/auth/jwt"
 	v1 "github.com/stellarisJAY/nesgo/backend/api/app/webapi/v1"
 	roomAPI "github.com/stellarisJAY/nesgo/backend/api/room/service/v1"
@@ -18,14 +19,15 @@ func (ws *WebApiService) ListMyRooms(ctx context.Context, request *v1.ListRoomRe
 	result := make([]*v1.Room, 0, len(rooms))
 	for _, room := range rooms {
 		result = append(result, &v1.Room{
-			Id:          room.Id,
-			Name:        room.Name,
-			Host:        room.Host,
-			Private:     room.Private,
-			MemberCount: room.MemberCount,
-			MemberLimit: room.MemberLimit,
-			CreateTime:  room.CreateTime.UnixMilli(),
-			HostName:    room.HostName,
+			Id:           room.Id,
+			Name:         room.Name,
+			Host:         room.Host,
+			Private:      room.Private,
+			MemberCount:  room.MemberCount,
+			MemberLimit:  room.MemberLimit,
+			CreateTime:   room.CreateTime.UnixMilli(),
+			HostName:     room.HostName,
+			EmulatorType: room.EmulatorType,
 		})
 	}
 	return &v1.ListRoomResponse{
@@ -37,7 +39,7 @@ func (ws *WebApiService) ListMyRooms(ctx context.Context, request *v1.ListRoomRe
 func (ws *WebApiService) CreateRoom(ctx context.Context, request *v1.CreateRoomRequest) (*v1.CreateRoomResponse, error) {
 	claims, _ := jwt.FromContext(ctx)
 	c := claims.(*biz.LoginClaims)
-	room, err := ws.rc.CreateRoom(ctx, request.Name, request.Private, c.UserId)
+	room, err := ws.rc.CreateRoom(ctx, request.Name, request.Private, c.UserId, request.EmulatorType)
 	if err != nil {
 		return nil, err
 	}
@@ -59,14 +61,15 @@ func (ws *WebApiService) GetRoom(ctx context.Context, request *v1.GetRoomRequest
 		return nil, err
 	}
 	resp := &v1.GetRoomResponse{
-		Id:          room.Id,
-		Name:        room.Name,
-		Host:        room.Host,
-		Private:     room.Private,
-		MemberCount: room.MemberCount,
-		HostName:    room.HostName,
-		MemberLimit: room.MemberLimit,
-		CreateTime:  room.CreateTime.UnixMilli(),
+		Id:           room.Id,
+		Name:         room.Name,
+		Host:         room.Host,
+		Private:      room.Private,
+		MemberCount:  room.MemberCount,
+		HostName:     room.HostName,
+		MemberLimit:  room.MemberLimit,
+		CreateTime:   room.CreateTime.UnixMilli(),
+		EmulatorType: room.EmulatorType,
 	}
 	if c.UserId == room.Host {
 		resp.Password = room.Password
@@ -82,14 +85,15 @@ func (ws *WebApiService) ListAllRooms(ctx context.Context, request *v1.ListRoomR
 	result := make([]*v1.Room, 0, len(rooms))
 	for _, room := range rooms {
 		result = append(result, &v1.Room{
-			Id:          room.Id,
-			Name:        room.Name,
-			Host:        room.Host,
-			Private:     room.Private,
-			MemberCount: room.MemberCount,
-			HostName:    room.HostName,
-			MemberLimit: room.MemberLimit,
-			CreateTime:  room.CreateTime.UnixMilli(),
+			Id:           room.Id,
+			Name:         room.Name,
+			Host:         room.Host,
+			Private:      room.Private,
+			MemberCount:  room.MemberCount,
+			HostName:     room.HostName,
+			MemberLimit:  room.MemberLimit,
+			CreateTime:   room.CreateTime.UnixMilli(),
+			EmulatorType: room.EmulatorType,
 		})
 	}
 	return &v1.ListRoomResponse{

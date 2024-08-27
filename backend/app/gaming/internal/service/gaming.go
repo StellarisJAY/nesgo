@@ -24,7 +24,7 @@ func NewGamingService(gi *biz.GameInstanceUseCase, gf *biz.GameFileUseCase, logg
 }
 
 func (g *GamingService) CreateGameInstance(ctx context.Context, req *v1.CreateGameInstanceRequest) (*v1.CreateGameInstanceResponse, error) {
-	instance, err := g.gi.CreateGameInstance(ctx, req.RoomId, req.Game)
+	instance, err := g.gi.CreateGameInstance(ctx, req.RoomId, req.Game, req.EmulatorType)
 	if err != nil {
 		return nil, err
 	}

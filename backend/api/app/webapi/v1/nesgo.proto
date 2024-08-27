@@ -279,6 +279,7 @@ message Room {
   int32 memberLimit = 7;
   int64 createTime = 8;
   string password = 9;
+  string emulatorType = 10;
 }
 
 message User {
@@ -369,6 +370,7 @@ message GetRoomResponse {
   int32 memberLimit = 7;
   int64 createTime = 8;
   string password = 9;
+  string emulatorType = 10;
 }
 
 message Member {

@@ -2,8 +2,9 @@ package service
 
 import (
 	"context"
+
 	"github.com/go-kratos/kratos/v2/log"
-	"github.com/stellarisJAY/nesgo/backend/api/room/service/v1"
+	v1 "github.com/stellarisJAY/nesgo/backend/api/room/service/v1"
 	"github.com/stellarisJAY/nesgo/backend/app/room/internal/biz"
 )
 
@@ -22,10 +23,11 @@ func NewRoomService(ruc *biz.RoomUseCase, logger log.Logger) *RoomService {
 
 func (r *RoomService) CreateRoom(ctx context.Context, request *v1.CreateRoomRequest) (*v1.CreateRoomResponse, error) {
 	room := &biz.Room{
-		Id:      0,
-		Name:    request.Name,
-		Host:    request.Host,
-		Private: request.Private,
+		Id:           0,
+		Name:         request.Name,
+		Host:         request.Host,
+		Private:      request.Private,
+		EmulatorType: request.EmulatorType,
 	}
 	err := r.ruc.CreateRoom(ctx, room)
 	if err != nil {
@@ -45,14 +47,15 @@ func (r *RoomService) GetRoom(ctx context.Context, request *v1.GetRoomRequest) (
 		return nil, err
 	}
 	return &v1.GetRoomResponse{
-		Id:          room.Id,
-		Name:        room.Name,
-		Host:        room.Host,
-		Private:     room.Private,
-		Password:    room.Password,
-		MemberCount: int32(room.MemberCount),
-		MemberLimit: int32(room.MemberLimit),
-		CreateTime:  room.CreateTime.UnixMilli(),
+		Id:           room.Id,
+		Name:         room.Name,
+		Host:         room.Host,
+		Private:      room.Private,
+		Password:     room.Password,
+		MemberCount:  int32(room.MemberCount),
+		MemberLimit:  int32(room.MemberLimit),
+		CreateTime:   room.CreateTime.UnixMilli(),
+		EmulatorType: room.EmulatorType,
 	}, nil
 }
 
@@ -81,14 +84,15 @@ func (r *RoomService) ListRooms(ctx context.Context, request *v1.ListRoomsReques
 		result := make([]*v1.GetRoomResponse, 0, len(rooms))
 		for _, room := range rooms {
 			result = append(result, &v1.GetRoomResponse{
-				Id:          room.Id,
-				Name:        room.Name,
-				Host:        room.Host,
-				Private:     room.Private,
-				MemberCount: int32(room.MemberCount),
-				MemberLimit: int32(room.MemberLimit),
-				Role:        room.Role,
-				CreateTime:  room.CreateTime.UnixMilli(),
+				Id:           room.Id,
+				Name:         room.Name,
+				Host:         room.Host,
+				Private:      room.Private,
+				MemberCount:  int32(room.MemberCount),
+				MemberLimit:  int32(room.MemberLimit),
+				Role:         room.Role,
+				CreateTime:   room.CreateTime.UnixMilli(),
+				EmulatorType: room.EmulatorType,
 			})
 		}
 		return &v1.ListRoomsResponse{Rooms: result, Total: int32(total)}, nil
@@ -100,13 +104,14 @@ func (r *RoomService) ListRooms(ctx context.Context, request *v1.ListRoomsReques
 		result := make([]*v1.GetRoomResponse, 0, len(rooms))
 		for _, room := range rooms {
 			result = append(result, &v1.GetRoomResponse{
-				Id:          room.Id,
-				Name:        room.Name,
-				Host:        room.Host,
-				Private:     room.Private,
-				MemberCount: int32(room.MemberCount),
-				MemberLimit: int32(room.MemberLimit),
-				CreateTime:  room.CreateTime.UnixMilli(),
+				Id:           room.Id,
+				Name:         room.Name,
+				Host:         room.Host,
+				Private:      room.Private,
+				MemberCount:  int32(room.MemberCount),
+				MemberLimit:  int32(room.MemberLimit),
+				CreateTime:   room.CreateTime.UnixMilli(),
+				EmulatorType: room.EmulatorType,
 			})
 		}
 		return &v1.ListRoomsResponse{Rooms: result, Total: int32(total)}, nil

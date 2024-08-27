@@ -2,10 +2,11 @@ package data
 
 import (
 	"context"
+	"time"
+
 	"github.com/go-kratos/kratos/v2/log"
 	roomAPI "github.com/stellarisJAY/nesgo/backend/api/room/service/v1"
 	"github.com/stellarisJAY/nesgo/backend/app/webapi/internal/biz"
-	"time"
 )
 
 type roomRepo struct {
@@ -50,9 +51,10 @@ func (r *roomRepo) GetCreateRoomSession(ctx context.Context, roomId, userId int6
 
 func (r *roomRepo) CreateRoom(ctx context.Context, room *biz.Room) error {
 	response, err := r.data.rc.CreateRoom(ctx, &roomAPI.CreateRoomRequest{
-		Name:    room.Name,
-		Host:    room.Host,
-		Private: room.Private,
+		Name:         room.Name,
+		Host:         room.Host,
+		Private:      room.Private,
+		EmulatorType: room.EmulatorType,
 	})
 	if err != nil {
 		return err
@@ -68,16 +70,7 @@ func (r *roomRepo) GetRoom(ctx context.Context, roomId int64) (*biz.Room, error)
 	if err != nil {
 		return nil, err
 	}
-	return &biz.Room{
-		Id:          response.Id,
-		Name:        response.Name,
-		Host:        response.Host,
-		Private:     response.Private,
-		Password:    response.Password,
-		MemberCount: response.MemberCount,
-		MemberLimit: response.MemberLimit,
-		CreateTime:  time.UnixMilli(response.CreateTime).Local(),
-	}, nil
+	return convertRoomPbToBiz(response), nil
 }
 
 func (r *roomRepo) ListJoinedRooms(ctx context.Context, userId int64, page, pageSize int) ([]*biz.JoinedRoom, int, error) {
@@ -93,16 +86,7 @@ func (r *roomRepo) ListJoinedRooms(ctx context.Context, userId int64, page, page
 	result := make([]*biz.JoinedRoom, 0, len(response.Rooms))
 	for _, room := range response.Rooms {
 		result = append(result, &biz.JoinedRoom{
-			Room: biz.Room{
-				Id:          room.Id,
-				Name:        room.Name,
-				Host:        room.Host,
-				Private:     room.Private,
-				Password:    room.Password,
-				MemberCount: room.MemberCount,
-				MemberLimit: room.MemberLimit,
-				CreateTime:  time.UnixMilli(room.CreateTime).Local(),
-			},
+			Room: *convertRoomPbToBiz(room),
 			Role: room.Role,
 		})
 	}
@@ -120,16 +104,7 @@ func (r *roomRepo) ListRooms(ctx context.Context, page, pageSize int) ([]*biz.Ro
 	}
 	result := make([]*biz.Room, 0, len(response.Rooms))
 	for _, room := range response.Rooms {
-		result = append(result, &biz.Room{
-			Id:          room.Id,
-			Name:        room.Name,
-			Host:        room.Host,
-			Private:     room.Private,
-			Password:    room.Password,
-			MemberCount: room.MemberCount,
-			MemberLimit: room.MemberLimit,
-			CreateTime:  time.UnixMilli(room.CreateTime).Local(),
-		})
+		result = append(result, convertRoomPbToBiz(room))
 	}
 	return result, int(response.Total), nil
 }
@@ -216,4 +191,18 @@ func (r *roomRepo) DeleteMember(ctx context.Context, roomId, userId int64) error
 		UserId: userId,
 	})
 	return err
+}
+
+func convertRoomPbToBiz(response *roomAPI.GetRoomResponse) *biz.Room {
+	return &biz.Room{
+		Id:           response.Id,
+		Name:         response.Name,
+		Host:         response.Host,
+		Private:      response.Private,
+		Password:     response.Password,
+		MemberCount:  response.MemberCount,
+		MemberLimit:  response.MemberLimit,
+		EmulatorType: response.EmulatorType,
+		CreateTime:   time.UnixMilli(response.CreateTime).Local(),
+	}
 }

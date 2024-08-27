@@ -6,6 +6,10 @@ import (
 	"image"
 )
 
+const (
+	EmulatorTypeNES = "NES"
+)
+
 // IFrame 模拟器输出画面接口
 type IFrame interface {
 	// Width 画面宽度
@@ -80,12 +84,12 @@ type BaseFrame struct {
 }
 
 var (
-	ErrorEmulatorNotSupported = errors.New("nes not supported")
+	ErrorEmulatorNotSupported = errors.New("emulator not supported")
 )
 
 func MakeEmulator(emulatorType string, options IEmulatorOptions) (IEmulator, error) {
 	switch emulatorType {
-	case "nes":
+	case EmulatorTypeNES:
 		return makeNESEmulatorAdapter(options)
 	default:
 		return nil, ErrorEmulatorNotSupported

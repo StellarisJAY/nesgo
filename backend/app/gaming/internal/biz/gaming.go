@@ -113,7 +113,7 @@ func NewGameInstanceUseCase(repo GameInstanceRepo, gameFileRepo GameFileRepo, ro
 
 // CreateGameInstance 创建模拟器实例，第一个连接房间并创建会话的操作会创建模拟器实例
 // 调用者必须持有房间会话的分布式锁，保证只创建一次
-func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId int64, game string) (*GameInstance, error) {
+func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId int64, game string, emulatorType string) (*GameInstance, error) {
 	gameData, err := uc.gameFileRepo.GetGameData(ctx, game)
 	if errors.Is(err, gridfs.ErrFileNotFound) {
 		return nil, v1.ErrorGameFileNotFound("game file not found")
@@ -124,6 +124,7 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 
 	instance := GameInstance{
 		RoomId:               roomId,
+		EmulatorType:         emulatorType,
 		game:                 game,
 		messageChan:          make(chan *Message, 64),
 		mutex:                &sync.RWMutex{},
@@ -137,12 +138,12 @@ func (uc *GameInstanceUseCase) CreateGameInstance(ctx context.Context, roomId in
 		},
 	}
 	// TODO select emulator
-	opts, err := instance.makeEmulatorOptions("nes", game, gameData)
+	opts, err := instance.makeEmulatorOptions(emulatorType, game, gameData)
 	if err != nil {
 		return nil, v1.ErrorCreateGameInstanceFailed("make emulator options failed: %v", err)
 	}
 	// TODO select emulator
-	e, err := emulator.MakeEmulator("nes", opts)
+	e, err := emulator.MakeEmulator(emulatorType, opts)
 	if err != nil {
 		return nil, v1.ErrorCreateGameInstanceFailed("create emulator failed: %v", err)
 	}
@@ -490,7 +491,7 @@ func (uc *GameInstanceUseCase) GetEmulatorSpeed(ctx context.Context, roomId int6
 func (uc *GameInstanceUseCase) ListSupportedEmulators(ctx context.Context) ([]*SupportedEmulator, error) {
 	emulators := []*SupportedEmulator{
 		{
-			Name:                  "nes",
+			Name:                  "NES",
 			Provider:              "https://github.com/stellarisjay/nesgo",
 			SupportSaving:         true,
 			SupportGraphicSetting: true,

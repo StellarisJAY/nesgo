@@ -2,12 +2,13 @@ package biz
 
 import (
 	"context"
+	"time"
+
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	v12 "github.com/stellarisJAY/nesgo/backend/api/app/webapi/v1"
 	gamingAPI "github.com/stellarisJAY/nesgo/backend/api/gaming/service/v1"
 	roomAPI "github.com/stellarisJAY/nesgo/backend/api/room/service/v1"
-	"time"
 )
 
 type RoomUseCase struct {
@@ -23,15 +24,16 @@ type RoomSession struct {
 }
 
 type Room struct {
-	Id          int64     `json:"id"`
-	Name        string    `json:"name"`
-	Host        int64     `json:"host"`
-	HostName    string    `json:"hostName"`
-	Private     bool      `json:"private"`
-	MemberCount int32     `json:"memberCount"`
-	MemberLimit int32     `json:"memberLimit"`
-	Password    string    `json:"password"`
-	CreateTime  time.Time `json:"createTime"`
+	Id           int64     `json:"id"`
+	Name         string    `json:"name"`
+	Host         int64     `json:"host"`
+	HostName     string    `json:"hostName"`
+	Private      bool      `json:"private"`
+	MemberCount  int32     `json:"memberCount"`
+	MemberLimit  int32     `json:"memberLimit"`
+	Password     string    `json:"password"`
+	CreateTime   time.Time `json:"createTime"`
+	EmulatorType string    `json:"emulatorType"`
 }
 
 type Member struct {
@@ -73,11 +75,12 @@ func NewRoomUseCase(repo RoomRepo, ur UserRepo, gr GamingRepo, logger log.Logger
 	}
 }
 
-func (uc *RoomUseCase) CreateRoom(ctx context.Context, name string, private bool, userId int64) (*Room, error) {
+func (uc *RoomUseCase) CreateRoom(ctx context.Context, name string, private bool, userId int64, emulatorType string) (*Room, error) {
 	room := &Room{
-		Name:    name,
-		Private: private,
-		Host:    userId,
+		Name:         name,
+		Private:      private,
+		Host:         userId,
+		EmulatorType: emulatorType,
 	}
 	err := uc.repo.CreateRoom(ctx, room)
 	if err != nil {

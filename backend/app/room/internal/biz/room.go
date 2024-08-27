@@ -5,12 +5,13 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"errors"
-	"github.com/go-kratos/kratos/v2/log"
-	v1 "github.com/stellarisJAY/nesgo/backend/api/room/service/v1"
-	"gorm.io/gorm"
 	"math/rand"
 	"strings"
 	"time"
+
+	"github.com/go-kratos/kratos/v2/log"
+	v1 "github.com/stellarisJAY/nesgo/backend/api/room/service/v1"
+	"gorm.io/gorm"
 )
 
 type Room struct {
@@ -24,6 +25,7 @@ type Room struct {
 	MemberCount  int       `json:"memberCount"`
 	MemberLimit  int       `json:"memberLimit"`
 	CreateTime   time.Time `json:"createTime"`
+	EmulatorType string    `json:"emulatorType"`
 }
 
 type JoinedRoom struct {
@@ -53,7 +55,7 @@ type RoomRepo interface {
 	ListJoinedRooms(ctx context.Context, userId int64, page int, pageSize int) ([]*JoinedRoom, int, error)
 	GetRoomMember(ctx context.Context, roomId int64, userId int64) (*RoomMember, error)
 	AddRoomMember(ctx context.Context, member *RoomMember, room *Room) error
-	GetOrCreateRoomSession(ctx context.Context, roomId int64, game string) (*RoomSession, bool, error)
+	GetOrCreateRoomSession(ctx context.Context, roomId int64, game string, emulatorType string) (*RoomSession, bool, error)
 	GetRoomSession(ctx context.Context, roomId int64) (*RoomSession, error)
 	GetOwnedRoom(ctx context.Context, name string, host int64) (*Room, error)
 	CountMember(ctx context.Context, roomId int64) (int64, error)
@@ -179,7 +181,8 @@ func (uc *RoomUseCase) GetCreateRoomSession(ctx context.Context, roomId, userId 
 	if member == nil {
 		return nil, v1.ErrorRoomNotAccessible("not a member of this room")
 	}
-	session, _, err := uc.rr.GetOrCreateRoomSession(ctx, roomId, game)
+	room, _ := uc.rr.GetRoom(ctx, roomId)
+	session, _, err := uc.rr.GetOrCreateRoomSession(ctx, roomId, game, room.EmulatorType)
 	if err != nil {
 		return nil, v1.ErrorGetRoomFailed("create session error: %v", err)
 	}

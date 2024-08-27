@@ -38,6 +38,7 @@ message CreateRoomRequest {
   string name = 1;
   bool private = 2;
   int64 host = 3;
+  string emulatorType = 4;
 }
 
 message CreateRoomResponse {
@@ -61,6 +62,7 @@ message GetRoomResponse {
   RoomRole role = 7;
   int32 memberLimit = 8;
   int64 createTime = 9;
+  string emulatorType = 10;
 }
 
 message ListRoomMemberRequest {
