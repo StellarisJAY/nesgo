@@ -43,6 +43,7 @@ const OperationWebApiListMacro = "/nesgo.webapi.v1.WebApi/ListMacro"
 const OperationWebApiListMembers = "/nesgo.webapi.v1.WebApi/ListMembers"
 const OperationWebApiListMyRooms = "/nesgo.webapi.v1.WebApi/ListMyRooms"
 const OperationWebApiListSaves = "/nesgo.webapi.v1.WebApi/ListSaves"
+const OperationWebApiListSupportedEmulators = "/nesgo.webapi.v1.WebApi/ListSupportedEmulators"
 const OperationWebApiListUserKeyboardBinding = "/nesgo.webapi.v1.WebApi/ListUserKeyboardBinding"
 const OperationWebApiLoadSave = "/nesgo.webapi.v1.WebApi/LoadSave"
 const OperationWebApiLogin = "/nesgo.webapi.v1.WebApi/Login"
@@ -83,6 +84,7 @@ type WebApiHTTPServer interface {
 	ListMembers(context.Context, *ListMemberRequest) (*ListMemberResponse, error)
 	ListMyRooms(context.Context, *ListRoomRequest) (*ListRoomResponse, error)
 	ListSaves(context.Context, *ListSavesRequest) (*ListSavesResponse, error)
+	ListSupportedEmulators(context.Context, *ListSupportedEmulatorsRequest) (*ListSupportedEmulatorsResponse, error)
 	ListUserKeyboardBinding(context.Context, *ListUserKeyboardBindingRequest) (*ListUserKeyboardBindingResponse, error)
 	LoadSave(context.Context, *LoadSaveRequest) (*LoadSaveResponse, error)
 	Login(context.Context, *LoginRequest) (*LoginResponse, error)
@@ -139,6 +141,7 @@ func RegisterWebApiHTTPServer(s *http.Server, srv WebApiHTTPServer) {
 	r.DELETE("/api/v1/macro/{id}", _WebApi_DeleteMacro0_HTTP_Handler(srv))
 	r.POST("/api/v1/game/speed", _WebApi_SetEmulatorSpeed0_HTTP_Handler(srv))
 	r.GET("/api/v1/game/speed", _WebApi_GetEmulatorSpeed0_HTTP_Handler(srv))
+	r.GET("/api/v1/emulators", _WebApi_ListSupportedEmulators0_HTTP_Handler(srv))
 }
 
 func _WebApi_Register0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
@@ -947,6 +950,25 @@ func _WebApi_GetEmulatorSpeed0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.
 	}
 }
 
+func _WebApi_ListSupportedEmulators0_HTTP_Handler(srv WebApiHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListSupportedEmulatorsRequest
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationWebApiListSupportedEmulators)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListSupportedEmulators(ctx, req.(*ListSupportedEmulatorsRequest))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListSupportedEmulatorsResponse)
+		return ctx.Result(200, reply)
+	}
+}
+
 type WebApiHTTPClient interface {
 	AddICECandidate(ctx context.Context, req *AddICECandidateRequest, opts ...http.CallOption) (rsp *AddICECandidateResponse, err error)
 	CreateMacro(ctx context.Context, req *CreateMacroRequest, opts ...http.CallOption) (rsp *CreateMacroResponse, err error)
@@ -972,6 +994,7 @@ type WebApiHTTPClient interface {
 	ListMembers(ctx context.Context, req *ListMemberRequest, opts ...http.CallOption) (rsp *ListMemberResponse, err error)
 	ListMyRooms(ctx context.Context, req *ListRoomRequest, opts ...http.CallOption) (rsp *ListRoomResponse, err error)
 	ListSaves(ctx context.Context, req *ListSavesRequest, opts ...http.CallOption) (rsp *ListSavesResponse, err error)
+	ListSupportedEmulators(ctx context.Context, req *ListSupportedEmulatorsRequest, opts ...http.CallOption) (rsp *ListSupportedEmulatorsResponse, err error)
 	ListUserKeyboardBinding(ctx context.Context, req *ListUserKeyboardBindingRequest, opts ...http.CallOption) (rsp *ListUserKeyboardBindingResponse, err error)
 	LoadSave(ctx context.Context, req *LoadSaveRequest, opts ...http.CallOption) (rsp *LoadSaveResponse, err error)
 	Login(ctx context.Context, req *LoginRequest, opts ...http.CallOption) (rsp *LoginResponse, err error)
@@ -1300,6 +1323,19 @@ func (c *WebApiHTTPClientImpl) ListSaves(ctx context.Context, in *ListSavesReque
 	pattern := "/api/v1/game/saves"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationWebApiListSaves))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *WebApiHTTPClientImpl) ListSupportedEmulators(ctx context.Context, in *ListSupportedEmulatorsRequest, opts ...http.CallOption) (*ListSupportedEmulatorsResponse, error) {
+	var out ListSupportedEmulatorsResponse
+	pattern := "/api/v1/emulators"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationWebApiListSupportedEmulators))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

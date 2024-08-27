@@ -1,7 +1,7 @@
 <template>
   <a-card :bordered="false">
     <template #extra>
-      <a-button v-if="joined" type="primary" @click="_ => { createRoomModalOpen = true }">新建房间</a-button>
+      <a-button v-if="joined" type="primary" @click="openCreateRoomModal">新建房间</a-button>
       <a-row v-else>
         <a-col>
           <a-input v-model:value="searchInput"></a-input>
@@ -44,7 +44,17 @@
         <a-form-item label="私人房间" name="isPrivate">
           <a-switch v-model:checked="createRoomState.isPrivate"></a-switch>
         </a-form-item>
+        <a-form-item label="模拟器">
+          <a-select :options="options" v-model:value="selectedEmulatorName" @change="onSelectEmulatorChange"></a-select>
+        </a-form-item>
       </a-form>
+      <a-descriptions>
+        <a-descriptions-item label="类型">{{ selectedEmulator['name']}}</a-descriptions-item>
+        <a-descriptions-item label="支持存档">{{ selectedEmulator['supportSaving'] ? "是" : "否" }}</a-descriptions-item>
+        <a-descriptions-item label="支持画面设置">{{ selectedEmulator['supportGraphicSetting'] ? "是" : "否" }}</a-descriptions-item>
+        <a-descriptions-item label="游戏数量">{{ selectedEmulator['games'] }}</a-descriptions-item>
+        <a-descriptions-item label="提供者">{{ selectedEmulator['provider'] }}</a-descriptions-item>
+      </a-descriptions>
     </a-modal>
 
     <a-modal v-else :open="joinRoomModalOpen" title="加入房间" @cancel="_ => { joinRoomModalOpen = false }">
@@ -63,7 +73,7 @@
 </template>
 
 <script>
-import { Card, Button, List, Modal, Form, Input, Switch } from 'ant-design-vue';
+import { Card, Button, List, Modal, Form, Input, Switch, Select, Descriptions} from 'ant-design-vue';
 import { Row, Col } from "ant-design-vue";
 import { message } from "ant-design-vue";
 import api from "../api/request.js";
@@ -87,6 +97,9 @@ export default {
     AInput: Input,
     ASwitch: Switch,
     AInputPassword: Input.Password,
+    ASelect: Select,
+    ADescriptions: Descriptions,
+    ADescriptionsItem: Descriptions.Item,
   },
   data() {
     return {
@@ -102,7 +115,11 @@ export default {
       joinRoomFormState: {
         id: 0,
         password: ""
-      }
+      },
+      supportedEmulators: [],
+      selectedEmulatorName: "",
+      selectedEmulator: {},
+      emulatorOptions: [],
     }
   },
   created() {
@@ -181,7 +198,35 @@ export default {
     },
     leaveRoom(id) {
       // TODO leave room
-    }
+    },
+
+    listSupportedEmulators: function() {
+      
+    },
+    openCreateRoomModal: function() {
+      const _this = this;
+      api.get("api/v1/emulators").then(resp=>{
+        _this.supportedEmulators = resp["emulators"];
+        let options = [];
+        for (let emulator of _this.supportedEmulators) {
+          options.push({
+            label: emulator.name,
+            value: emulator.name
+          });
+        }
+        _this.options = options;
+        if (options.length > 0) {
+          _this.selectedEmulatorName = options[0].value;
+          _this.selectedEmulator = _this.supportedEmulators[0];
+        }
+        _this.createRoomModalOpen = true;
+      }).catch(_=>{
+        message.error("无法获取到模拟器列表");
+      });
+    },
+    onSelectEmulatorChange: function() {
+      this.selectedEmulator = this.supportedEmulators.find(emulator => emulator.name === this.selectedEmulatorName);
+    },
   }
 }
 </script>

@@ -235,6 +235,12 @@ service WebApi {
     };
   }
 
+  rpc ListSupportedEmulators(ListSupportedEmulatorsRequest) returns (ListSupportedEmulatorsResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/emulators"
+    };
+  }
+
 }
 
 message RegisterRequest {
@@ -337,6 +343,7 @@ message AddICECandidateResponse {
 message CreateRoomRequest {
   string name = 1;
   bool private = 2;
+  string emulatorType = 3;
 }
 
 message CreateRoomResponse {
@@ -660,4 +667,18 @@ message GetEmulatorSpeedRequest {
 
 message GetEmulatorSpeedResponse {
   double rate = 1;
+}
+
+message Emulator {
+  string name = 1;
+  bool supportSaving = 2;
+  bool supportGraphicSetting = 3;
+  int32 Games = 4;
+  string provider = 5;
+}
+
+message ListSupportedEmulatorsRequest {}
+
+message ListSupportedEmulatorsResponse {
+  repeated Emulator emulators = 1;
 }

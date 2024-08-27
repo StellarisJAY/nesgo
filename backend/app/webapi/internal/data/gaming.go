@@ -221,3 +221,21 @@ func (r *gamingRepo) SetEmulatorSpeed(ctx context.Context, roomId int64, rate fl
 	}
 	return resp.Rate, nil
 }
+
+func (r *gamingRepo) ListSupportedEmulators(ctx context.Context) ([]*biz.SupportedEmulator, error) {
+	resp, err := r.data.gc.ListSupportedEmulators(ctx, &gamingAPI.ListSupportedEmulatorsRequest{})
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*biz.SupportedEmulator, 0, len(resp.Emulators))
+	for _, emulator := range resp.Emulators {
+		result = append(result, &biz.SupportedEmulator{
+			Name:                  emulator.Name,
+			SupportSaving:         emulator.SupportSaving,
+			SupportGraphicSetting: emulator.SupportGraphicSetting,
+			Games:                 emulator.Games,
+			Provider:              emulator.Provider,
+		})
+	}
+	return result, nil
+}

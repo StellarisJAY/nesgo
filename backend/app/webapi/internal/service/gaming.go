@@ -190,3 +190,21 @@ func (ws *WebApiService) SetEmulatorSpeed(ctx context.Context, request *v1.SetEm
 	}
 	return &v1.SetEmulatorSpeedResponse{Rate: rate}, nil
 }
+
+func (ws *WebApiService) ListSupportedEmulators(ctx context.Context, request *v1.ListSupportedEmulatorsRequest) (*v1.ListSupportedEmulatorsResponse, error) {
+	emulators, err := ws.gc.ListSupportedEmulators(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*v1.Emulator, 0, len(emulators))
+	for _, emulator := range emulators {
+		result = append(result, &v1.Emulator{
+			Name:                  emulator.Name,
+			SupportSaving:         emulator.SupportSaving,
+			SupportGraphicSetting: emulator.SupportGraphicSetting,
+			Games:                 emulator.Games,
+			Provider:              emulator.Provider,
+		})
+	}
+	return &v1.ListSupportedEmulatorsResponse{Emulators: result}, nil
+}

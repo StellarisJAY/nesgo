@@ -295,3 +295,21 @@ func (g *GamingService) SetEmulatorSpeed(ctx context.Context, request *v1.SetEmu
 	}
 	return &v1.SetEmulatorSpeedResponse{RoomId: request.RoomId, Rate: rate}, nil
 }
+
+func (g *GamingService) ListSupportedEmulators(ctx context.Context, request *v1.ListSupportedEmulatorsRequest) (*v1.ListSupportedEmulatorsResponse, error) {
+	emulators, err := g.gi.ListSupportedEmulators(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*v1.Emulator, 0, len(emulators))
+	for _, emulator := range emulators {
+		result = append(result, &v1.Emulator{
+			Name:                  emulator.Name,
+			SupportSaving:         emulator.SupportSaving,
+			SupportGraphicSetting: emulator.SupportGraphicSetting,
+			Games:                 emulator.Games,
+			Provider:              emulator.Provider,
+		})
+	}
+	return &v1.ListSupportedEmulatorsResponse{Emulators: result}, nil
+}

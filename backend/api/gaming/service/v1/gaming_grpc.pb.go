@@ -44,6 +44,7 @@ const (
 	Gaming_GetGraphicOptions_FullMethodName      = "/gaming.v1.Gaming/GetGraphicOptions"
 	Gaming_SetEmulatorSpeed_FullMethodName       = "/gaming.v1.Gaming/SetEmulatorSpeed"
 	Gaming_GetEmulatorSpeed_FullMethodName       = "/gaming.v1.Gaming/GetEmulatorSpeed"
+	Gaming_ListSupportedEmulators_FullMethodName = "/gaming.v1.Gaming/ListSupportedEmulators"
 )
 
 // GamingClient is the client API for Gaming service.
@@ -75,6 +76,7 @@ type GamingClient interface {
 	GetGraphicOptions(ctx context.Context, in *GetGraphicOptionsRequest, opts ...grpc.CallOption) (*GetGraphicOptionsResponse, error)
 	SetEmulatorSpeed(ctx context.Context, in *SetEmulatorSpeedRequest, opts ...grpc.CallOption) (*SetEmulatorSpeedResponse, error)
 	GetEmulatorSpeed(ctx context.Context, in *GetEmulatorSpeedRequest, opts ...grpc.CallOption) (*GetEmulatorSpeedResponse, error)
+	ListSupportedEmulators(ctx context.Context, in *ListSupportedEmulatorsRequest, opts ...grpc.CallOption) (*ListSupportedEmulatorsResponse, error)
 }
 
 type gamingClient struct {
@@ -335,6 +337,16 @@ func (c *gamingClient) GetEmulatorSpeed(ctx context.Context, in *GetEmulatorSpee
 	return out, nil
 }
 
+func (c *gamingClient) ListSupportedEmulators(ctx context.Context, in *ListSupportedEmulatorsRequest, opts ...grpc.CallOption) (*ListSupportedEmulatorsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSupportedEmulatorsResponse)
+	err := c.cc.Invoke(ctx, Gaming_ListSupportedEmulators_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // GamingServer is the server API for Gaming service.
 // All implementations must embed UnimplementedGamingServer
 // for forward compatibility.
@@ -364,6 +376,7 @@ type GamingServer interface {
 	GetGraphicOptions(context.Context, *GetGraphicOptionsRequest) (*GetGraphicOptionsResponse, error)
 	SetEmulatorSpeed(context.Context, *SetEmulatorSpeedRequest) (*SetEmulatorSpeedResponse, error)
 	GetEmulatorSpeed(context.Context, *GetEmulatorSpeedRequest) (*GetEmulatorSpeedResponse, error)
+	ListSupportedEmulators(context.Context, *ListSupportedEmulatorsRequest) (*ListSupportedEmulatorsResponse, error)
 	mustEmbedUnimplementedGamingServer()
 }
 
@@ -448,6 +461,9 @@ func (UnimplementedGamingServer) SetEmulatorSpeed(context.Context, *SetEmulatorS
 }
 func (UnimplementedGamingServer) GetEmulatorSpeed(context.Context, *GetEmulatorSpeedRequest) (*GetEmulatorSpeedResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetEmulatorSpeed not implemented")
+}
+func (UnimplementedGamingServer) ListSupportedEmulators(context.Context, *ListSupportedEmulatorsRequest) (*ListSupportedEmulatorsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSupportedEmulators not implemented")
 }
 func (UnimplementedGamingServer) mustEmbedUnimplementedGamingServer() {}
 func (UnimplementedGamingServer) testEmbeddedByValue()                {}
@@ -920,6 +936,24 @@ func _Gaming_GetEmulatorSpeed_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Gaming_ListSupportedEmulators_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSupportedEmulatorsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GamingServer).ListSupportedEmulators(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Gaming_ListSupportedEmulators_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GamingServer).ListSupportedEmulators(ctx, req.(*ListSupportedEmulatorsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Gaming_ServiceDesc is the grpc.ServiceDesc for Gaming service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1026,6 +1060,10 @@ var Gaming_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetEmulatorSpeed",
 			Handler:    _Gaming_GetEmulatorSpeed_Handler,
+		},
+		{
+			MethodName: "ListSupportedEmulators",
+			Handler:    _Gaming_ListSupportedEmulators_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

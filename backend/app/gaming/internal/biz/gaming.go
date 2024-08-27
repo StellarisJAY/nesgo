@@ -60,6 +60,14 @@ type GraphicOptions struct {
 	Grayscale    bool `json:"grayscale"`
 }
 
+type SupportedEmulator struct {
+	Name                  string `json:"name"`
+	SupportSaving         bool   `json:"saving"`
+	SupportGraphicSetting bool   `json:"supportGraphicSetting"`
+	Provider              string `json:"provider"`
+	Games                 int32  `json:"games"`
+}
+
 type GameInstanceRepo interface {
 	CreateGameInstance(ctx context.Context, game *GameInstance) (int64, error)
 	DeleteGameInstance(ctx context.Context, roomId int64) error
@@ -477,4 +485,18 @@ func (uc *GameInstanceUseCase) GetEmulatorSpeed(ctx context.Context, roomId int6
 		return 0.0, v1.ErrorGameInstanceNotAccessible("game instance not found")
 	}
 	return instance.e.GetCPUBoostRate(), nil
+}
+
+func (uc *GameInstanceUseCase) ListSupportedEmulators(ctx context.Context) ([]*SupportedEmulator, error) {
+	emulators := []*SupportedEmulator{
+		{
+			Name:                  "nes",
+			Provider:              "https://github.com/stellarisjay/nesgo",
+			SupportSaving:         true,
+			SupportGraphicSetting: true,
+			Games:                 0,
+		},
+	}
+	// TODO count emulator suppported games
+	return emulators, nil
 }

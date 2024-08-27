@@ -57,6 +57,7 @@ const (
 	WebApi_DeleteMacro_FullMethodName               = "/nesgo.webapi.v1.WebApi/DeleteMacro"
 	WebApi_SetEmulatorSpeed_FullMethodName          = "/nesgo.webapi.v1.WebApi/SetEmulatorSpeed"
 	WebApi_GetEmulatorSpeed_FullMethodName          = "/nesgo.webapi.v1.WebApi/GetEmulatorSpeed"
+	WebApi_ListSupportedEmulators_FullMethodName    = "/nesgo.webapi.v1.WebApi/ListSupportedEmulators"
 )
 
 // WebApiClient is the client API for WebApi service.
@@ -101,6 +102,7 @@ type WebApiClient interface {
 	DeleteMacro(ctx context.Context, in *DeleteMacroRequest, opts ...grpc.CallOption) (*DeleteMacroResponse, error)
 	SetEmulatorSpeed(ctx context.Context, in *SetEmulatorSpeedRequest, opts ...grpc.CallOption) (*SetEmulatorSpeedResponse, error)
 	GetEmulatorSpeed(ctx context.Context, in *GetEmulatorSpeedRequest, opts ...grpc.CallOption) (*GetEmulatorSpeedResponse, error)
+	ListSupportedEmulators(ctx context.Context, in *ListSupportedEmulatorsRequest, opts ...grpc.CallOption) (*ListSupportedEmulatorsResponse, error)
 }
 
 type webApiClient struct {
@@ -491,6 +493,16 @@ func (c *webApiClient) GetEmulatorSpeed(ctx context.Context, in *GetEmulatorSpee
 	return out, nil
 }
 
+func (c *webApiClient) ListSupportedEmulators(ctx context.Context, in *ListSupportedEmulatorsRequest, opts ...grpc.CallOption) (*ListSupportedEmulatorsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListSupportedEmulatorsResponse)
+	err := c.cc.Invoke(ctx, WebApi_ListSupportedEmulators_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // WebApiServer is the server API for WebApi service.
 // All implementations must embed UnimplementedWebApiServer
 // for forward compatibility.
@@ -533,6 +545,7 @@ type WebApiServer interface {
 	DeleteMacro(context.Context, *DeleteMacroRequest) (*DeleteMacroResponse, error)
 	SetEmulatorSpeed(context.Context, *SetEmulatorSpeedRequest) (*SetEmulatorSpeedResponse, error)
 	GetEmulatorSpeed(context.Context, *GetEmulatorSpeedRequest) (*GetEmulatorSpeedResponse, error)
+	ListSupportedEmulators(context.Context, *ListSupportedEmulatorsRequest) (*ListSupportedEmulatorsResponse, error)
 	mustEmbedUnimplementedWebApiServer()
 }
 
@@ -656,6 +669,9 @@ func (UnimplementedWebApiServer) SetEmulatorSpeed(context.Context, *SetEmulatorS
 }
 func (UnimplementedWebApiServer) GetEmulatorSpeed(context.Context, *GetEmulatorSpeedRequest) (*GetEmulatorSpeedResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetEmulatorSpeed not implemented")
+}
+func (UnimplementedWebApiServer) ListSupportedEmulators(context.Context, *ListSupportedEmulatorsRequest) (*ListSupportedEmulatorsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListSupportedEmulators not implemented")
 }
 func (UnimplementedWebApiServer) mustEmbedUnimplementedWebApiServer() {}
 func (UnimplementedWebApiServer) testEmbeddedByValue()                {}
@@ -1362,6 +1378,24 @@ func _WebApi_GetEmulatorSpeed_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _WebApi_ListSupportedEmulators_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListSupportedEmulatorsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(WebApiServer).ListSupportedEmulators(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: WebApi_ListSupportedEmulators_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(WebApiServer).ListSupportedEmulators(ctx, req.(*ListSupportedEmulatorsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // WebApi_ServiceDesc is the grpc.ServiceDesc for WebApi service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1520,6 +1554,10 @@ var WebApi_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetEmulatorSpeed",
 			Handler:    _WebApi_GetEmulatorSpeed_Handler,
+		},
+		{
+			MethodName: "ListSupportedEmulators",
+			Handler:    _WebApi_ListSupportedEmulators_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

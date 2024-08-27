@@ -42,11 +42,14 @@ service Gaming {
 
   rpc SetEmulatorSpeed(SetEmulatorSpeedRequest) returns (SetEmulatorSpeedResponse) {}
   rpc GetEmulatorSpeed(GetEmulatorSpeedRequest) returns (GetEmulatorSpeedResponse) {}
+
+  rpc ListSupportedEmulators(ListSupportedEmulatorsRequest) returns (ListSupportedEmulatorsResponse) {}
 }
 
 message CreateGameInstanceRequest {
   int64 roomId = 1;
   string game = 2;
+  string emulatorType = 3;
 }
 
 message CreateGameInstanceResponse {
@@ -300,4 +303,18 @@ message GetEmulatorSpeedRequest {
 
 message GetEmulatorSpeedResponse {
   double rate = 1;
+}
+
+message Emulator {
+  string name = 1;
+  bool supportSaving = 2;
+  bool supportGraphicSetting = 3;
+  int32 Games = 4;
+  string provider = 5;
+}
+
+message ListSupportedEmulatorsRequest {}
+
+message ListSupportedEmulatorsResponse {
+  repeated Emulator emulators = 1;
 }

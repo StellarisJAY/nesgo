@@ -36,6 +36,14 @@ type GraphicOptions struct {
 	Grayscale    bool `json:"grayscale"`
 }
 
+type SupportedEmulator struct {
+	Name                  string `json:"name"`
+	SupportSaving         bool   `json:"saving"`
+	SupportGraphicSetting bool   `json:"supportGraphicSetting"`
+	Provider              string `json:"provider"`
+	Games                 int32  `json:"games"`
+}
+
 type GamingRepo interface {
 	ListGames(ctx context.Context) ([]*GameMetadata, error)
 	DeleteMemberConnection(ctx context.Context, roomId, userId int64, endpoint string) error
@@ -49,6 +57,7 @@ type GamingRepo interface {
 	SetGraphicOptions(ctx context.Context, roomId int64, options *GraphicOptions, endpoint string) error
 	SetEmulatorSpeed(ctx context.Context, roomId int64, rate float64, endpoint string) (float64, error)
 	GetEmulatorSpeed(ctx context.Context, roomId int64, endpoint string) (float64, error)
+	ListSupportedEmulators(ctx context.Context) ([]*SupportedEmulator, error)
 }
 
 func NewGamingUseCase(roomRepo RoomRepo, gamingRepo GamingRepo, logger log.Logger) *GamingUseCase {
@@ -277,4 +286,8 @@ func (uc *GamingUseCase) SetEmulatorSpeed(ctx context.Context, roomId, userId in
 		return 0, v1.ErrorOperationFailed("room session not found")
 	}
 	return uc.repo.SetEmulatorSpeed(ctx, roomId, rate, session.Endpoint)
+}
+
+func (uc *GamingUseCase) ListSupportedEmulators(ctx context.Context) ([]*SupportedEmulator, error) {
+	return uc.repo.ListSupportedEmulators(ctx)
 }
