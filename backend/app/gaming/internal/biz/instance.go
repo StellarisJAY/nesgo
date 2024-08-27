@@ -182,39 +182,43 @@ func (g *GameInstance) messageConsumer(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case msg := <-g.messageChan:
-			switch msg.Type {
-			case MsgPlayerControlButtonPressed:
-				fallthrough
-			case MsgPlayerControlButtonReleased:
-				keyCode := msg.Data.(string)
-				g.handlePlayerControl(keyCode, msg.Type, msg.From)
-			case MsgNewConn:
-				msg.resultChan <- g.handleMsgNewConn(msg.Data.(*Connection))
-			case MsgPeerConnected:
-				g.handlePeerConnected(msg.Data.(*Connection))
-			case MsgCloseConn:
-				g.handleMsgCloseConn(msg.Data.(*Connection))
-			case MsgSetController1:
-				msg.resultChan <- g.handleSetController(msg.Data.(int64), 0)
-			case MsgSetController2:
-				msg.resultChan <- g.handleSetController(msg.Data.(int64), 1)
-			case MsgResetController:
-				msg.resultChan <- g.handleResetController(msg.Data.(int64))
-			case MsgSaveGame:
-				msg.resultChan <- g.handleSaveGame()
-			case MsgLoadSave:
-				msg.resultChan <- g.handleLoadSave(msg.Data.(*gameSaveLoader))
-			case MsgRestartEmulator:
-				msg.resultChan <- g.handleRestartEmulator(msg.Data.(*emulatorRestartRequest))
-			case MsgChat:
-				g.handleChat(msg)
-			case MsgSetGraphicOptions:
-				msg.resultChan <- g.setGraphicOptions(msg.Data.(*GraphicOptions))
-			case MsgSetEmulatorSpeed:
-				msg.resultChan <- g.setEmulatorSpeed(msg.Data.(float64))
-			default: // TODO handle unknown message
-			}
+			g.handleMessages(msg)
 		}
+	}
+}
+
+func (g *GameInstance) handleMessages(msg *Message) {
+	switch msg.Type {
+	case MsgPlayerControlButtonPressed:
+		fallthrough
+	case MsgPlayerControlButtonReleased:
+		keyCode := msg.Data.(string)
+		g.handlePlayerControl(keyCode, msg.Type, msg.From)
+	case MsgNewConn:
+		msg.resultChan <- g.handleMsgNewConn(msg.Data.(*Connection))
+	case MsgPeerConnected:
+		g.handlePeerConnected(msg.Data.(*Connection))
+	case MsgCloseConn:
+		g.handleMsgCloseConn(msg.Data.(*Connection))
+	case MsgSetController1:
+		msg.resultChan <- g.handleSetController(msg.Data.(int64), 0)
+	case MsgSetController2:
+		msg.resultChan <- g.handleSetController(msg.Data.(int64), 1)
+	case MsgResetController:
+		msg.resultChan <- g.handleResetController(msg.Data.(int64))
+	case MsgSaveGame:
+		msg.resultChan <- g.handleSaveGame()
+	case MsgLoadSave:
+		msg.resultChan <- g.handleLoadSave(msg.Data.(*gameSaveLoader))
+	case MsgRestartEmulator:
+		msg.resultChan <- g.handleRestartEmulator(msg.Data.(*emulatorRestartRequest))
+	case MsgChat:
+		g.handleChat(msg)
+	case MsgSetGraphicOptions:
+		msg.resultChan <- g.setGraphicOptions(msg.Data.(*GraphicOptions))
+	case MsgSetEmulatorSpeed:
+		msg.resultChan <- g.setEmulatorSpeed(msg.Data.(float64))
+	default:
 	}
 }
 
