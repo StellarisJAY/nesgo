@@ -469,10 +469,6 @@ func (g *GameInstance) SetGraphicOptions(options *GraphicOptions) {
 func (g *GameInstance) setGraphicOptions(options *GraphicOptions) ConsumerResult {
 	g.e.Pause()
 	defer g.e.Resume()
-	defer func() {
-		options.HighResOpen = g.enhanceFrameOpen
-		options.ReverseColor = g.reverseColorOpen
-	}()
 	if g.enhanceFrameOpen != options.HighResOpen {
 		g.enhanceFrameOpen = options.HighResOpen
 		g.videoEncoder.Close()
@@ -496,9 +492,7 @@ func (g *GameInstance) setGraphicOptions(options *GraphicOptions) ConsumerResult
 		Grayscale:    options.Grayscale,
 		ReverseColor: options.ReverseColor,
 	})
-	options.Grayscale = g.grayscaleOpen
 	options.HighResOpen = g.enhanceFrameOpen
-	options.ReverseColor = g.reverseColorOpen
 	return ConsumerResult{Success: true, Error: nil}
 }
 

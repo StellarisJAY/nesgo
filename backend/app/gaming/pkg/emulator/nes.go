@@ -11,9 +11,11 @@ import (
 )
 
 type NesEmulatorAdapter struct {
-	e          *nes.Emulator
-	options    IEmulatorOptions
-	cancelFunc context.CancelFunc
+	e                *nes.Emulator
+	options          IEmulatorOptions
+	cancelFunc       context.CancelFunc
+	reverseColorOpen bool
+	grayscaleOpen    bool
 }
 
 type NesEmulatorOptions struct {
@@ -159,17 +161,25 @@ func (n *NesEmulatorAdapter) SubmitInput(controllId int, keyCode string, pressed
 }
 
 func (n *NesEmulatorAdapter) SetGraphicOptions(opts *GraphicOptions) {
-	if opts.ReverseColor {
-		n.e.Frame().UseReverseColorPreprocessor()
-	} else {
-		n.e.Frame().RemoveReverseColorPreprocessor()
+	if opts.ReverseColor != n.reverseColorOpen {
+		n.reverseColorOpen = opts.ReverseColor
+		if n.reverseColorOpen {
+			n.e.Frame().UseReverseColorPreprocessor()
+		} else {
+			n.e.Frame().RemoveReverseColorPreprocessor()
+		}
+
 	}
 
-	if opts.Grayscale {
-		n.e.Frame().UseGrayscalePreprocessor()
-	} else {
-		n.e.Frame().RemoveGrayscalePreprocessor()
+	if opts.Grayscale != n.grayscaleOpen {
+		n.grayscaleOpen = opts.Grayscale
+		if n.grayscaleOpen {
+			n.e.Frame().UseGrayscalePreprocessor()
+		} else {
+			n.e.Frame().RemoveGrayscalePreprocessor()
+		}
 	}
+
 }
 
 func (n *NesEmulatorAdapter) GetCPUBoostRate() float64 {
