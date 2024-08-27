@@ -9,23 +9,23 @@ import (
 	"github.com/pion/mediadevices/pkg/frame"
 	"github.com/pion/mediadevices/pkg/prop"
 	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/codec/opus"
-	"github.com/stellarisJAY/nesgo/nes/ppu"
+	"github.com/stellarisJAY/nesgo/backend/app/gaming/pkg/emulator"
 )
 
 type IVideoEncoder interface {
-	Encode(frame *ppu.Frame) ([]byte, func(), error)
+	Encode(frame emulator.IFrame) ([]byte, func(), error)
 	Close()
 }
 
 type FrameReader struct {
-	frame *ppu.Frame
+	frame emulator.IFrame
 }
 
 func (f *FrameReader) Read() (img image.Image, release func(), err error) {
 	return f.frame.Read()
 }
 
-func (f *FrameReader) SetFrame(frame *ppu.Frame) {
+func (f *FrameReader) SetFrame(frame emulator.IFrame) {
 	f.frame = frame
 }
 
@@ -57,7 +57,7 @@ func NewVideoEncoder(codec string, width, height int) (IVideoEncoder, error) {
 	}
 }
 
-func (v *VideoEncoder) Encode(frame *ppu.Frame) ([]byte, func(), error) {
+func (v *VideoEncoder) Encode(frame emulator.IFrame) ([]byte, func(), error) {
 	v.frameReader.SetFrame(frame)
 	return v.enc.Read()
 }

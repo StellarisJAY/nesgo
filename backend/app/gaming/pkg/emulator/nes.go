@@ -2,6 +2,7 @@ package emulator
 
 import (
 	"context"
+	"image"
 
 	"github.com/stellarisJAY/nesgo/nes"
 	nesBus "github.com/stellarisJAY/nesgo/nes/bus"
@@ -21,6 +22,23 @@ type NesEmulatorOptions struct {
 	OutputAudioSampleRate int
 	OutputAudioSampleChan chan float32
 	NesRenderCallback     func(frame *ppu.Frame)
+}
+
+type NesFrameAdapter struct {
+	frame *ppu.Frame
+}
+
+func MakeNesEmulatorOptions(game string, gameData []byte, audioSampleRate int, audioChan chan float32, renderCallback func(frame IFrame)) IEmulatorOptions {
+	return &NesEmulatorOptions{
+		NesGame:               game,
+		NesGameData:           gameData,
+		OutputAudioSampleRate: audioSampleRate,
+		OutputAudioSampleChan: audioChan,
+		NesRenderCallback: func(frame *ppu.Frame) {
+			f := MakeNESFrameAdapter(frame)
+			renderCallback(f)
+		},
+	}
 }
 
 func (n *NesEmulatorOptions) GameData() []byte {
@@ -162,6 +180,10 @@ func (n *NesEmulatorAdapter) SetCPUBoostRate(rate float64) float64 {
 	return n.e.SetCPUBoostRate(rate)
 }
 
+func (n *NesEmulatorAdapter) OutputResolution() (width, height int) {
+	return ppu.WIDTH, ppu.HEIGHT
+}
+
 func makeNESEmulator(options IEmulatorOptions) (*nes.Emulator, error) {
 	configs := nesConfig.Config{
 		Game:               options.Game(),
@@ -179,4 +201,26 @@ func makeNESEmulator(options IEmulatorOptions) (*nes.Emulator, error) {
 		return nil, err
 	}
 	return e, nil
+}
+
+func MakeNESFrameAdapter(frame *ppu.Frame) IFrame {
+	return &NesFrameAdapter{
+		frame: frame,
+	}
+}
+
+func (f *NesFrameAdapter) Width() int {
+	return ppu.WIDTH
+}
+
+func (f *NesFrameAdapter) Height() int {
+	return ppu.HEIGHT
+}
+
+func (f *NesFrameAdapter) YCbCr() *image.YCbCr {
+	return f.frame.YCbCr()
+}
+
+func (f *NesFrameAdapter) Read() (image.Image, func(), error) {
+	return f.frame.Read()
 }

@@ -3,7 +3,20 @@ package emulator
 import (
 	"context"
 	"errors"
+	"image"
 )
+
+// IFrame 模拟器输出画面接口
+type IFrame interface {
+	// Width 画面宽度
+	Width() int
+	// Height 画面高度
+	Height() int
+	// YCbCr 画面YUV格式数据
+	YCbCr() *image.YCbCr
+	// Read 读取画面数据， func() 用于释放资源
+	Read() (image.Image, func(), error)
+}
 
 type IGameFileRepo interface {
 	// GetGameData 获取游戏文件数据
@@ -33,6 +46,8 @@ type IEmulator interface {
 
 	GetCPUBoostRate() float64
 	SetCPUBoostRate(float64) float64
+	// OutputResolution 获取模拟器输出分辨率
+	OutputResolution() (width, height int)
 }
 
 // IEmulatorOptions 模拟器选项接口
@@ -56,6 +71,12 @@ type GraphicOptions struct {
 type BaseEmulatorSave struct {
 	Game string
 	Data []byte
+}
+
+type BaseFrame struct {
+	image  *image.YCbCr
+	width  int
+	height int
 }
 
 var (
@@ -88,4 +109,28 @@ func (s *BaseEmulatorSave) GameName() string {
 
 func (s *BaseEmulatorSave) SaveData() []byte {
 	return s.Data
+}
+
+func MakeBaseFrame(image *image.YCbCr, width, height int) IFrame {
+	return &BaseFrame{
+		image:  image,
+		width:  width,
+		height: height,
+	}
+}
+
+func (b *BaseFrame) Width() int {
+	return b.width
+}
+
+func (b *BaseFrame) Height() int {
+	return b.height
+}
+
+func (b *BaseFrame) YCbCr() *image.YCbCr {
+	return b.image
+}
+
+func (b *BaseFrame) Read() (image.Image, func(), error) {
+	return b.image, func() {}, nil
 }

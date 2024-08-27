@@ -45,6 +45,8 @@ const (
 	MessageTargetEmulator int64 = iota
 )
 
+const EnhanceFrameScale = 2
+
 type ConsumerResult struct {
 	Success bool
 	Error   error
@@ -66,7 +68,6 @@ type GameInstance struct {
 	RoomId               int64
 	EmulatorName         string             // 模拟器类型名称，比如nes
 	e                    emulator.IEmulator // 模拟器接口
-	emulatorCancel       context.CancelFunc
 	game                 string
 	videoEncoder         codec.IVideoEncoder
 	audioSampleRate      int
@@ -75,7 +76,7 @@ type GameInstance struct {
 	controller1          int64                 // controller1 模拟器P1控制权玩家
 	controller2          int64                 // controller2 模拟器P2控制权玩家
 	messageChan          chan *Message         // 消息接收通道，单线程处理多个客户端发送的消息
-	cancel               context.CancelFunc    // 消息接收取消函数
+	cancel               context.CancelFunc    // 消息接收和音频接收取消函数
 	connections          map[int64]*Connection // 连接列表
 	mutex                *sync.RWMutex         // 连接列表mutex
 	LeaseID              int64
@@ -85,41 +86,36 @@ type GameInstance struct {
 	allConnCloseCallback func(instance *GameInstance) // 所有连接关闭后回调，用于异步释放房间会话
 	enhancedFrame        *image.YCbCr                 // 高分辨率画面缓存
 	enhanceFrameOpen     bool
-	frameEnhancer        func(frame *ppu.Frame) *ppu.Frame // 高分辨率画面生成器
+	frameEnhancer        func(frame emulator.IFrame) emulator.IFrame // 高分辨率画面生成器
 	reverseColorOpen     bool
 	grayscaleOpen        bool
 }
 
-func (g *GameInstance) enhanceFrame(frame *ppu.Frame) *ppu.Frame {
+func (g *GameInstance) enhanceFrame(frame emulator.IFrame) emulator.IFrame {
+	if g.enhancedFrame == nil {
+		g.enhancedFrame = image.NewYCbCr(image.Rect(0, 0, frame.Width()*EnhanceFrameScale, frame.Height()*EnhanceFrameScale), image.YCbCrSubsampleRatio420)
+	}
 	original := frame.YCbCr()
 	enhancedFrame := g.enhancedFrame
-	for y := 0; y < ppu.HEIGHT; y++ {
-		for x := 0; x < ppu.WIDTH; x++ {
+	for y := 0; y < frame.Height(); y++ {
+		for x := 0; x < frame.Width(); x++ {
 			// 分辨率放大到原来的两倍，每个像素变成四个像素
 			offset := original.YOffset(x, y)
 			cOffset := original.COffset(x, y)
-			dx, dy := x*2, y*2
-			// TODO 优化性能，减少CPU占用
-			enhancedFrame.Y[enhancedFrame.YOffset(dx+1, dy+1)] = original.Y[offset]
-			enhancedFrame.Y[enhancedFrame.YOffset(dx+1, dy)] = original.Y[offset]
-			enhancedFrame.Y[enhancedFrame.YOffset(dx, dy+1)] = original.Y[offset]
-			enhancedFrame.Y[enhancedFrame.YOffset(dx, dy)] = original.Y[offset]
-
-			enhancedFrame.Cb[enhancedFrame.COffset(dx+1, dy+1)] = original.Cb[cOffset]
-			enhancedFrame.Cb[enhancedFrame.COffset(dx+1, dy)] = original.Cb[cOffset]
-			enhancedFrame.Cb[enhancedFrame.COffset(dx, dy+1)] = original.Cb[cOffset]
-			enhancedFrame.Cb[enhancedFrame.COffset(dx, dy)] = original.Cb[cOffset]
-
-			enhancedFrame.Cr[enhancedFrame.COffset(dx+1, dy+1)] = original.Cr[cOffset]
-			enhancedFrame.Cr[enhancedFrame.COffset(dx+1, dy)] = original.Cr[cOffset]
-			enhancedFrame.Cr[enhancedFrame.COffset(dx, dy+1)] = original.Cr[cOffset]
-			enhancedFrame.Cr[enhancedFrame.COffset(dx, dy)] = original.Cr[cOffset]
+			dx, dy := x*EnhanceFrameScale, y*EnhanceFrameScale
+			for i := 0; i < EnhanceFrameScale; i++ {
+				for j := 0; j < EnhanceFrameScale; j++ {
+					enhancedFrame.Y[enhancedFrame.YOffset(dx+i, dy+j)] = original.Y[offset]
+					enhancedFrame.Cb[enhancedFrame.COffset(dx+i, dy+j)] = original.Cb[cOffset]
+					enhancedFrame.Cr[enhancedFrame.COffset(dx+i, dy+j)] = original.Cr[cOffset]
+				}
+			}
 		}
 	}
-	return ppu.NewCustomSizeFrame(enhancedFrame)
+	return emulator.MakeBaseFrame(enhancedFrame, frame.Width()*EnhanceFrameScale, frame.Height()*EnhanceFrameScale)
 }
 
-func (g *GameInstance) RenderCallback(frame *ppu.Frame, logger *log.Helper) {
+func (g *GameInstance) RenderCallback(frame emulator.IFrame, logger *log.Helper) {
 	frame = g.frameEnhancer(frame)
 	data, release, err := g.videoEncoder.Encode(frame)
 	if err != nil {
@@ -138,7 +134,6 @@ func (g *GameInstance) RenderCallback(frame *ppu.Frame, logger *log.Helper) {
 			logger.Errorf("write sample error: %v", err)
 		}
 	}
-	return
 }
 
 func (g *GameInstance) audioSampleListener(ctx context.Context, logger *log.Helper) {
@@ -353,7 +348,7 @@ func (g *GameInstance) DumpStats() *GameInstanceStats {
 		Connections:       len(g.connections),
 		ActiveConnections: len(active),
 		Game:              g.game,
-		Uptime:            time.Now().Sub(g.createTime),
+		Uptime:            time.Since(g.createTime),
 	}
 }
 
@@ -399,7 +394,8 @@ func (g *GameInstance) restartEmulator(game string, gameData []byte) error {
 		OutputAudioSampleRate: g.audioSampleRate,
 		OutputAudioSampleChan: g.audioSampleChan,
 		NesRenderCallback: func(frame *ppu.Frame) {
-			g.RenderCallback(frame, log.NewHelper(log.DefaultLogger))
+			adapter := emulator.MakeNESFrameAdapter(frame)
+			g.RenderCallback(adapter, log.NewHelper(log.DefaultLogger))
 		},
 	})
 	return err
@@ -472,7 +468,7 @@ func (g *GameInstance) handleChat(msg *Message) {
 func (g *GameInstance) SetGraphicOptions(options *GraphicOptions) {
 	resultCh := make(chan ConsumerResult)
 	g.messageChan <- &Message{Type: MsgSetGraphicOptions, Data: options, resultChan: resultCh}
-	_ = <-resultCh
+	<-resultCh
 	close(resultCh)
 }
 
@@ -491,11 +487,12 @@ func (g *GameInstance) setGraphicOptions(options *GraphicOptions) ConsumerResult
 			enhanceRate = 2
 			g.frameEnhancer = g.enhanceFrame
 		} else {
-			g.frameEnhancer = func(f *ppu.Frame) *ppu.Frame {
-				return f
+			g.frameEnhancer = func(frame emulator.IFrame) emulator.IFrame {
+				return frame
 			}
 		}
-		enc, err := codec.NewVideoEncoder("vp8", ppu.WIDTH*enhanceRate, ppu.HEIGHT*enhanceRate)
+		width, height := g.e.OutputResolution()
+		enc, err := codec.NewVideoEncoder("vp8", width*enhanceRate, height*enhanceRate)
 		if err != nil {
 			return ConsumerResult{Error: err}
 		}
@@ -525,4 +522,15 @@ func (g *GameInstance) setEmulatorSpeed(boostRate float64) ConsumerResult {
 	defer g.e.Resume()
 	rate := g.e.SetCPUBoostRate(boostRate)
 	return ConsumerResult{Success: true, Error: nil, Data: rate}
+}
+
+func (g *GameInstance) makeEmulatorOptions(emulatorName string, game string, gameData []byte) (emulator.IEmulatorOptions, error) {
+	switch emulatorName {
+	case "nes":
+		return emulator.MakeNesEmulatorOptions(game, gameData, g.audioSampleRate, g.audioSampleChan, func(frame emulator.IFrame) {
+			g.RenderCallback(frame, nil)
+		}), nil
+	default:
+		return nil, emulator.ErrorEmulatorNotSupported
+	}
 }
