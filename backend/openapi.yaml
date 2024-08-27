@@ -164,6 +164,18 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/nesgo.admin.v1.GetRoomStatsResponse'
+    /api/v1/emulators:
+        get:
+            tags:
+                - WebApi
+            operationId: WebApi_ListSupportedEmulators
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/nesgo.webapi.v1.ListSupportedEmulatorsResponse'
     /api/v1/game/connection:
         post:
             tags:
@@ -1068,6 +1080,8 @@ components:
                     type: string
                 private:
                     type: boolean
+                emulatorType:
+                    type: string
         nesgo.webapi.v1.CreateRoomResponse:
             type: object
             properties:
@@ -1111,6 +1125,20 @@ components:
         nesgo.webapi.v1.DeleteUserKeyboardBindingResponse:
             type: object
             properties: {}
+        nesgo.webapi.v1.Emulator:
+            type: object
+            properties:
+                name:
+                    type: string
+                supportSaving:
+                    type: boolean
+                supportGraphicSetting:
+                    type: boolean
+                Games:
+                    type: integer
+                    format: int32
+                provider:
+                    type: string
         nesgo.webapi.v1.GameFileMetadata:
             type: object
             properties:
@@ -1167,6 +1195,8 @@ components:
                 createTime:
                     type: string
                 password:
+                    type: string
+                emulatorType:
                     type: string
         nesgo.webapi.v1.GetServerICECandidateResponse:
             type: object
@@ -1262,6 +1292,13 @@ components:
                 total:
                     type: integer
                     format: int32
+        nesgo.webapi.v1.ListSupportedEmulatorsResponse:
+            type: object
+            properties:
+                emulators:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/nesgo.webapi.v1.Emulator'
         nesgo.webapi.v1.ListUserKeyboardBindingResponse:
             type: object
             properties:
@@ -1392,6 +1429,8 @@ components:
                 createTime:
                     type: string
                 password:
+                    type: string
+                emulatorType:
                     type: string
         nesgo.webapi.v1.SDPAnswerRequest:
             type: object

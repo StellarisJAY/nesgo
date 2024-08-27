@@ -26,6 +26,7 @@
             <ul style="text-align: left">
               <li>房主：{{ item["hostName"] }}</li>
               <li>人数：{{ item["memberCount"] }}/{{ item["memberLimit"] }}</li>
+              <li>模拟器：{{ item["emulatorType"] }}</li>
             </ul>
           </a-card>
         </a-list-item>
@@ -159,7 +160,11 @@ export default {
         return;
       }
       const _this = this;
-      api.post("api/v1/room", { "name": this.createRoomState.name, "private": this.createRoomState.isPrivate }).then(_ => {
+      api.post("api/v1/room", { 
+        "name": this.createRoomState.name, 
+        "private": this.createRoomState.isPrivate,
+        "emulatorType": this.selectedEmulatorName
+      }).then(_ => {
         _this.listJoinedRooms();
         _this.createRoomModalOpen = false
         message.success("创建成功");
