@@ -1,4 +1,11 @@
 ## NESGO
+<a href="https://goreportcard.com/report/github.com/stellarisjay/nesgo" target="_blank">
+    <img alt="Go Report Card" src="https://goreportcard.com/badge/github.com/stellarisjay/nesgo" />
+</a>
+<a href="#" target="_blank">
+    <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg" />
+</a>
+
 基于WebRTC的云NES模拟器，支持最多4人同屏联机游玩（2玩家+2观战）。
 
 一次部署多端运行，可在PC端和移动端浏览器运行。
@@ -12,7 +19,10 @@
 - [x] 自定义按键设置
 - [x] 管理员-游戏上传
 - [x] 模拟器服务水平扩展
+- [x] 画面设置
+- [x] 游戏加速
 - [ ] 存档转移（跨房间转移、上传下载）
+- [ ] 更多模拟器
 
 ## Issues
 
@@ -35,7 +45,7 @@ apt install pkg-config libx264-dev libopusfile-dev libvpx-dev
 # 编译微服务后端
 cd backend
 go mod tidy
-make build
+make build # 可执行文件将在bin目录下
 ```
 创建配置文件，请参考/backend/configs目录
 
@@ -53,11 +63,3 @@ cd ui
 yarn build
 # 获得dist目录，可使用nginx部署
 ```
-
-## 截图
-
-![demo1(mobile)](./images/demo1(mobile).PNG)
-
-![demo2(mobile)](./images/demo2(mobile).PNG)
-
-![MarioPC](./images/MarioPC.png)
