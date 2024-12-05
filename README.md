@@ -15,6 +15,7 @@
     <img alt="pion/webrtc" src="https://badgen.net/static/pion/webrtc?color=yellow"/>
 </a>
 
+**停止更新，请前往新项目：https://github.com/StellarisJAY/cloud-emu**
 
 基于WebRTC的云游戏NES模拟器，支持最多4人同屏联机游玩（2玩家+2观战）。
 
